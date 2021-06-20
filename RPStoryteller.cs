@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace RPStoryteller
 {
-    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
+    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
+        GameScenes.SPACECENTER)]
     public class RPStoryteller : ScenarioModule
     {
         public void Start()
