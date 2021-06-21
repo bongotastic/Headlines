@@ -3,13 +3,11 @@ using UnityEngine;
 
 namespace ReputationDecay
 {
+    //TODO Derive ReputationDecay from ScenarioModule instead of Reputation
     [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
         GameScenes.SPACECENTER)]
     public class ReputationDecay : Reputation
     {
-        // properties
-        //private int _repDecrement = -1;
-        
         // Live instance
         //private GameObject _gameReputation;
         //private Reputation _Reputation;
@@ -22,6 +20,7 @@ namespace ReputationDecay
         
         public void Start()
         {
+            // TODO It is possible that the instance of Reputation doens't exist when this is called.
             // Initialization of the decay trigger
             if (_nextdecay <= 0f)
             {
@@ -50,6 +49,7 @@ namespace ReputationDecay
             if (_nextdecay <= Planetarium.GetUniversalTime())
             {
                 // Warning: it update time step is larger than _deltatime, this will be buggy
+                // TODO Probabilistic code should go here.
                 _nextdecay += _deltaTime;
                 return true;
             }
@@ -62,7 +62,7 @@ namespace ReputationDecay
         /// <returns>(float) a Modification to Reputation</returns>
         private float DecayMagnitude()
         {
-            // PLACEHOLDER: decrement by -1f at each trigger
+            // TODO make this decrement probabilistic
             return -1f;
         }
     }
