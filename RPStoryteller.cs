@@ -12,7 +12,7 @@ namespace RPStoryteller
     {
         public void Start()
         {
-            KSPLog.print("[RPStoryteller] Hello World!");
+            //KSPLog.print("[RPStoryteller] Hello World!");
         }
     }
 }

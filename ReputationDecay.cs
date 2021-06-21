@@ -14,27 +14,56 @@ namespace ReputationDecay
         //private GameObject _gameReputation;
         //private Reputation _Reputation;
 
-        private float _deltaTime = 10f;
+        // Time interval for decay to take place
+        private float _deltaTime = 60f;
         
-        [KSPField] 
-        private float _nextdecay = -1f;
+        [KSPField(isPersistant=true)] 
+        private double _nextdecay = -1d;
         
         public void Start()
         {
-            KSPLog.print($"[RPStoryteller][RepDecay] Current Reputation: {reputation}.");
+            // Initialization of the decay trigger
+            if (_nextdecay <= 0f)
+            {
+                _nextdecay = Planetarium.GetUniversalTime() + _deltaTime;
+            }
+            KSPLog.print($"[RPStoryteller][RepDecay] Initializing decay: {_nextdecay}.");
+            KSPLog.print($"[RPStoryteller][RepDecay] Current time: {Planetarium.GetUniversalTime()}.");
         }
 
         public void Update()
         {
-            if (_nextdecay == -1f)
+            if (DecayTrigger())
             {
-                _nextdecay = Time.realtimeSinceStartup + _deltaTime;
+                // Perform a decay increment.
+                AddReputation(DecayMagnitude(), TransactionReasons.Any);
+                KSPLog.print($"[RPStoryteller][RepDecay] New decayed reputation: {reputation}.");
             }
-            else if (_nextdecay < Time.realtimeSinceStartup)
+        }
+
+        /// <summary>
+        /// Determines whether the reputation decay should take place
+        /// </summary>
+        /// <returns>true when the threshold was met.</returns>
+        private bool DecayTrigger()
+        {
+            if (_nextdecay <= Planetarium.GetUniversalTime())
             {
-                AddReputation(-1f, TransactionReasons.Cheating);
+                // Warning: it update time step is larger than _deltatime, this will be buggy
                 _nextdecay += _deltaTime;
+                return true;
             }
+            return false;
+        }
+        
+        /// <summary>
+        /// Determines the magnitude of the reputation decay
+        /// </summary>
+        /// <returns>(float) a Modification to Reputation</returns>
+        private float DecayMagnitude()
+        {
+            // PLACEHOLDER: decrement by -1f at each trigger
+            return -1f;
         }
     }
 }
