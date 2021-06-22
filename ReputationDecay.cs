@@ -1,33 +1,31 @@
-using System;
-using UnityEngine;
+using Random = System.Random;
 
-namespace ReputationDecay
+namespace RPStoryteller
 {
-    //TODO Derive ReputationDecay from ScenarioModule instead of Reputation
     [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
         GameScenes.SPACECENTER)]
-    public class ReputationDecay : Reputation
+    public class ReputationDecay : ScenarioModule
     {
-        // Live instance
-        //private GameObject _gameReputation;
-        //private Reputation _Reputation;
-
-        // Time interval for decay to take place
-        private float _deltaTime = 60f;
+       
+        private float _deltaTime = 3600f * 24f * 36f;  // Set decay to trigger 10 time per Earth years
+        private float _reputationFloor = 20f;          // The level at which it doesn't decay anymore as a natural process
         
+        private Reputation _reputation;                // Composition for Reputation object
+        private readonly Random _rnd = new Random();
+
         [KSPField(isPersistant=true)] 
-        private double _nextdecay = -1d;
+        private double _nextdecay = -1d;               // Universal time for the next decay trigger
         
         public void Start()
         {
-            // TODO It is possible that the instance of Reputation doens't exist when this is called.
-            // Initialization of the decay trigger
+            _reputation = Reputation.Instance;
+            
+            // Initialization of the decay trigger for a new career or a recent install of the mod
             if (_nextdecay <= 0f)
             {
                 _nextdecay = Planetarium.GetUniversalTime() + _deltaTime;
             }
-            KSPLog.print($"[RPStoryteller][RepDecay] Initializing decay: {_nextdecay}.");
-            KSPLog.print($"[RPStoryteller][RepDecay] Current time: {Planetarium.GetUniversalTime()}.");
+            KSPLog.print($"[RPStoryteller][RepDecay] Initializing decay at time {_nextdecay}.");
         }
 
         public void Update()
@@ -35,8 +33,8 @@ namespace ReputationDecay
             if (DecayTrigger())
             {
                 // Perform a decay increment.
-                AddReputation(DecayMagnitude(), TransactionReasons.Any);
-                KSPLog.print($"[RPStoryteller][RepDecay] New decayed reputation: {reputation}.");
+                _reputation.AddReputation(DecayMagnitude(), TransactionReasons.Any);
+                KSPLog.print($"[RPStoryteller][RepDecay] New decayed reputation: {_reputation.reputation}.");
             }
         }
 
@@ -48,21 +46,23 @@ namespace ReputationDecay
         {
             if (_nextdecay <= Planetarium.GetUniversalTime())
             {
-                // Warning: it update time step is larger than _deltatime, this will be buggy
-                // TODO Probabilistic code should go here.
+                // Push the next decay up
                 _nextdecay += _deltaTime;
-                return true;
+                
+                // Derive a probability such that 
+                double pDecay = (_reputation.reputation - _reputationFloor) / 100f;
+                
+                if (pDecay >= _rnd.NextDouble()) return true;
             }
             return false;
         }
         
         /// <summary>
-        /// Determines the magnitude of the reputation decay
+        /// Determines the magnitude of the reputation decay. Currently a placeholder for more complex behaviour.
         /// </summary>
-        /// <returns>(float) a Modification to Reputation</returns>
+        /// <returns>(float) a raw modification to Reputation</returns>
         private float DecayMagnitude()
         {
-            // TODO make this decrement probabilistic
             return -1f;
         }
     }
