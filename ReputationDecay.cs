@@ -1,3 +1,4 @@
+using UnityEngine.Serialization;
 using Random = System.Random;
 
 namespace RPStoryteller
@@ -14,18 +15,18 @@ namespace RPStoryteller
         private readonly Random _rnd = new Random();
 
         [KSPField(isPersistant=true)] 
-        private double _nextdecay = -1d;               // Universal time for the next decay trigger
+        public double nextdecay = -1d;               // Universal time for the next decay trigger
         
         public void Start()
         {
             _reputation = Reputation.Instance;
             
             // Initialization of the decay trigger for a new career or a recent install of the mod
-            if (_nextdecay <= 0f)
+            if (nextdecay <= 0f)
             {
-                _nextdecay = Planetarium.GetUniversalTime() + _deltaTime;
+                nextdecay = Planetarium.GetUniversalTime() + _deltaTime;
             }
-            KSPLog.print($"[RPStoryteller][RepDecay] Initializing decay at time {_nextdecay}.");
+            KSPLog.print($"[RPStoryteller][RepDecay] Initializing decay at time {nextdecay}.");
         }
 
         public void Update()
@@ -44,10 +45,10 @@ namespace RPStoryteller
         /// <returns>true when the threshold was met.</returns>
         private bool DecayTrigger()
         {
-            if (_nextdecay <= Planetarium.GetUniversalTime())
+            if (nextdecay <= Planetarium.GetUniversalTime())
             {
                 // Push the next decay up
-                _nextdecay += _deltaTime;
+                nextdecay += _deltaTime;
                 
                 // Derive a probability such that 
                 double pDecay = (_reputation.reputation - _reputationFloor) / 100f;
