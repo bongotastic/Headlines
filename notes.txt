@@ -1,0 +1,63 @@
+Crewhandlersetting
+https://github.com/KSP-RO/RP-0/blob/master/GameData/RP-0/CrewHandlerSettings.cfg 
+https://github.com/KSP-RO/RP-0/blob/master/Source/Crew/CrewHandlerSettings.cs
+
+
+Get crew roster if you know the key
+ProtoCrewMember pcm = HighLogic.CurrentGame.CrewRoster[kvp.Key];
+
+Iterate over all crew
+foreach (ProtoCrewMember pcm in HighLogic.CurrentGame.CrewRoster.Crew)
+
+Kerbal Roster
+https://www.kerbalspaceprogram.com/api/class_kerbal_roster.html
+
+ProtoCrewMember
+https://www.kerbalspaceprogram.com/api/class_proto_crew_member.html
+
+GameEvents
+https://www.kerbalspaceprogram.com/api/class_game_events.html
+
+Binding GameEvents
+GameEvents.onVesselRecoveryProcessing.Add(methodname); 
+
+Confignode load
+            base.OnLoad(node);
+
+            if (Settings == null)
+            {
+                Settings = new CrewHandlerSettings();
+                foreach (ConfigNode stg in GameDatabase.Instance.GetConfigNodes("CREWHANDLERSETTINGS"))
+                    Settings.Load(stg);
+            }
+
+            KerbalRetireTimes.Clear();
+            ConfigNode n = node.GetNode("RETIRETIMES");
+            if (n != null)
+            {
+                _isFirstLoad = false;
+                foreach (ConfigNode.Value v in n.values)
+                    KerbalRetireTimes[v.name] = double.Parse(v.value);
+            }
+
+Confignode save
+            base.OnSave(node);
+
+            ConfigNode n = node.AddNode("RETIRETIMES");
+            foreach (KeyValuePair<string, double> kvp in KerbalRetireTimes)
+                n.AddValue(kvp.Key, kvp.Value);
+                
+Get Time
+double time = KSPUtils.GetUT();
+Reference: https://github.com/KSP-RO/RP-0/blob/master/Source/Utilities/KSPUtils.cs 
+
+Print a date or date Delta
+KSPUtil.PrintDate(retTime, false)
+KSPUtil.PrintDateDeltaCompact(elapsedTime, true, true)
+Reference: https://www.kerbalspaceprogram.com/api/class_k_s_p_util.html
+
+Rounding and Sigfig formatting 
+https://github.com/KSP-RO/RP-0/blob/master/Source/Utilities/MathUtils.cs 
+
+KACWrapper
+https://github.com/KSP-RO/RP-0/blob/master/Source/Utilities/KACWrapper.cs
