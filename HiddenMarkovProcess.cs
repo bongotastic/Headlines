@@ -5,6 +5,7 @@ namespace HiddenMarkovProcess
 {
     public class HiddenState : MonoBehaviour
     {
+        
         private static readonly System.Random _stateRandom = new System.Random();
         
         // Unique identifier for this Hidden State
