@@ -26,16 +26,20 @@ namespace RPStoryteller
             {
                 nextdecay = Planetarium.GetUniversalTime() + _deltaTime;
             }
-            KSPLog.print($"[RPStoryteller][RepDecay] Initializing decay at time {nextdecay}.");
+            LogLevel($"Reputation will decay at time {nextdecay}.");
         }
 
+        private void LogLevel(string message)
+        {
+            KSPLog.print($"[Starstruck][RepDecay] {message}.");
+        }
         public void Update()
         {
             if (DecayTrigger())
             {
                 // Perform a decay increment.
                 _reputation.AddReputation(DecayMagnitude(), TransactionReasons.Any);
-                KSPLog.print($"[RPStoryteller][RepDecay] New decayed reputation: {_reputation.reputation}.");
+                LogLevel($"New decayed reputation: {_reputation.reputation}.");
             }
         }
 

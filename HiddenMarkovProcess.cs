@@ -20,6 +20,13 @@ namespace HiddenMarkovProcess
         // Housekeeping
         private bool _dirty = true;
 
+        public HiddenState(string stateIdentity)
+        {
+            this.stateName = stateIdentity;
+            
+            // TODO Load HMM data from config
+        }
+
         #region UnityStuff
     
         public void Start()
@@ -27,6 +34,20 @@ namespace HiddenMarkovProcess
             // Default emission-less permanent state
             _transitions.Add("", 1.0f);
             _emissions.Add("", 1.0f);
+            
+        }
+        
+        public ConfigNode AsConfigNode()
+        {
+            ConfigNode outputNode = new ConfigNode(this.stateName);
+            
+            // TODO actually write the HMM state
+            
+            return outputNode;
+        }
+
+        public void FromConfigNode(ConfigNode node)
+        {
             
         }
 

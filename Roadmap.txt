@@ -1,0 +1,23 @@
+﻿Gameplay 
+Program manager (the player) sets up PR campaigns to hype up accomplishments. The PR itself is done by Kerbals on staff,
+with various degree of competence. Overhype affects credibility of both the kerbal and the agency, which blunts the ability
+to accumulate reputation. 
+
+The higher the reputation, the more potent kerbals are upon hiring. Engineers affect the VAB, Scientists, the R&D complex, and 
+pilots affect public profile. High profile kerbals will leave the program if the reputation gets too low. Over time, kerbals
+also get better at what they do, thus providing an incentive to keep them. Also, their level affects their profile, 
+providing an incentive to get them to fly.
+
+Therefore, maximizing reputation allows to accelerate the program, and staff tradeoff need to be balanced. Properly balanced, 
+this mechanics implies sustaining a tempo of reputation earnings through incentive. 
+
+Bonus: 5% (level 0), 10% (level 1), 20% (level 2)
+Profile: 
+
+Iteration 1
+Reputation decays over time with a (kind of) assymptote at 20 reputation (for now)
+
+Iteration 2
+Idle kerbals, assumed to be in the spotlight, set the assymptote as a function of their media profile/credibility. They
+accumulate hype over time, which sets a upper limit to reputation earnings. At year end, if the earnings are less than
+the hype, reputation is affected, and credibility of the staff downgraded.

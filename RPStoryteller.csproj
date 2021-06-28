@@ -53,7 +53,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HiddenMarkovProcess.cs" />
     <Compile Include="ReputationDecay.cs" />
+    <Compile Include="RPPeopleManager.cs" />
     <Compile Include="RPStoryteller.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>
@@ -61,7 +63,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="copybuild.py" />
+    <Content Include="GameData\StarStruck\HMM.cfg" />
     <Content Include="notes.txt" />
+    <Content Include="Roadmap.txt" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="GameData\StarStruck\Plugins" />
