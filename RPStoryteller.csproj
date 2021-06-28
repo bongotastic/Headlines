@@ -53,19 +53,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="HiddenMarkovProcess.cs" />
-    <Compile Include="ReputationDecay.cs" />
-    <Compile Include="RPPeopleManager.cs" />
-    <Compile Include="RPStoryteller.cs">
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="source\HiddenMarkovProcess.cs" />
+    <Compile Include="source\ReputationDecay.cs" />
+    <Compile Include="source\RPPeopleManager.cs" />
+    <Compile Include="source\RPStoryteller.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>
-    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="copybuild.py" />
     <Content Include="GameData\StarStruck\HMM.cfg" />
-    <Content Include="notes.txt" />
-    <Content Include="Roadmap.txt" />
+    <Content Include="Notes\notes.txt" />
+    <Content Include="Notes\Roadmap.txt" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="GameData\StarStruck\Plugins" />
