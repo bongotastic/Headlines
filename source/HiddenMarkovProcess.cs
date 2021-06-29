@@ -23,8 +23,18 @@ namespace HiddenMarkovProcess
         public HiddenState(string stateIdentity)
         {
             this.stateName = stateIdentity;
+
+            ConfigNode thisdefinition = null;
             
-            // TODO Load HMM data from config
+            foreach (ConfigNode cfg in GameDatabase.Instance.GetConfigNodes("HIDDENMARKOVMODELS"))
+            {
+                if (cfg.TryGetNode(stateIdentity, ref thisdefinition))
+                {
+                    FromConfigNode(thisdefinition);
+                    break;
+                }
+            }
+            
         }
 
         #region UnityStuff
@@ -36,19 +46,38 @@ namespace HiddenMarkovProcess
             _emissions.Add("", 1.0f);
             
         }
-        
-        public ConfigNode AsConfigNode()
-        {
-            ConfigNode outputNode = new ConfigNode(this.stateName);
-            
-            // TODO actually write the HMM state
-            
-            return outputNode;
-        }
 
+        /// <summary>
+        /// Logic to read from the config files to define transition and emission probabilities.
+        /// </summary>
+        /// <param name="node">The config node specific to this stateName</param>
         public void FromConfigNode(ConfigNode node)
         {
+            // Compiler really doens't like these as null...
+            ConfigNode transitionNode = node.GetNode("Transitions");
+            ConfigNode emissionNode = node.GetNode("Emissions");
+
+            // Transitions
+            if (transitionNode != null)
+            {
+                foreach (ConfigNode.Value item in transitionNode.values)
+                {
+                    if (_transitions.ContainsKey(item.name) == true) continue;
+                    
+                    _transitions.Add(item.name, float.Parse(item.value));
+                }
+            }
             
+            // Emissions
+            if (emissionNode != null)
+            {
+                foreach (ConfigNode.Value item in emissionNode.values)
+                {
+                    if (_emissions.ContainsKey(item.name) == true) continue;
+                    
+                    _emissions.Add(item.name, float.Parse(item.value));
+                }
+            }
         }
 
         #endregion

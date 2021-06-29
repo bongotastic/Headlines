@@ -57,19 +57,24 @@ namespace RPStoryteller
             
             // Read Hidden models and build set
             double transientTime;
+            string modelName;
             
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
-            foreach (string modelName in hmNode.GetValues())
+            if (hmNode != null)
             {
-                transientTime = double.Parse(hmNode.GetValue(modelName));
-                
-                if (_hmmScheduler.ContainsKey(modelName))
+                foreach (ConfigNode.Value nodeVal in hmNode.values)
                 {
-                    _hmmScheduler[modelName] = transientTime;
-                }
-                else
-                {
-                    InitializeHMM(modelName, transientTime);
+                    modelName = nodeVal.name;
+                    transientTime = double.Parse(nodeVal.value);
+
+                    if (_hmmScheduler.ContainsKey(modelName))
+                    {
+                        _hmmScheduler[modelName] = transientTime;
+                    }
+                    else
+                    {
+                        InitializeHMM(modelName, transientTime);
+                    }
                 }
             }
         }
