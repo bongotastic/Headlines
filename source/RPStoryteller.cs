@@ -17,6 +17,9 @@ namespace RPStoryteller
         private Dictionary<string, HiddenState> _liveProcesses = new Dictionary<string, HiddenState>();
         private Dictionary<string, double> _hmmScheduler = new Dictionary<string, double>();
         private double _periodBase = 3600 * 24 * 10;
+
+        // Cached value for the next trigger so the Scheduler doesn't have to scan constantly
+        private double _nextUpdate = -1;
         
         #region UnityStuff
         
@@ -27,7 +30,21 @@ namespace RPStoryteller
             // Default HMM
             InitializeHMM("space_craze");
             
+            SchedulerCacheNextTime();
+            LogLevel1($"Next trigger will be at {_nextUpdate}.");
+            
         }
+        
+        /// <summary>
+        /// Heartbeat of the Starstruck mod. 
+        /// </summary>
+        /// <exception cref="NotImplementedException"></exception>
+        public void Update()
+        {
+            // Minimizing the profile of this method's call.
+            if (GetUT() <= _nextUpdate) SchedulerUpdate(GetUT());
+        }
+
         #endregion
 
         #region KSP
@@ -145,6 +162,25 @@ namespace RPStoryteller
                 RemoveHMM(initialState);
             }
         }
+
+        #endregion
+
+        #region Scheduling
+
+        /// <summary>
+        /// Update the cached value for nextUpdate by finding the smallest value in the scheduler.
+        /// </summary>
+        /// <param name="currentTime"></param>
+        private void SchedulerCacheNextTime()
+        {
+            _nextUpdate = _hmmScheduler.OrderBy(kvp => kvp.Value).First().Value;
+        }
+
+        private void SchedulerUpdate(double currentTime)
+        {
+            // Scan all live items to trigger them if needed
+        }
+        
 
         #endregion
 
