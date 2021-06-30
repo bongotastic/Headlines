@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UniLinq;
 using UnityEngine;
 
 namespace HiddenMarkovProcess
@@ -26,6 +27,10 @@ namespace HiddenMarkovProcess
         public HiddenState(string stateIdentity)
         {
             this.stateName = stateIdentity;
+            
+            // Default emission-less permanent state
+            _transitions.Add("", 1.0f);
+            _emissions.Add("", 1.0f);
 
             ConfigNode thisdefinition = null;
             
@@ -37,19 +42,30 @@ namespace HiddenMarkovProcess
                     break;
                 }
             }
-            
+            Recompute();
         }
 
-        #region UnityStuff
-    
-        public void Start()
+        #region Debug
+
+        private void PrintHMM()
         {
-            // Default emission-less permanent state
-            _transitions.Add("", 1.0f);
-            _emissions.Add("", 1.0f);
+            KSPLog.print($"[HMM] {this.stateName}");
+
+            foreach (KeyValuePair<string, float> kvp in _transitions)
+            {
+                KSPLog.print($"[HMM][Transition] {kvp.Key} : {kvp.Value}");
+            }
             
+            foreach (KeyValuePair<string, float> kvp in _emissions)
+            {
+                KSPLog.print($"[HMM][Emission] {kvp.Key} : {kvp.Value}");
+            }
         }
 
+        #endregion
+
+        #region KSP
+        
         /// <summary>
         /// Logic to read from the config files to define transition and emission probabilities.
         /// </summary>
@@ -60,7 +76,6 @@ namespace HiddenMarkovProcess
             this.stateName = node.GetValue("stateName");
             this.period = double.Parse(node.GetValue("period"));
             
-            // Compiler really doens't like these as null...
             ConfigNode transitionNode = node.GetNode("Transitions");
             ConfigNode emissionNode = node.GetNode("Emissions");
 

@@ -19,6 +19,11 @@ namespace RPStoryteller
 
         // Cached value for the next trigger so the Scheduler doesn't have to scan constantly
         private double _nextUpdate = -1;
+        private double _assumedPeriod = 60;
+
+        
+        [KSPField(isPersistant = true)] public double attentionSpanFactor = 1;
+        [KSPField(isPersistant = true)] public double programHypeFactor = 1;
         
         #region UnityStuff
 
@@ -122,6 +127,7 @@ namespace RPStoryteller
         /// <param name="stateIdentity">The identifier in the config files.</param>
         private void InitializeHMM(string stateIdentity, double timestamp = 0)
         {
+            // TODO figure out why a new state has the same transitions as original
             // Avoid duplications
             if (_liveProcesses.ContainsKey(stateIdentity) == false)
             {
@@ -131,8 +137,6 @@ namespace RPStoryteller
                 
                 if (timestamp == 0) _hmmScheduler.Add(stateIdentity, GetUT() + GeneratePeriod( newState.period ));
                 else _hmmScheduler.Add(stateIdentity, timestamp);
-                
-                LogLevel1($"HMM {stateIdentity} launched to be triggered at {_hmmScheduler[stateIdentity]}.");
             }
         }
 
@@ -155,7 +159,7 @@ namespace RPStoryteller
         {
             if (initialState != finalState)
             {
-                LogLevel1($"State {initialState} transitions to state {finalState}.");
+                LogLevel1($"[HMM] Entering hidden state {finalState}.");
                 InitializeHMM(finalState);
                 RemoveHMM(initialState);
             }
@@ -177,9 +181,10 @@ namespace RPStoryteller
                                    Math.Sin(2.0 * Math.PI * u2);
             double returnedVal = baseValue + stdDev * randStdNormal;
             double floorVal = baseValue / 20;
+            double outValue = Math.Max(returnedVal * attentionSpanFactor, floorVal);
 
-            // Convert to seconds and assume hours instead of days for debug purpose
-            return Math.Max( baseValue, returnedVal ) * 60; 
+            // Convert to seconds based on hardcoded period
+            return outValue * _assumedPeriod; 
         }
         #endregion
 
@@ -192,10 +197,10 @@ namespace RPStoryteller
         {
             _nextUpdate = GetUT();
             
-            double minVal = -1;
+            double minVal = 60;
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
             {
-                if (minVal == -1) minVal = kvp.Value;
+                if (minVal == 60) minVal = kvp.Value;
                 else
                 {
                     if (kvp.Value < minVal) minVal = kvp.Value;
@@ -229,13 +234,14 @@ namespace RPStoryteller
                 }
 
                 transitionString = _liveProcesses[stateName].Transition();
-                if (transitionString != "")
+                if (transitionString != stateName)
                 {
                     TransitionHMM(stateName, transitionString);
                 }
                 else
                 {
                     _hmmScheduler[stateName] = currentTime + GeneratePeriod(_liveProcesses[stateName].period);
+                    //LogLevel1($"[HMM] State {stateName} will trigger at time {KSPUtil.PrintDate(_hmmScheduler[stateName], true, false)}.");
                 } 
             }
             SchedulerCacheNextTime();
@@ -252,10 +258,34 @@ namespace RPStoryteller
         /// <param name="eventName"></param>
         public void EmitEvent(string eventName)
         {
-            LogLevel1($"Emitting event with label {eventName}");
-        }
-        
+            LogLevel1($"[Emission] {eventName} at time { KSPUtil.PrintDate(GetUT(), true, false) }");
 
+            switch (eventName)
+            {
+                case "attention_span_long":
+                    AdjustAttentionSpan(1);
+                    break;
+                case "attention_span_short":
+                    AdjustAttentionSpan(-1);
+                    break;
+                default:
+                    LogLevel1($"[Emission] Event {eventName} is not implemented yet.");
+                    break;
+            }
+        }
+
+        public void AdjustAttentionSpan(double increment)
+        {
+            double power = 1.618;
+            if (increment < 0)
+            {
+                power = 1 / power;
+            }
+
+            attentionSpanFactor *= power;
+            
+            LogLevel1($"New attentionSpanFactor = {attentionSpanFactor}");
+        }
         #endregion
     }
 }
