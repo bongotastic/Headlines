@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using HiddenMarkovProcess;
-using UnityEngine;
+
 
 
 namespace RPStoryteller
@@ -12,27 +10,27 @@ namespace RPStoryteller
     [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
     public class RPStoryteller : ScenarioModule
     {
-
+        // Random number generator
+        private static System.Random storytellerRand = new System.Random();
+        
         // HMM data structures and parameters
         private Dictionary<string, HiddenState> _liveProcesses = new Dictionary<string, HiddenState>();
         private Dictionary<string, double> _hmmScheduler = new Dictionary<string, double>();
-        private double _periodBase = 3600 * 24 * 10;
 
         // Cached value for the next trigger so the Scheduler doesn't have to scan constantly
         private double _nextUpdate = -1;
         
         #region UnityStuff
-        
+
+
         public void Start()
         {
             LogLevel1("Initializing Starstruck");
             
             // Default HMM
             InitializeHMM("space_craze");
-            
+
             SchedulerCacheNextTime();
-            LogLevel1($"Next trigger will be at {_nextUpdate}.");
-            
         }
         
         /// <summary>
@@ -42,7 +40,7 @@ namespace RPStoryteller
         public void Update()
         {
             // Minimizing the profile of this method's call.
-            if (GetUT() <= _nextUpdate) SchedulerUpdate(GetUT());
+            if (_nextUpdate <= GetUT()) SchedulerUpdate(GetUT());
         }
 
         #endregion
@@ -71,14 +69,14 @@ namespace RPStoryteller
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
-            
-            // Read Hidden models and build set
-            double transientTime;
-            string modelName;
-            
+
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
             if (hmNode != null)
             {
+                // Read Hidden models and build set
+                double transientTime;
+                string modelName;
+                
                 foreach (ConfigNode.Value nodeVal in hmNode.values)
                 {
                     modelName = nodeVal.name;
@@ -131,7 +129,7 @@ namespace RPStoryteller
                 
                 _liveProcesses.Add(stateIdentity, newState);
                 
-                if (timestamp == 0) _hmmScheduler.Add(stateIdentity, GetUT() + _periodBase);
+                if (timestamp == 0) _hmmScheduler.Add(stateIdentity, GetUT() + GeneratePeriod( newState.period ));
                 else _hmmScheduler.Add(stateIdentity, timestamp);
                 
                 LogLevel1($"HMM {stateIdentity} launched to be triggered at {_hmmScheduler[stateIdentity]}.");
@@ -163,6 +161,26 @@ namespace RPStoryteller
             }
         }
 
+        /// <summary>
+        /// Generate a nearly normal random number of days for a HMM triggering event. Box Muller transform
+        /// taken from https://stackoverflow.com/questions/218060/random-gaussian-variables
+        /// Guarantees that the period is at least 1/20 of the baseValue.
+        /// </summary>
+        /// <param name="baseValue">The base value specified in the config node of a HMM</param>
+        /// <returns></returns>
+        private double GeneratePeriod(double baseValue)
+        {
+            double stdDev = baseValue / 3;
+            double u1 = 1.0- storytellerRand.NextDouble(); 
+            double u2 = 1.0- storytellerRand.NextDouble();
+            double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) *
+                                   Math.Sin(2.0 * Math.PI * u2);
+            double returnedVal = baseValue + stdDev * randStdNormal;
+            double floorVal = baseValue / 20;
+
+            // Convert to seconds and assume hours instead of days for debug purpose
+            return Math.Max( baseValue, returnedVal ) * 60; 
+        }
         #endregion
 
         #region Scheduling
@@ -170,19 +188,74 @@ namespace RPStoryteller
         /// <summary>
         /// Update the cached value for nextUpdate by finding the smallest value in the scheduler.
         /// </summary>
-        /// <param name="currentTime"></param>
         private void SchedulerCacheNextTime()
         {
-            _nextUpdate = _hmmScheduler.OrderBy(kvp => kvp.Value).First().Value;
+            _nextUpdate = GetUT();
+            
+            double minVal = -1;
+            foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
+            {
+                if (minVal == -1) minVal = kvp.Value;
+                else
+                {
+                    if (kvp.Value < minVal) minVal = kvp.Value;
+                }
+            }
+            _nextUpdate = minVal;
         }
 
         private void SchedulerUpdate(double currentTime)
         {
-            // Scan all live items to trigger them if needed
+            string emittedString = "";
+            string transitionString = "";
+            
+            // Make a list of states to trigger
+            List<string> triggerStates = new List<string>();
+            foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
+            {
+                if (kvp.Value <= currentTime)
+                {
+                    triggerStates.Add(kvp.Key);
+                }
+            }
+
+            // Do the deed
+            foreach (string stateName in triggerStates)
+            {
+                emittedString = _liveProcesses[stateName].Emission();
+                if (emittedString != "")
+                {
+                    EmitEvent(emittedString);
+                }
+
+                transitionString = _liveProcesses[stateName].Transition();
+                if (transitionString != "")
+                {
+                    TransitionHMM(stateName, transitionString);
+                }
+                else
+                {
+                    _hmmScheduler[stateName] = currentTime + GeneratePeriod(_liveProcesses[stateName].period);
+                } 
+            }
+            SchedulerCacheNextTime();
+        }
+
+
+        #endregion
+
+        #region Events
+
+        /// <summary>
+        /// Primary handler for the emission of events.
+        /// </summary>
+        /// <param name="eventName"></param>
+        public void EmitEvent(string eventName)
+        {
+            LogLevel1($"Emitting event with label {eventName}");
         }
         
 
         #endregion
-
     }
 }

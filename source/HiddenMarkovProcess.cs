@@ -10,6 +10,9 @@ namespace HiddenMarkovProcess
         
         // Unique identifier for this Hidden State
         public string stateName;
+
+        // Number of days between triggers
+        public double period;
         
         // Transitions
         private readonly Dictionary<string, float> _transitions = new Dictionary<string, float>();
@@ -53,6 +56,10 @@ namespace HiddenMarkovProcess
         /// <param name="node">The config node specific to this stateName</param>
         public void FromConfigNode(ConfigNode node)
         {
+            // Basic properties
+            this.stateName = node.GetValue("stateName");
+            this.period = double.Parse(node.GetValue("period"));
+            
             // Compiler really doens't like these as null...
             ConfigNode transitionNode = node.GetNode("Transitions");
             ConfigNode emissionNode = node.GetNode("Emissions");
@@ -186,6 +193,7 @@ namespace HiddenMarkovProcess
         public void SpecifyTransition(string key, float value)
         {
             SpecifyProbability(_transitions, key, value);
+            _dirty = true;
         }
         
         /// <summary>
@@ -197,6 +205,7 @@ namespace HiddenMarkovProcess
         public void SpecifyEmission(string key, float value)
         {
             SpecifyProbability(_emissions, key, value);
+            _dirty = true;
         }
         
         /// <summary>
