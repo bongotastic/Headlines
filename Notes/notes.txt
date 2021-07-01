@@ -17,6 +17,8 @@ https://www.kerbalspaceprogram.com/api/class_proto_crew_member.html
 
 GameEvents
 https://www.kerbalspaceprogram.com/api/class_game_events.html
+OnReputationChanged = new EventData<float, TransactionReasons>("OnReputationChanged")
+https://www.kerbalspaceprogram.com/api/_currency_util_8cs.html#a5e7da8007c5a53c936acdce93de26b74 (Transaction reason)
 
 Binding GameEvents
 GameEvents.onVesselRecoveryProcessing.Add(methodname); 
