@@ -173,7 +173,6 @@ namespace HiddenMarkovProcess
             // Rescale, using "" as the proportionally flexible element.
             if (runningSum > 1.0)
             {
-                // TODO this expression should throw an exception
                 foreach (KeyValuePair<string, float> kvp in target)
                 {
                     if (kvp.Key != "")

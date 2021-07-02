@@ -130,26 +130,27 @@ namespace RPStoryteller
         private void ReputationChanged(float newReputation, TransactionReasons reason)
         {
             float deltaReputation = newReputation - this.programLastKnownReputation;
+            float actualDeltaReputation = deltaReputation;
 
-            if (deltaReputation <= 0.9 || reason == TransactionReasons.None) return;
+            // Avoid processing recursively the adjustment
+            if ( reason == TransactionReasons.None) return;
             
             LogLevel1($"New delta: {deltaReputation} whilst hype is {this.programHype}.");
             if (deltaReputation <= this.programHype)
             {
                 this.programHype -= deltaReputation;
                 this.programLastKnownReputation = newReputation;
-                LogLevel1($"Well within program hype.");
             }
             else
             {
                 // Retroactively cap the reputation gain to the active hype
-                float overHype = deltaReputation - this.programHype;
                 this.programLastKnownReputation += this.programHype;
                 Reputation.Instance.SetReputation(this.programLastKnownReputation, TransactionReasons.None);
                 LogLevel1($"Reputation was capped at {this.programHype} due to insufficient hype.");
+                StarStruckUtil.ScreenMessage($"Underrated! Your achievement's impact is limited.\n({(this.programHype/deltaReputation).ToString("P1")})");
                 
                 // Surplus reputation goes as additional hype
-                this.programHype = overHype;
+                this.programHype = deltaReputation - this.programHype;
             }
             LogLevel1($"Program hype is now {this.programHype}.");
             
@@ -164,7 +165,6 @@ namespace RPStoryteller
         /// <param name="stateIdentity">The identifier in the config files.</param>
         private void InitializeHMM(string stateIdentity, double timestamp = 0)
         {
-            // TODO figure out why a new state has the same transitions as original
             // Avoid duplications
             if (_liveProcesses.ContainsKey(stateIdentity) == false)
             {
@@ -278,7 +278,6 @@ namespace RPStoryteller
                 else
                 {
                     _hmmScheduler[stateName] = currentTime + GeneratePeriod(_liveProcesses[stateName].period);
-                    //LogLevel1($"[HMM] State {stateName} will trigger at time {KSPUtil.PrintDate(_hmmScheduler[stateName], true, false)}.");
                 } 
             }
             SchedulerCacheNextTime();
@@ -305,12 +304,23 @@ namespace RPStoryteller
                 case "attention_span_short":
                     AdjustAttentionSpan(-1);
                     break;
+                case "hype_boost":
+                    AdjustHype(1f);
+                    break;
+                case "hype_dampened":
+                    AdjustHype(-1f);
+                    break;
                 default:
                     LogLevel1($"[Emission] Event {eventName} is not implemented yet.");
                     break;
             }
         }
 
+        /// <summary>
+        /// Adjust the time it takes to trigger Reputation Decay. The golden ratio here is about just right
+        /// for the purpose.
+        /// </summary>
+        /// <param name="increment">either -1 or 1</param>
         public void AdjustAttentionSpan(double increment)
         {
             double power = 1.618;
@@ -321,8 +331,27 @@ namespace RPStoryteller
 
             attentionSpanFactor *= power;
             
+            // Clamp this factor within reasonable boundaries
+            attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // That's a 3.24-day span
+            attentionSpanFactor = Math.Min(Math.Pow(power, 3), attentionSpanFactor); // That's a 152-day span
+            
             LogLevel1($"New attentionSpanFactor = {attentionSpanFactor}");
         }
+
+        /// <summary>
+        /// Adjust hype in either direction in increments of 5.
+        /// </summary>
+        /// <param name="increment">(float)the number of increment unit to apply.</param>
+        public void AdjustHype(float increment)
+        {
+            // Simplistic model ignoring reasonable targets
+            this.programHype += increment * 5f;
+            this.programHype = Math.Max(0f, this.programHype);
+            
+            LogLevel1($"Hype on the program changed by {increment*5f} to now be {this.programHype}.");
+            StarStruckUtil.ScreenMessage($"Program Hype: {string.Format("{0:0}", this.programHype)}");
+        }
+        
         #endregion
     }
 }

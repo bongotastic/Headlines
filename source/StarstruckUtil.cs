@@ -1,34 +1,37 @@
-﻿namespace RPStoryteller.source
+﻿using KSP.UI.Screens;
+
+
+namespace RPStoryteller.source
 {
     public class StarStruckUtil
     {
-        public static void Report(int significance, string message)
+        public static void Report(int significance, string message, string title="Starstruck")
         {
             switch (significance)
             {
                 case 1:
                     KSPLog.print(message);
                     break;
-                case 2:
-                    CreateNotification(message);
-                    break;
                 case 3:
-                    ScreenInterrupt(message);
+                    CreateMessage(message, title);
+                    break;
+                case 2:
+                    ScreenMessage(message);
                     break;
             }
             
         }
 
-        private static void CreateNotification(string message)
+        public static void CreateMessage(string message, string title)
         {
             // TODO implement notification generation
             KSPLog.print("[[" + message + "]]");
         }
         
-        private static void ScreenInterrupt(string message)
+        public static void ScreenMessage(string message)
         {
-            // TODO implement notification generation
-            KSPLog.print("!!" + message + "!!");
+            var messageUI = new ScreenMessage(message, 4f, ScreenMessageStyle.UPPER_CENTER);
+            ScreenMessages.PostScreenMessage(messageUI);
         }
         
         /// <summary>
