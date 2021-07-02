@@ -12,6 +12,9 @@ namespace RPStoryteller
     {
         // Random number generator
         private static System.Random storytellerRand = new System.Random();
+        
+        // Mod data structures
+        private RPPeopleManager _peopleManager;
 
         // HMM data structures and parameters
         private Dictionary<string, HiddenState> _liveProcesses = new Dictionary<string, HiddenState>();
@@ -36,8 +39,9 @@ namespace RPStoryteller
             
             // Default HMM
             InitializeHMM("space_craze");
-
             SchedulerCacheNextTime();
+
+            _peopleManager = RPPeopleManager.Instance;
             
             // Event Catching
             GameEvents.OnReputationChanged.Add(ReputationChanged);
