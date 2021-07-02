@@ -60,10 +60,13 @@
     <Compile Include="source\RPStoryteller.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>
+    <Compile Include="source\StarstruckUtil.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="copybuild.py" />
     <Content Include="GameData\StarStruck\HMM.cfg" />
+    <Content Include="GameData\StarStruck\kerbals.cfg" />
+    <Content Include="GameData\StarStruck\kerbalsHMM.cfg" />
     <Content Include="Notes\notes.txt" />
     <Content Include="Notes\Roadmap.txt" />
   </ItemGroup>

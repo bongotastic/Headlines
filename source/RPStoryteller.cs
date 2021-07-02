@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HiddenMarkovProcess;
-
+using RPStoryteller.source;
 
 
 namespace RPStoryteller
@@ -12,7 +12,7 @@ namespace RPStoryteller
     {
         // Random number generator
         private static System.Random storytellerRand = new System.Random();
-        
+
         // HMM data structures and parameters
         private Dictionary<string, HiddenState> _liveProcesses = new Dictionary<string, HiddenState>();
         private Dictionary<string, double> _hmmScheduler = new Dictionary<string, double>();
@@ -24,6 +24,8 @@ namespace RPStoryteller
         
         [KSPField(isPersistant = true)] public double attentionSpanFactor = 1;
         [KSPField(isPersistant = true)] public double programHypeFactor = 1;
+        [KSPField(isPersistant = true)] public float programHype = 1;
+        [KSPField(isPersistant = true)] public float programLastKnownReputation = 0;
         
         #region UnityStuff
 
@@ -36,6 +38,9 @@ namespace RPStoryteller
             InitializeHMM("space_craze");
 
             SchedulerCacheNextTime();
+            
+            // Event Catching
+            GameEvents.OnReputationChanged.Add(ReputationChanged);
         }
         
         /// <summary>
@@ -105,7 +110,7 @@ namespace RPStoryteller
         /// <param name="message">The text to be logged.</param>
         public void LogLevel1(string message)
         {
-            KSPLog.print($"[Starstruck] {message}");
+            StarStruckUtil.Report(1, $"[Starstruck] {message}");
         }
 
         /// <summary>
@@ -114,9 +119,41 @@ namespace RPStoryteller
         /// <returns>UT time in seconds</returns>
         public static double GetUT()
         {
-            return HighLogic.LoadedSceneIsEditor ? HighLogic.CurrentGame.UniversalTime : Planetarium.GetUniversalTime();
+            return StarStruckUtil.GetUT();
         }
-        
+
+        /// <summary>
+        /// Highjacks all increase in reputation to ensure that they are capped at the program hype level.
+        /// </summary>
+        /// <param name="newReputation">The new, unmodified reputation</param>
+        /// <param name="reason">Transactionreason item</param>
+        private void ReputationChanged(float newReputation, TransactionReasons reason)
+        {
+            float deltaReputation = newReputation - this.programLastKnownReputation;
+
+            if (deltaReputation <= 0.9 || reason == TransactionReasons.None) return;
+            
+            LogLevel1($"New delta: {deltaReputation} whilst hype is {this.programHype}.");
+            if (deltaReputation <= this.programHype)
+            {
+                this.programHype -= deltaReputation;
+                this.programLastKnownReputation = newReputation;
+                LogLevel1($"Well within program hype.");
+            }
+            else
+            {
+                // Retroactively cap the reputation gain to the active hype
+                float overHype = deltaReputation - this.programHype;
+                this.programLastKnownReputation += this.programHype;
+                Reputation.Instance.SetReputation(this.programLastKnownReputation, TransactionReasons.None);
+                LogLevel1($"Reputation was capped at {this.programHype} due to insufficient hype.");
+                
+                // Surplus reputation goes as additional hype
+                this.programHype = overHype;
+            }
+            LogLevel1($"Program hype is now {this.programHype}.");
+            
+        }
         #endregion
 
         #region HMM Logic
