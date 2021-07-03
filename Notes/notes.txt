@@ -63,3 +63,30 @@ https://github.com/KSP-RO/RP-0/blob/master/Source/Utilities/MathUtils.cs
 
 KACWrapper
 https://github.com/KSP-RO/RP-0/blob/master/Source/Utilities/KACWrapper.cs
+
+KCTGameState
+https://github.com/KSP-RO/RP-0/blob/master/Source/KerbalConstructionTime/KCTGameStates.cs
+
+Toolbar button (https://github.com/valerian/ksp-planetshine/blob/master/PlanetShine/Gui/GuiManager.cs)
+stockButton = ApplicationLauncher.Instance.AddModApplication(
+                () =>
+                {
+                    planetShine = PlanetShine.Instance;
+                    isConfigDisplayed = true;
+                },
+                () =>
+                {
+                    isConfigDisplayed = false;
+                },
+                null,
+                null,
+                null,
+                null,
+                ApplicationLauncher.AppScenes.FLIGHT,
+                GameDatabase.Instance.GetTexture("PlanetShine/Icons/ps_toolbar", false)
+                );
+            if (isConfigDisplayed)
+                stockButton.SetTrue();
+
+A window from planetshine
+https://github.com/valerian/ksp-planetshine/blob/master/PlanetShine/Gui/GuiRenderer.cs
