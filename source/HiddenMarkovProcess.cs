@@ -15,6 +15,9 @@ namespace HiddenMarkovProcess
         // Number of days between triggers
         public double period;
         
+        // Anchor point for HMM associated with kerbals
+        public string kerbalName;
+        
         // Transitions
         private readonly Dictionary<string, float> _transitions = new Dictionary<string, float>();
         
@@ -24,9 +27,10 @@ namespace HiddenMarkovProcess
         // Housekeeping
         private bool _dirty = true;
 
-        public HiddenState(string stateIdentity)
+        public HiddenState(string stateIdentity, string kerbalName="")
         {
             this.stateName = stateIdentity;
+            this.kerbalName = kerbalName;
             
             // Default emission-less permanent state
             _transitions.Add("", 1.0f);
@@ -45,8 +49,11 @@ namespace HiddenMarkovProcess
             Recompute();
         }
 
-        #region Debug
+        #region Meta
 
+        /// <summary>
+        /// Debug method that may not be needed in the long run.
+        /// </summary>
         private void PrintHMM()
         {
             KSPLog.print($"[HMM] {this.stateName}");
@@ -60,6 +67,25 @@ namespace HiddenMarkovProcess
             {
                 KSPLog.print($"[HMM][Emission] {kvp.Key} : {kvp.Value}");
             }
+        }
+
+        /// <summary>
+        /// Accounts for the fact that a HMM is registered under a different name that its template name
+        /// </summary>
+        /// <returns></returns>
+        public string RealStateName()
+        {
+            return this.stateName;
+        }
+
+        /// <summary>
+        /// Use this property to register to a live process/scheduler
+        /// </summary>
+        /// <returns></returns>
+        public string RegisteredName()
+        {
+            if (this.kerbalName != "") return this.kerbalName + "@" + this.stateName;
+            else return this.stateName;
         }
 
         #endregion

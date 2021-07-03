@@ -10,6 +10,8 @@ namespace RPStoryteller
     [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
     public class RPStoryteller : ScenarioModule
     {
+        #region Declarations
+        
         // Random number generator
         private static System.Random storytellerRand = new System.Random();
         
@@ -29,10 +31,10 @@ namespace RPStoryteller
         [KSPField(isPersistant = true)] public double programHypeFactor = 1;
         [KSPField(isPersistant = true)] public float programHype = 1;
         [KSPField(isPersistant = true)] public float programLastKnownReputation = 0;
+        #endregion
         
         #region UnityStuff
-
-
+        
         public void Start()
         {
             LogLevel1("Initializing Starstruck");
@@ -41,7 +43,7 @@ namespace RPStoryteller
             InitializeHMM("space_craze");
             SchedulerCacheNextTime();
 
-            _peopleManager = RPPeopleManager.Instance;
+            InitializePeopleManager();
             
             // Event Catching
             GameEvents.OnReputationChanged.Add(ReputationChanged);
@@ -71,7 +73,7 @@ namespace RPStoryteller
             
             // Record all of the time triggers for Hidden models
             ConfigNode hmmSet = new ConfigNode("HIDDENMODELS");
-            
+
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
             {
                 hmmSet.AddValue(kvp.Key, kvp.Value);
@@ -161,23 +163,70 @@ namespace RPStoryteller
         }
         #endregion
 
+        #region kerbals
+
+        /// <summary>
+        /// Register all kerbal HMM into event generation structures.
+        /// </summary>
+        private void InitializePeopleManager()
+        {
+            StarStruckUtil.Report(1,$"Initializing PeopleManager");
+            _peopleManager = new RPPeopleManager();
+            
+            StarStruckUtil.Report(1,$"Refreshing PeopleManager");
+            _peopleManager.RefreshPersonelFolder();
+            StarStruckUtil.Report(1,$"PeopleManager refreshed.");
+
+            foreach (KeyValuePair<string, PersonelFile> kvp in _peopleManager.personelFolders)
+            {
+                StarStruckUtil.Report(1, $"Adding HMM for {kvp.Value.DisplayName()}");
+                
+                // Productivity 
+                InitializeHMM("kerbal_" + kvp.Value.kerbalState, kerbalName: kvp.Value.UniqueName());
+
+                // Task
+                InitializeHMM("kerbal_" + kvp.Value.Specialty(), kerbalName: kvp.Value.UniqueName());
+            }
+        }
+
+        #endregion
+
         #region HMM Logic
 
         /// <summary>
         /// Create a HMM and place it to be triggered at a later time.
         /// </summary>
         /// <param name="stateIdentity">The identifier in the config files.</param>
-        private void InitializeHMM(string stateIdentity, double timestamp = 0)
+        private void InitializeHMM(string stateIdentity, double timestamp = 0, string kerbalName = "")
         {
+            // TODO update personnel file on the new state
+            
+            string templateStateIdentity = stateIdentity;
+            
+            // Split template and kerbal parts when initialized from a save node
+            int splitter = stateIdentity.IndexOf("@");
+            if (splitter != -1)
+            {
+                templateStateIdentity = stateIdentity.Substring(splitter + 1);
+                kerbalName = stateIdentity.Substring(0, splitter);
+            }
+            
             // Avoid duplications
             if (_liveProcesses.ContainsKey(stateIdentity) == false)
             {
-                HiddenState newState = new HiddenState(stateIdentity);
+                HiddenState newState = new HiddenState(templateStateIdentity, kerbalName);
+                StarStruckUtil.Report(1, $"Registering {templateStateIdentity} for {kerbalName} as {newState.RealStateName()}.");
+
+                _liveProcesses.Add(newState.RegisteredName(), newState);
                 
-                _liveProcesses.Add(stateIdentity, newState);
-                
-                if (timestamp == 0) _hmmScheduler.Add(stateIdentity, GetUT() + GeneratePeriod( newState.period ));
+                if (timestamp == 0) _hmmScheduler.Add(newState.RegisteredName(), GetUT() + GeneratePeriod( newState.period ));
                 else _hmmScheduler.Add(stateIdentity, timestamp);
+                
+                // Record new state into personnel file
+                if (kerbalName != "")
+                {
+                    _peopleManager.GetFile(kerbalName).EnterNewState(templateStateIdentity);
+                }
             }
         }
 
@@ -192,18 +241,15 @@ namespace RPStoryteller
         }
 
         /// <summary>
-        /// Execute a HMM transition from one hidden state to another.
+        /// Execute a HMM transition from one hidden state to another. Assumes that 
         /// </summary>
-        /// <param name="initialState">Identifier of the existing state to be discarded</param>
-        /// <param name="finalState">Identifier of the state to initialize</param>
+        /// <param name="initialState">Identifier of the existing state to be discarded as registered in _liveProcess</param>
+        /// <param name="finalState">Identifier of the state to initialize without the kerbal name if applicable</param>
         private void TransitionHMM(string initialState, string finalState)
         {
-            if (initialState != finalState)
-            {
-                LogLevel1($"[HMM] Entering hidden state {finalState}.");
-                InitializeHMM(finalState);
-                RemoveHMM(initialState);
-            }
+            LogLevel1($"[HMM] Entering hidden state {finalState}.");
+            InitializeHMM(finalState, kerbalName:_liveProcesses[initialState].kerbalName);
+            RemoveHMM(initialState);
         }
 
         /// <summary>
@@ -265,17 +311,29 @@ namespace RPStoryteller
                 }
             }
 
+            // TODO scheduling for kerbal states doesn't seem to update. 
+            
             // Do the deed
             foreach (string stateName in triggerStates)
             {
+                StarStruckUtil.Report(1, $"[HMM] Processing {stateName}");
                 emittedString = _liveProcesses[stateName].Emission();
                 if (emittedString != "")
                 {
-                    EmitEvent(emittedString);
+                    StarStruckUtil.Report(1, $"[Emmission] Attempting {emittedString} for {_liveProcesses[stateName].kerbalName}");
+                    if (_liveProcesses[stateName].kerbalName != "")
+                    {
+                        PersonelFile personelFile = _peopleManager.GetFile(_liveProcesses[stateName].kerbalName);
+                        EmitEvent(emittedString, personelFile);
+                    }
+                    else
+                    {
+                        EmitEvent(emittedString);
+                    }
                 }
 
                 transitionString = _liveProcesses[stateName].Transition();
-                if (transitionString != stateName)
+                if (transitionString != _liveProcesses[stateName].RealStateName())
                 {
                     TransitionHMM(stateName, transitionString);
                 }
@@ -313,6 +371,25 @@ namespace RPStoryteller
                     break;
                 case "hype_dampened":
                     AdjustHype(-1f);
+                    break;
+                default:
+                    LogLevel1($"[Emission] Event {eventName} is not implemented yet.");
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="eventName"></param>
+        /// <param name="personelFile"></param>
+        public void EmitEvent(string eventName, PersonelFile personelFile)
+        {
+            LogLevel1($"[Emission] {eventName} for kerbal {personelFile.DisplayName()} at time { KSPUtil.PrintDate(GetUT(), true, false) }");
+
+            switch (eventName)
+            {
+                case "bogus":
                     break;
                 default:
                     LogLevel1($"[Emission] Event {eventName} is not implemented yet.");

@@ -64,6 +64,8 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="copybuild.py" />
+    <Content Include="GameData\StarStruck\artwork\icons\SStruck_28.dds" />
+    <Content Include="GameData\StarStruck\artwork\icons\SStruck_nofire_28.dds" />
     <Content Include="GameData\StarStruck\HMM.cfg" />
     <Content Include="GameData\StarStruck\kerbals.cfg" />
     <Content Include="GameData\StarStruck\kerbalsHMM.cfg" />
