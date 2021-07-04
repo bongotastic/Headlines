@@ -10,7 +10,7 @@ namespace RPStoryteller.source
             switch (significance)
             {
                 case 1:
-                    KSPLog.print(message);
+                    KSPLog.print("[Starstruck] " + message);
                     break;
                 case 3:
                     CreateMessage(message, title);

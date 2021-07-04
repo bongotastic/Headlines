@@ -7,7 +7,7 @@ using RPStoryteller.source;
 
 namespace RPStoryteller
 {
-    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
+    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER, GameScenes.FLIGHT, GameScenes.TRACKSTATION)]
     public class RPStoryteller : ScenarioModule
     {
         #region Declarations
@@ -37,7 +37,7 @@ namespace RPStoryteller
         
         public void Start()
         {
-            LogLevel1("Initializing Starstruck");
+            StarStruckUtil.Report(1,"Initializing Starstruck");
             
             // Default HMM
             InitializeHMM("space_craze");
@@ -70,21 +70,41 @@ namespace RPStoryteller
         public override void OnSave(ConfigNode node)
         {
             base.OnSave(node);
+
+            _liveProcesses.Clear();
+            _hmmScheduler.Clear();
             
             // Record all of the time triggers for Hidden models
             ConfigNode hmmSet = new ConfigNode("HIDDENMODELS");
 
+            
+            double triggertime;
+            HiddenState stateToSave;
+            ConfigNode temporaryNode = new ConfigNode();
+            
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
             {
-                hmmSet.AddValue(kvp.Key, kvp.Value);
+                triggertime = kvp.Value;
+                stateToSave = _liveProcesses[kvp.Key];
+                StarStruckUtil.Report(1, $"{triggertime} --> {stateToSave.RealStateName()} for {stateToSave.kerbalName}");
+                
+                temporaryNode = new ConfigNode();
+                temporaryNode.AddValue("stateName", stateToSave.RealStateName());
+                temporaryNode.AddValue("nextTrigger", triggertime);
+                
+                if (stateToSave.kerbalName != "") temporaryNode.AddValue("kerbalName", stateToSave.kerbalName);
+                
+                if (hmmSet != null) hmmSet.AddNode("HMM", temporaryNode);
             }
-
+            
             node.AddNode(hmmSet);
         }
 
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
+            
+            // TODO Test OnLoad 
 
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
             if (hmNode != null)
@@ -92,11 +112,21 @@ namespace RPStoryteller
                 // Read Hidden models and build set
                 double transientTime;
                 string modelName;
+                string kerbalName;
                 
-                foreach (ConfigNode.Value nodeVal in hmNode.values)
+                foreach (ConfigNode itemNode in hmNode.GetNodes())
                 {
-                    modelName = nodeVal.name;
-                    transientTime = double.Parse(nodeVal.value);
+                    
+                    modelName = itemNode.GetValue("stateName");
+                    transientTime = double.Parse(itemNode.GetValue("nextTrigger"));
+                    if (itemNode.HasValue("kerbalName"))
+                    {
+                        kerbalName = itemNode.GetValue("kerbalName");
+                    }
+                    else
+                    {
+                        kerbalName = "";
+                    }
 
                     if (_hmmScheduler.ContainsKey(modelName))
                     {
@@ -104,19 +134,10 @@ namespace RPStoryteller
                     }
                     else
                     {
-                        InitializeHMM(modelName, transientTime);
+                        InitializeHMM(modelName, transientTime, kerbalName);
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Level 1 write to console. 
-        /// </summary>
-        /// <param name="message">The text to be logged.</param>
-        public void LogLevel1(string message)
-        {
-            StarStruckUtil.Report(1, $"[Starstruck] {message}");
         }
 
         /// <summary>
@@ -141,7 +162,7 @@ namespace RPStoryteller
             // Avoid processing recursively the adjustment
             if ( reason == TransactionReasons.None) return;
             
-            LogLevel1($"New delta: {deltaReputation} whilst hype is {this.programHype}.");
+            StarStruckUtil.Report(1,$"New delta: {deltaReputation} whilst hype is {this.programHype}.");
             if (deltaReputation <= this.programHype)
             {
                 this.programHype -= deltaReputation;
@@ -152,13 +173,13 @@ namespace RPStoryteller
                 // Retroactively cap the reputation gain to the active hype
                 this.programLastKnownReputation += this.programHype;
                 Reputation.Instance.SetReputation(this.programLastKnownReputation, TransactionReasons.None);
-                LogLevel1($"Reputation was capped at {this.programHype} due to insufficient hype.");
+                StarStruckUtil.Report(1,$"Reputation was capped at {this.programHype} due to insufficient hype.");
                 StarStruckUtil.ScreenMessage($"Underrated! Your achievement's impact is limited.\n({(this.programHype/deltaReputation).ToString("P1")})");
                 
                 // Surplus reputation goes as additional hype
                 this.programHype = deltaReputation - this.programHype;
             }
-            LogLevel1($"Program hype is now {this.programHype}.");
+            StarStruckUtil.Report(1,$"Program hype is now {this.programHype}.");
             
         }
         #endregion
@@ -182,13 +203,36 @@ namespace RPStoryteller
                 StarStruckUtil.Report(1, $"Adding HMM for {kvp.Value.DisplayName()}");
                 
                 // Productivity 
-                InitializeHMM("kerbal_" + kvp.Value.kerbalState, kerbalName: kvp.Value.UniqueName());
+                InitializeHMM("kerbal_" + kvp.Value.kerbalProductiveState, kerbalName: kvp.Value.UniqueName());
 
                 // Task
                 InitializeHMM("kerbal_" + kvp.Value.Specialty(), kerbalName: kvp.Value.UniqueName());
             }
         }
 
+        /// <summary>
+        /// Determines the outcome of a check based on a mashup of Pendragon and VOID.
+        /// </summary>
+        /// <param name="skillLevel">0+ arbitrary unit</param>
+        /// <param name="difficulty">0+ arbitrary unit</param>
+        /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
+        static string SkillCheck(int skillLevel, int difficulty)
+        {
+            int upperlimit = 3 * skillLevel;
+            int lowerlimit = 3 * difficulty;
+
+            string outcome = "FAILURE";
+
+            int die = storytellerRand.Next(1, 20);
+
+            if (upperlimit > 20) die += (upperlimit - 20);
+            else if (die == 20) outcome = "FUMBLE";
+
+            if (die == upperlimit || (upperlimit >= 20 && die >= 20)) outcome = "CRITICAL";
+            else if (die >= lowerlimit && die < upperlimit) outcome = "SUCCESS";
+
+            return outcome;
+        }
         #endregion
 
         #region HMM Logic
@@ -220,7 +264,7 @@ namespace RPStoryteller
                 _liveProcesses.Add(newState.RegisteredName(), newState);
                 
                 if (timestamp == 0) _hmmScheduler.Add(newState.RegisteredName(), GetUT() + GeneratePeriod( newState.period ));
-                else _hmmScheduler.Add(stateIdentity, timestamp);
+                else _hmmScheduler.Add(newState.RegisteredName(), timestamp);
                 
                 // Record new state into personnel file
                 if (kerbalName != "")
@@ -247,7 +291,6 @@ namespace RPStoryteller
         /// <param name="finalState">Identifier of the state to initialize without the kerbal name if applicable</param>
         private void TransitionHMM(string initialState, string finalState)
         {
-            LogLevel1($"[HMM] Entering hidden state {finalState}.");
             InitializeHMM(finalState, kerbalName:_liveProcesses[initialState].kerbalName);
             RemoveHMM(initialState);
         }
@@ -296,10 +339,20 @@ namespace RPStoryteller
             _nextUpdate = minVal;
         }
 
+        /// <summary>
+        /// Set/Reset the next trigger time for Registered state name. Assumes that it is in the system.
+        /// </summary>
+        /// <param name="registeredStateName">State as registered</param>
+        /// <param name="baseTime">Depending on the state itself.</param>
+        public void ReScheduleHMM(string registeredStateName, double baseTime)
+        {
+            _hmmScheduler[registeredStateName] = StarStruckUtil.GetUT() + GeneratePeriod(_liveProcesses[registeredStateName].period);
+        }
+
         private void SchedulerUpdate(double currentTime)
         {
-            string emittedString = "";
-            string transitionString = "";
+            string emmittedEvent = "";
+            string nextTransitionState = "";
             
             // Make a list of states to trigger
             List<string> triggerStates = new List<string>();
@@ -314,32 +367,32 @@ namespace RPStoryteller
             // TODO scheduling for kerbal states doesn't seem to update. 
             
             // Do the deed
-            foreach (string stateName in triggerStates)
+            foreach (string registeredStateName in triggerStates)
             {
-                StarStruckUtil.Report(1, $"[HMM] Processing {stateName}");
-                emittedString = _liveProcesses[stateName].Emission();
-                if (emittedString != "")
+                emmittedEvent = _liveProcesses[registeredStateName].Emission();
+                StarStruckUtil.Report(1, $"[HMM] State {registeredStateName} emits {emmittedEvent}.");
+                if (emmittedEvent != "")
                 {
-                    StarStruckUtil.Report(1, $"[Emmission] Attempting {emittedString} for {_liveProcesses[stateName].kerbalName}");
-                    if (_liveProcesses[stateName].kerbalName != "")
+                    StarStruckUtil.Report(1, $"[Emmission] Attempting {emmittedEvent} for {_liveProcesses[registeredStateName].kerbalName}");
+                    if (_liveProcesses[registeredStateName].kerbalName != "")
                     {
-                        PersonelFile personelFile = _peopleManager.GetFile(_liveProcesses[stateName].kerbalName);
-                        EmitEvent(emittedString, personelFile);
+                        PersonelFile personelFile = _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
+                        EmitEvent(emmittedEvent, personelFile);
                     }
                     else
                     {
-                        EmitEvent(emittedString);
+                        EmitEvent(emmittedEvent);
                     }
                 }
 
-                transitionString = _liveProcesses[stateName].Transition();
-                if (transitionString != _liveProcesses[stateName].RealStateName())
+                nextTransitionState = _liveProcesses[registeredStateName].Transition();
+                if (nextTransitionState != _liveProcesses[registeredStateName].RealStateName())
                 {
-                    TransitionHMM(stateName, transitionString);
+                    TransitionHMM(registeredStateName, nextTransitionState);
                 }
                 else
                 {
-                    _hmmScheduler[stateName] = currentTime + GeneratePeriod(_liveProcesses[stateName].period);
+                    ReScheduleHMM(registeredStateName, _liveProcesses[registeredStateName].period);
                 } 
             }
             SchedulerCacheNextTime();
@@ -356,7 +409,7 @@ namespace RPStoryteller
         /// <param name="eventName"></param>
         public void EmitEvent(string eventName)
         {
-            LogLevel1($"[Emission] {eventName} at time { KSPUtil.PrintDate(GetUT(), true, false) }");
+            StarStruckUtil.Report(1,$"[Emission] {eventName} at time { KSPUtil.PrintDate(GetUT(), true, false) }");
 
             switch (eventName)
             {
@@ -373,7 +426,7 @@ namespace RPStoryteller
                     AdjustHype(-1f);
                     break;
                 default:
-                    LogLevel1($"[Emission] Event {eventName} is not implemented yet.");
+                    StarStruckUtil.Report(1,$"[Emission] {eventName} is not implemented yet.");
                     break;
             }
         }
@@ -385,14 +438,14 @@ namespace RPStoryteller
         /// <param name="personelFile"></param>
         public void EmitEvent(string eventName, PersonelFile personelFile)
         {
-            LogLevel1($"[Emission] {eventName} for kerbal {personelFile.DisplayName()} at time { KSPUtil.PrintDate(GetUT(), true, false) }");
-
+            personelFile.TrackCurrentActivity(eventName);
+            
             switch (eventName)
             {
                 case "bogus":
                     break;
                 default:
-                    LogLevel1($"[Emission] Event {eventName} is not implemented yet.");
+                    StarStruckUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
                     break;
             }
         }
@@ -416,7 +469,7 @@ namespace RPStoryteller
             attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // That's a 3.24-day span
             attentionSpanFactor = Math.Min(Math.Pow(power, 3), attentionSpanFactor); // That's a 152-day span
             
-            LogLevel1($"New attentionSpanFactor = {attentionSpanFactor}");
+            StarStruckUtil.Report(1,$"New attentionSpanFactor = {attentionSpanFactor}");
         }
 
         /// <summary>
@@ -429,7 +482,7 @@ namespace RPStoryteller
             this.programHype += increment * 5f;
             this.programHype = Math.Max(0f, this.programHype);
             
-            LogLevel1($"Hype on the program changed by {increment*5f} to now be {this.programHype}.");
+            StarStruckUtil.Report(1,$"Hype on the program changed by {increment*5f} to now be {this.programHype}.");
             StarStruckUtil.ScreenMessage($"Program Hype: {string.Format("{0:0}", this.programHype)}");
         }
         

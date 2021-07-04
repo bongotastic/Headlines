@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using RPStoryteller.source;
 using UniLinq;
 using UnityEngine;
 
@@ -56,16 +57,16 @@ namespace HiddenMarkovProcess
         /// </summary>
         private void PrintHMM()
         {
-            KSPLog.print($"[HMM] {this.stateName}");
+            StarStruckUtil.Report(1,$"[HMM] {this.stateName}");
 
             foreach (KeyValuePair<string, float> kvp in _transitions)
             {
-                KSPLog.print($"[HMM][Transition] {kvp.Key} : {kvp.Value}");
+                StarStruckUtil.Report(1,$"[HMM][Transition] {kvp.Key} : {kvp.Value}");
             }
             
             foreach (KeyValuePair<string, float> kvp in _emissions)
             {
-                KSPLog.print($"[HMM][Emission] {kvp.Key} : {kvp.Value}");
+                StarStruckUtil.Report(1,$"[HMM][Emission] {kvp.Key} : {kvp.Value}");
             }
         }
 
@@ -195,17 +196,18 @@ namespace HiddenMarkovProcess
             {
                 if (kvp.Key != "") runningSum += kvp.Value;
             }
-    
+
             // Rescale, using "" as the proportionally flexible element.
             if (runningSum > 1.0)
             {
-                foreach (KeyValuePair<string, float> kvp in target)
+                //foreach (KeyValuePair<string, float> kvp in target)
+                foreach (string emitKey in target.Keys.ToList())
                 {
-                    if (kvp.Key != "")
+                    if (emitKey != "")
                     {
-                        target[kvp.Key] /= runningSum;
+                        target[emitKey] /= runningSum;
                     }
-                    else target[kvp.Key] = 0f;
+                    else target[emitKey] = 0f;
                 }
             }
             else
