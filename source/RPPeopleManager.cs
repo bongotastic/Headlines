@@ -14,15 +14,15 @@ namespace RPStoryteller
     public class RPPeopleManager : ScenarioModule
     {
         // Binds KSP crew and Starstruck data
-        public Dictionary<string, PersonelFile> personelFolders = new Dictionary<string, PersonelFile>();
+        public Dictionary<string, PersonnelFile> personnelFolders = new Dictionary<string, PersonnelFile>();
 
         #region Kitchen Sink
 
         public RPPeopleManager()
         {
-            RefreshPersonelFolder();
+            RefreshPersonnelFolder();
         }
-        /*
+        
         public override void OnSave(ConfigNode node)
         {
             base.OnSave(node);
@@ -30,9 +30,9 @@ namespace RPStoryteller
             // Save personnel files
             ConfigNode folder = new ConfigNode();
             
-            foreach (KeyValuePair<string, PersonelFile> kvp in personelFolders)
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
             {
-                folder.AddNode(kvp.Value.AsConfigNode());
+                folder.AddNode("File", kvp.Value.AsConfigNode());
             }
 
             node.AddNode("PERSONNELFILES", folder);
@@ -47,17 +47,17 @@ namespace RPStoryteller
             ConfigNode folder = node.GetNode("PERSONNELFILES");
             if (folder != null)
             {
-                PersonelFile temporaryFile;
+                PersonnelFile temporaryFile;
             
                 foreach (ConfigNode kerbalFile in folder.GetNodes())
                 {
-                    temporaryFile = new PersonelFile(kerbalFile);
-                    personelFolders.Add(temporaryFile.UniqueName(), temporaryFile);
+                    temporaryFile = new PersonnelFile(kerbalFile);
+                    personnelFolders.Add(temporaryFile.UniqueName(), temporaryFile);
                 }
             }
             
         }
-        */
+        
         #endregion
         
         #region KSP
@@ -65,14 +65,14 @@ namespace RPStoryteller
         /// <summary>
         /// Ensures that all kerbals have a personnel file into RPPeopleManager
         /// </summary>
-        public void RefreshPersonelFolder()
+        public void RefreshPersonnelFolder()
         {
             foreach (ProtoCrewMember pcm in HighLogic.CurrentGame.CrewRoster.Crew)
             {
-                if (personelFolders.ContainsKey(pcm.name) == false)
+                if (personnelFolders.ContainsKey(pcm.name) == false)
                 {
-                    PersonelFile newKerbal = new PersonelFile(pcm);
-                    personelFolders.Add( pcm.name, newKerbal);
+                    PersonnelFile newKerbal = new PersonnelFile(pcm);
+                    personnelFolders.Add( pcm.name, newKerbal);
                 }
             }
         }
@@ -87,16 +87,16 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="kerbalName">kerbal name as unique ID</param>
         /// <returns>Instance of the file</returns>
-        public PersonelFile GetFile(string kerbalName)
+        public PersonnelFile GetFile(string kerbalName)
         {
-            if (personelFolders.ContainsKey(kerbalName)) return personelFolders[kerbalName];
+            if (personnelFolders.ContainsKey(kerbalName)) return personnelFolders[kerbalName];
             return null;
         }
 
         #endregion
     }
 
-    public class PersonelFile
+    public class PersonnelFile
     {
         private static System.Random randomNG = new System.Random();
         
@@ -115,7 +115,7 @@ namespace RPStoryteller
         /// COnstructor used to generate a brand new file from a protocrewember
         /// </summary>
         /// <param name="pcm"></param>
-        public PersonelFile(ProtoCrewMember pcm)
+        public PersonnelFile(ProtoCrewMember pcm)
         {
             this.pcm = pcm;
             
@@ -143,7 +143,7 @@ namespace RPStoryteller
         /// COnstructor used when loading from a save file
         /// </summary>
         /// <param name="node"></param>
-        public PersonelFile(ConfigNode node)
+        public PersonnelFile(ConfigNode node)
         {
             FromConfigNode(node);
         }

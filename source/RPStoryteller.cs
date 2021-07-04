@@ -71,9 +71,6 @@ namespace RPStoryteller
         {
             base.OnSave(node);
 
-            _liveProcesses.Clear();
-            _hmmScheduler.Clear();
-            
             // Record all of the time triggers for Hidden models
             ConfigNode hmmSet = new ConfigNode("HIDDENMODELS");
 
@@ -81,22 +78,22 @@ namespace RPStoryteller
             double triggertime;
             HiddenState stateToSave;
             ConfigNode temporaryNode = new ConfigNode();
-            
+
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
             {
                 triggertime = kvp.Value;
                 stateToSave = _liveProcesses[kvp.Key];
-                StarStruckUtil.Report(1, $"{triggertime} --> {stateToSave.RealStateName()} for {stateToSave.kerbalName}");
-                
+
                 temporaryNode = new ConfigNode();
                 temporaryNode.AddValue("stateName", stateToSave.RealStateName());
                 temporaryNode.AddValue("nextTrigger", triggertime);
-                
+
                 if (stateToSave.kerbalName != "") temporaryNode.AddValue("kerbalName", stateToSave.kerbalName);
-                
-                if (hmmSet != null) hmmSet.AddNode("HMM", temporaryNode);
+
+
+                hmmSet.AddNode("hmm", temporaryNode);
             }
-            
+
             node.AddNode(hmmSet);
         }
 
@@ -104,7 +101,8 @@ namespace RPStoryteller
         {
             base.OnLoad(node);
             
-            // TODO Test OnLoad 
+            _liveProcesses.Clear();
+            _hmmScheduler.Clear();
 
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
             if (hmNode != null)
@@ -191,17 +189,11 @@ namespace RPStoryteller
         /// </summary>
         private void InitializePeopleManager()
         {
-            StarStruckUtil.Report(1,$"Initializing PeopleManager");
             _peopleManager = new RPPeopleManager();
-            
-            StarStruckUtil.Report(1,$"Refreshing PeopleManager");
-            _peopleManager.RefreshPersonelFolder();
-            StarStruckUtil.Report(1,$"PeopleManager refreshed.");
+            _peopleManager.RefreshPersonnelFolder();
 
-            foreach (KeyValuePair<string, PersonelFile> kvp in _peopleManager.personelFolders)
+            foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
             {
-                StarStruckUtil.Report(1, $"Adding HMM for {kvp.Value.DisplayName()}");
-                
                 // Productivity 
                 InitializeHMM("kerbal_" + kvp.Value.kerbalProductiveState, kerbalName: kvp.Value.UniqueName());
 
@@ -351,7 +343,7 @@ namespace RPStoryteller
 
         private void SchedulerUpdate(double currentTime)
         {
-            string emmittedEvent = "";
+            string emittedEvent = "";
             string nextTransitionState = "";
             
             // Make a list of states to trigger
@@ -364,24 +356,21 @@ namespace RPStoryteller
                 }
             }
 
-            // TODO scheduling for kerbal states doesn't seem to update. 
-            
             // Do the deed
             foreach (string registeredStateName in triggerStates)
             {
-                emmittedEvent = _liveProcesses[registeredStateName].Emission();
-                StarStruckUtil.Report(1, $"[HMM] State {registeredStateName} emits {emmittedEvent}.");
-                if (emmittedEvent != "")
+                emittedEvent = _liveProcesses[registeredStateName].Emission();
+
+                if (emittedEvent != "")
                 {
-                    StarStruckUtil.Report(1, $"[Emmission] Attempting {emmittedEvent} for {_liveProcesses[registeredStateName].kerbalName}");
                     if (_liveProcesses[registeredStateName].kerbalName != "")
                     {
-                        PersonelFile personelFile = _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
-                        EmitEvent(emmittedEvent, personelFile);
+                        PersonnelFile personnelFile = _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
+                        EmitEvent(emittedEvent, personnelFile);
                     }
                     else
                     {
-                        EmitEvent(emmittedEvent);
+                        EmitEvent(emittedEvent);
                     }
                 }
 
@@ -435,10 +424,10 @@ namespace RPStoryteller
         /// 
         /// </summary>
         /// <param name="eventName"></param>
-        /// <param name="personelFile"></param>
-        public void EmitEvent(string eventName, PersonelFile personelFile)
+        /// <param name="personnelFile"></param>
+        public void EmitEvent(string eventName, PersonnelFile personnelFile)
         {
-            personelFile.TrackCurrentActivity(eventName);
+            personnelFile.TrackCurrentActivity(eventName);
             
             switch (eventName)
             {
