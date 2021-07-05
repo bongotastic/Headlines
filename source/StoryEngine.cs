@@ -47,7 +47,7 @@ namespace RPStoryteller
         /// </summary>
         public void Start()
         {
-            StarStruckUtil.Report(1,"Initializing Starstruck");
+            HeadlinesUtil.Report(1,"Initializing Starstruck");
             
             // Default HMM
             InitializeHMM("space_craze");
@@ -156,7 +156,7 @@ namespace RPStoryteller
         /// <returns>UT time in seconds</returns>
         public static double GetUT()
         {
-            return StarStruckUtil.GetUT();
+            return HeadlinesUtil.GetUT();
         }
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace RPStoryteller
                 return;
             }
             
-            StarStruckUtil.Report(1,$"New delta: {deltaReputation} whilst hype is {this.programHype}.");
+            HeadlinesUtil.Report(1,$"New delta: {deltaReputation} whilst hype is {this.programHype}.");
             if (deltaReputation <= this.programHype)
             {
                 this.programHype -= deltaReputation;
@@ -186,13 +186,13 @@ namespace RPStoryteller
                 // Retroactively cap the reputation gain to the active hype
                 this.programLastKnownReputation += this.programHype;
                 Reputation.Instance.SetReputation(this.programLastKnownReputation, TransactionReasons.None);
-                StarStruckUtil.Report(1,$"Reputation was capped at {this.programHype} due to insufficient hype.");
-                StarStruckUtil.ScreenMessage($"Underrated! Your achievement's impact is limited.\n({(this.programHype/deltaReputation).ToString("P1")})");
+                HeadlinesUtil.Report(1,$"Reputation was capped at {this.programHype} due to insufficient hype.");
+                HeadlinesUtil.ScreenMessage($"Underrated! Your achievement's impact is limited.\n({(this.programHype/deltaReputation).ToString("P1")})");
                 
                 // Surplus reputation goes as additional hype
                 this.programHype = deltaReputation - this.programHype;
             }
-            StarStruckUtil.Report(1,$"Program hype is now {this.programHype}.");
+            HeadlinesUtil.Report(1,$"Program hype is now {this.programHype}.");
             
         }
         #endregion
@@ -279,7 +279,7 @@ namespace RPStoryteller
                 _liveProcesses.Add(newState.RegisteredName(), newState);
             }
             
-            timestamp = timestamp != 0 ? timestamp : StarStruckUtil.GetUT() + GeneratePeriod(newState.period);
+            timestamp = timestamp != 0 ? timestamp : HeadlinesUtil.GetUT() + GeneratePeriod(newState.period);
             
             if (_hmmScheduler.ContainsKey(newState.RegisteredName()) == false)
             {
@@ -351,7 +351,7 @@ namespace RPStoryteller
         /// </summary>
         private void SchedulerCacheNextTime()
         {
-            _nextUpdate = StarStruckUtil.GetUT();
+            _nextUpdate = HeadlinesUtil.GetUT();
             
             double minVal = 60;
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
@@ -372,7 +372,7 @@ namespace RPStoryteller
         /// <param name="baseTime">Depending on the state itself.</param>
         public void ReScheduleHMM(string registeredStateIdentity, double baseTime)
         {
-            _hmmScheduler[registeredStateIdentity] = StarStruckUtil.GetUT() + GeneratePeriod(_liveProcesses[registeredStateIdentity].period);
+            _hmmScheduler[registeredStateIdentity] = HeadlinesUtil.GetUT() + GeneratePeriod(_liveProcesses[registeredStateIdentity].period);
         }
 
         /// <summary>
@@ -438,7 +438,7 @@ namespace RPStoryteller
         /// <param name="eventName"></param>
         public void EmitEvent(string eventName)
         {
-            StarStruckUtil.Report(1,$"[Emission] {eventName} at time { KSPUtil.PrintDate(GetUT(), true, false) }");
+            HeadlinesUtil.Report(1,$"[Emission] {eventName} at time { KSPUtil.PrintDate(GetUT(), true, false) }");
 
             switch (eventName)
             {
@@ -458,7 +458,7 @@ namespace RPStoryteller
                     DecayReputation();
                     break;
                 default:
-                    StarStruckUtil.Report(1,$"[Emission] {eventName} is not implemented yet.");
+                    HeadlinesUtil.Report(1,$"[Emission] {eventName} is not implemented yet.");
                     break;
             }
         }
@@ -477,7 +477,7 @@ namespace RPStoryteller
                 case "bogus":
                     break;
                 default:
-                    StarStruckUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
+                    HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
                     break;
             }
         }
@@ -502,7 +502,7 @@ namespace RPStoryteller
             attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // That's a 3.24-day span
             attentionSpanFactor = Math.Min(Math.Pow(power, 3), attentionSpanFactor); // That's a 152-day span
             
-            StarStruckUtil.Report(1,$"New attentionSpanFactor = {attentionSpanFactor}");
+            HeadlinesUtil.Report(1,$"New attentionSpanFactor = {attentionSpanFactor}");
         }
 
         /// <summary>
@@ -516,8 +516,8 @@ namespace RPStoryteller
             this.programHype += increment * 5f;
             this.programHype = Math.Max(0f, this.programHype);
             
-            StarStruckUtil.Report(1,$"Hype on the program changed by {increment*5f} to now be {this.programHype}.");
-            StarStruckUtil.ScreenMessage($"Program Hype: {string.Format("{0:0}", this.programHype)}");
+            HeadlinesUtil.Report(1,$"Hype on the program changed by {increment*5f} to now be {this.programHype}.");
+            HeadlinesUtil.ScreenMessage($"Program Hype: {string.Format("{0:0}", this.programHype)}");
         }
 
         /// <summary>
@@ -542,7 +542,7 @@ namespace RPStoryteller
             if (storytellerRand.NextDouble() <= (marginOverProfile / 100))
             {
                 repInterface.AddReputation((float)(-1 * decayReputation), TransactionReasons.None);
-                StarStruckUtil.Report(1,$"[Reputation] Loss of {decayReputation} to {repInterface.reputation}.");
+                HeadlinesUtil.Report(1,$"[Reputation] Loss of {decayReputation} to {repInterface.reputation}.");
             }
         }
 
@@ -558,7 +558,7 @@ namespace RPStoryteller
                 float overrating = (this.programHype + repInstance.reputation) / repInstance.reputation;
                 this.programHype /= overrating;
             
-                StarStruckUtil.Report(2,$"Public hype correction over your program.");
+                HeadlinesUtil.Report(2,$"Public hype correction over your program.");
             }
             
         }

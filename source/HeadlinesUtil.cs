@@ -3,7 +3,7 @@
 
 namespace RPStoryteller.source
 {
-    public class StarStruckUtil
+    public class HeadlinesUtil
     {
         /// <summary>
         /// Output textual information to the user. Significance has a related level of intrusion. 
@@ -11,7 +11,7 @@ namespace RPStoryteller.source
         /// <param name="significance">1: Log, 2: Screen update, 3: Message</param>
         /// <param name="message">Test to display</param>
         /// <param name="title">Piece of categorical information</param>
-        public static void Report(int significance, string message, string title="Starstruck")
+        public static void Report(int significance, string message, string title="Headlines")
         {
             switch (significance)
             {
@@ -23,6 +23,7 @@ namespace RPStoryteller.source
                     break;
                 case 2:
                     ScreenMessage(message);
+                    KSPLog.print($"[{title}] " + message);
                     break;
             }
             

@@ -57,16 +57,16 @@ namespace HiddenMarkovProcess
         /// </summary>
         private void PrintHMM()
         {
-            StarStruckUtil.Report(1,$"[HMM] {this.templateStateName}");
+            HeadlinesUtil.Report(1,$"[HMM] {this.templateStateName}");
 
             foreach (KeyValuePair<string, float> kvp in _transitions)
             {
-                StarStruckUtil.Report(1,$"[HMM][Transition] {kvp.Key} : {kvp.Value}");
+                HeadlinesUtil.Report(1,$"[HMM][Transition] {kvp.Key} : {kvp.Value}");
             }
             
             foreach (KeyValuePair<string, float> kvp in _emissions)
             {
-                StarStruckUtil.Report(1,$"[HMM][Emission] {kvp.Key} : {kvp.Value}");
+                HeadlinesUtil.Report(1,$"[HMM][Emission] {kvp.Key} : {kvp.Value}");
             }
         }
 
