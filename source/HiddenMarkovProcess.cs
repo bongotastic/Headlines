@@ -11,7 +11,7 @@ namespace HiddenMarkovProcess
         private static readonly System.Random _stateRandom = new System.Random();
         
         // Unique identifier for this Hidden State
-        public string stateName;
+        public string templateStateName;
 
         // Number of days between triggers
         public double period;
@@ -28,9 +28,9 @@ namespace HiddenMarkovProcess
         // Housekeeping
         private bool _dirty = true;
 
-        public HiddenState(string stateIdentity, string kerbalName="")
+        public HiddenState(string templateStateIdentity, string kerbalName="")
         {
-            this.stateName = stateIdentity;
+            this.templateStateName = templateStateIdentity;
             this.kerbalName = kerbalName;
             
             // Default emission-less permanent state
@@ -41,7 +41,7 @@ namespace HiddenMarkovProcess
             
             foreach (ConfigNode cfg in GameDatabase.Instance.GetConfigNodes("HIDDENMARKOVMODELS"))
             {
-                if (cfg.TryGetNode(stateIdentity, ref thisdefinition))
+                if (cfg.TryGetNode(templateStateIdentity, ref thisdefinition))
                 {
                     FromConfigNode(thisdefinition);
                     break;
@@ -57,7 +57,7 @@ namespace HiddenMarkovProcess
         /// </summary>
         private void PrintHMM()
         {
-            StarStruckUtil.Report(1,$"[HMM] {this.stateName}");
+            StarStruckUtil.Report(1,$"[HMM] {this.templateStateName}");
 
             foreach (KeyValuePair<string, float> kvp in _transitions)
             {
@@ -76,7 +76,7 @@ namespace HiddenMarkovProcess
         /// <returns></returns>
         public string RealStateName()
         {
-            return this.stateName;
+            return this.templateStateName;
         }
 
         /// <summary>
@@ -85,8 +85,8 @@ namespace HiddenMarkovProcess
         /// <returns></returns>
         public string RegisteredName()
         {
-            if (this.kerbalName != "") return this.kerbalName + "@" + this.stateName;
-            else return this.stateName;
+            if (this.kerbalName != "") return this.kerbalName + "@" + this.templateStateName;
+            else return this.templateStateName;
         }
 
         #endregion
@@ -100,7 +100,7 @@ namespace HiddenMarkovProcess
         public void FromConfigNode(ConfigNode node)
         {
             // Basic properties
-            this.stateName = node.GetValue("stateName");
+            this.templateStateName = node.GetValue("stateName");
             this.period = double.Parse(node.GetValue("period"));
             
             ConfigNode transitionNode = node.GetNode("Transitions");
@@ -141,7 +141,7 @@ namespace HiddenMarkovProcess
             if (_dirty) Recompute();
             
             string outputState = RandomSelect(_transitions);
-            return outputState == "" ? this.stateName : outputState;
+            return outputState == "" ? this.templateStateName : outputState;
         }
         
         /// <summary>

@@ -24,17 +24,27 @@ namespace RPStoryteller
 
         // Cached value for the next trigger so the Scheduler doesn't have to scan constantly
         private double _nextUpdate = -1;
-        private double _assumedPeriod = 60;
-
         
+        // Master switch of the mod's tempo in second. Should be 36 days for a real run. 
+        private double _assumedPeriod = 60;
+        //private double _assumedPeriod = 3600 * 24 * 36;
+        
+        // Multiplier to the _assumedPeriod when it comes to HMM triggering
         [KSPField(isPersistant = true)] public double attentionSpanFactor = 1;
-        [KSPField(isPersistant = true)] public double programHypeFactor = 1;
+        
+        // Maximum earning in repuation in a single increase call.
         [KSPField(isPersistant = true)] public float programHype = 1;
+        
+        // Cache of the last time we manipulated repuation
         [KSPField(isPersistant = true)] public float programLastKnownReputation = 0;
+        
         #endregion
         
         #region UnityStuff
         
+        /// <summary>
+        /// Unity method with some basics stuff that needs to run once inside a the scene.
+        /// </summary>
         public void Start()
         {
             StarStruckUtil.Report(1,"Initializing Starstruck");
@@ -50,9 +60,9 @@ namespace RPStoryteller
         }
         
         /// <summary>
-        /// Heartbeat of the Starstruck mod. 
+        /// Heartbeat of the Starstruck mod. Using a cached _nextupdate so as to
+        /// avoid checking the collection's values all the time.
         /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
         public void Update()
         {
             // Minimizing the profile of this method's call.
@@ -64,9 +74,9 @@ namespace RPStoryteller
         #region KSP
         
         /// <summary>
-        /// Specialized serialization
+        /// Specialized serialization. Handles serialization of the Scheduler. 
         /// </summary>
-        /// <param name="node"></param>
+        /// <param name="node">Unity passes this one.</param>
         public override void OnSave(ConfigNode node)
         {
             base.OnSave(node);
@@ -155,7 +165,6 @@ namespace RPStoryteller
         private void ReputationChanged(float newReputation, TransactionReasons reason)
         {
             float deltaReputation = newReputation - this.programLastKnownReputation;
-            float actualDeltaReputation = deltaReputation;
 
             // Avoid processing recursively the adjustment
             if ( reason == TransactionReasons.None) return;
@@ -208,7 +217,7 @@ namespace RPStoryteller
         /// <param name="skillLevel">0+ arbitrary unit</param>
         /// <param name="difficulty">0+ arbitrary unit</param>
         /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
-        static string SkillCheck(int skillLevel, int difficulty)
+        static string SkillCheck(int skillLevel, int difficulty = 0)
         {
             int upperlimit = 3 * skillLevel;
             int lowerlimit = 3 * difficulty;
@@ -232,23 +241,21 @@ namespace RPStoryteller
         /// <summary>
         /// Create a HMM and place it to be triggered at a later time.
         /// </summary>
-        /// <param name="stateIdentity">The identifier in the config files.</param>
-        private void InitializeHMM(string stateIdentity, double timestamp = 0, string kerbalName = "")
+        /// <param name="registeredStateIdentity">The identifier as registered in the scheduler</param>
+        private void InitializeHMM(string registeredStateIdentity, double timestamp = 0, string kerbalName = "")
         {
-            // TODO update personnel file on the new state
-            
-            string templateStateIdentity = stateIdentity;
+            string templateStateIdentity = registeredStateIdentity;
             
             // Split template and kerbal parts when initialized from a save node
-            int splitter = stateIdentity.IndexOf("@");
+            int splitter = registeredStateIdentity.IndexOf("@");
             if (splitter != -1)
             {
-                templateStateIdentity = stateIdentity.Substring(splitter + 1);
-                kerbalName = stateIdentity.Substring(0, splitter);
+                templateStateIdentity = registeredStateIdentity.Substring(splitter + 1);
+                kerbalName = registeredStateIdentity.Substring(0, splitter);
             }
             
             // Avoid duplications
-            if (_liveProcesses.ContainsKey(stateIdentity) == false)
+            if (_liveProcesses.ContainsKey(registeredStateIdentity) == false)
             {
                 HiddenState newState = new HiddenState(templateStateIdentity, kerbalName);
                 StarStruckUtil.Report(1, $"Registering {templateStateIdentity} for {kerbalName} as {newState.RealStateName()}.");
@@ -269,40 +276,41 @@ namespace RPStoryteller
         /// <summary>
         /// Safely disable a HMM.
         /// </summary>
-        /// <param name="stateIdentity">The identifier for this HMM</param>
-        private void RemoveHMM(string stateIdentity)
+        /// <param name="registeredStateIdentity">The identifier for this HMM</param>
+        private void RemoveHMM(string registeredStateIdentity)
         {
-            if (_hmmScheduler.ContainsKey(stateIdentity)) _hmmScheduler.Remove(stateIdentity);
-            if (_liveProcesses.ContainsKey(stateIdentity)) _liveProcesses.Remove(stateIdentity);
+            if (_hmmScheduler.ContainsKey(registeredStateIdentity)) _hmmScheduler.Remove(registeredStateIdentity);
+            if (_liveProcesses.ContainsKey(registeredStateIdentity)) _liveProcesses.Remove(registeredStateIdentity);
         }
 
         /// <summary>
         /// Execute a HMM transition from one hidden state to another. Assumes that 
         /// </summary>
-        /// <param name="initialState">Identifier of the existing state to be discarded as registered in _liveProcess</param>
-        /// <param name="finalState">Identifier of the state to initialize without the kerbal name if applicable</param>
-        private void TransitionHMM(string initialState, string finalState)
+        /// <param name="registeredInitialState">Identifier of the existing state to be discarded as registered in _liveProcess</param>
+        /// <param name="templateFinalState">Identifier of the state to initialize without the kerbal name if applicable</param>
+        private void TransitionHMM(string registeredInitialState, string templateFinalState)
         {
-            InitializeHMM(finalState, kerbalName:_liveProcesses[initialState].kerbalName);
-            RemoveHMM(initialState);
+            InitializeHMM(templateFinalState, kerbalName:_liveProcesses[registeredInitialState].kerbalName);
+            RemoveHMM(registeredInitialState);
         }
 
         /// <summary>
         /// Generate a nearly normal random number of days for a HMM triggering event. Box Muller transform
         /// taken from https://stackoverflow.com/questions/218060/random-gaussian-variables
         /// Guarantees that the period is at least 1/20 of the baseValue.
+        /// Assumes a standard deviation of 1/3 of the mean.
         /// </summary>
-        /// <param name="baseValue">The base value specified in the config node of a HMM</param>
+        /// <param name="meanValue">The base value specified in the config node of a HMM</param>
         /// <returns></returns>
-        private double GeneratePeriod(double baseValue)
+        private double GeneratePeriod(double meanValue)
         {
-            double stdDev = baseValue / 3;
+            double stdDev = meanValue / 3;
             double u1 = 1.0- storytellerRand.NextDouble(); 
             double u2 = 1.0- storytellerRand.NextDouble();
             double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) *
                                    Math.Sin(2.0 * Math.PI * u2);
-            double returnedVal = baseValue + stdDev * randStdNormal;
-            double floorVal = baseValue / 20;
+            double returnedVal = meanValue + stdDev * randStdNormal;
+            double floorVal = meanValue / 20;
             double outValue = Math.Max(returnedVal * attentionSpanFactor, floorVal);
 
             // Convert to seconds based on hardcoded period
@@ -317,7 +325,7 @@ namespace RPStoryteller
         /// </summary>
         private void SchedulerCacheNextTime()
         {
-            _nextUpdate = GetUT();
+            _nextUpdate = StarStruckUtil.GetUT();
             
             double minVal = 60;
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
@@ -334,13 +342,17 @@ namespace RPStoryteller
         /// <summary>
         /// Set/Reset the next trigger time for Registered state name. Assumes that it is in the system.
         /// </summary>
-        /// <param name="registeredStateName">State as registered</param>
+        /// <param name="registeredStateIdentity">State as registered</param>
         /// <param name="baseTime">Depending on the state itself.</param>
-        public void ReScheduleHMM(string registeredStateName, double baseTime)
+        public void ReScheduleHMM(string registeredStateIdentity, double baseTime)
         {
-            _hmmScheduler[registeredStateName] = StarStruckUtil.GetUT() + GeneratePeriod(_liveProcesses[registeredStateName].period);
+            _hmmScheduler[registeredStateIdentity] = StarStruckUtil.GetUT() + GeneratePeriod(_liveProcesses[registeredStateIdentity].period);
         }
 
+        /// <summary>
+        /// Scans the scheduler and fire everything site to trigger before the current time.
+        /// </summary>
+        /// <param name="currentTime">Passed on from GetUT() from a previous calls</param>
         private void SchedulerUpdate(double currentTime)
         {
             string emittedEvent = "";
@@ -355,10 +367,10 @@ namespace RPStoryteller
                     triggerStates.Add(kvp.Key);
                 }
             }
-
-            // Do the deed
+            
             foreach (string registeredStateName in triggerStates)
             {
+                // HMM emission call
                 emittedEvent = _liveProcesses[registeredStateName].Emission();
 
                 if (emittedEvent != "")
@@ -374,7 +386,9 @@ namespace RPStoryteller
                     }
                 }
 
+                // HMM transition determination
                 nextTransitionState = _liveProcesses[registeredStateName].Transition();
+                
                 if (nextTransitionState != _liveProcesses[registeredStateName].RealStateName())
                 {
                     TransitionHMM(registeredStateName, nextTransitionState);
@@ -421,10 +435,10 @@ namespace RPStoryteller
         }
         
         /// <summary>
-        /// 
+        /// Emission handler for HMM with a kerbal associated.
         /// </summary>
-        /// <param name="eventName"></param>
-        /// <param name="personnelFile"></param>
+        /// <param name="eventName">As defined in the config files</param>
+        /// <param name="personnelFile">An instance of the personnel file for the correct kerbal</param>
         public void EmitEvent(string eventName, PersonnelFile personnelFile)
         {
             personnelFile.TrackCurrentActivity(eventName);
@@ -441,7 +455,8 @@ namespace RPStoryteller
 
         /// <summary>
         /// Adjust the time it takes to trigger Reputation Decay. The golden ratio here is about just right
-        /// for the purpose.
+        /// for the purpose. This attention span doesn't not affect the current state we're in, but *may*
+        /// affect the next iteration. 
         /// </summary>
         /// <param name="increment">either -1 or 1</param>
         public void AdjustAttentionSpan(double increment)
@@ -462,7 +477,8 @@ namespace RPStoryteller
         }
 
         /// <summary>
-        /// Adjust hype in either direction in increments of 5.
+        /// Adjust hype in either direction in increments of 5. Cannot go under 0 as there is no such thing
+        /// as negative hype.
         /// </summary>
         /// <param name="increment">(float)the number of increment unit to apply.</param>
         public void AdjustHype(float increment)

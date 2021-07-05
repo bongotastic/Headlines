@@ -1,3 +1,4 @@
+using RPStoryteller.source;
 using UnityEngine.Serialization;
 using Random = System.Random;
 
@@ -24,7 +25,7 @@ namespace RPStoryteller
             // Initialization of the decay trigger for a new career or a recent install of the mod
             if (nextdecay <= 0f)
             {
-                nextdecay = Planetarium.GetUniversalTime() + _deltaTime;
+                nextdecay = StarStruckUtil.GetUT() + _deltaTime;
             }
             LogLevel($"Reputation will decay at time {nextdecay}.");
         }
@@ -49,7 +50,7 @@ namespace RPStoryteller
         /// <returns>true when the threshold was met.</returns>
         private bool DecayTrigger()
         {
-            if (nextdecay <= Planetarium.GetUniversalTime())
+            if (nextdecay <= StarStruckUtil.GetUT())
             {
                 // Push the next decay up
                 nextdecay += _deltaTime;

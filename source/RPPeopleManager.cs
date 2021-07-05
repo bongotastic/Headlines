@@ -112,7 +112,7 @@ namespace RPStoryteller
         private ProtoCrewMember pcm;
         
         /// <summary>
-        /// COnstructor used to generate a brand new file from a protocrewember
+        /// Constructor used to generate a brand new file from a protocrewember
         /// </summary>
         /// <param name="pcm"></param>
         public PersonnelFile(ProtoCrewMember pcm)
@@ -276,24 +276,24 @@ namespace RPStoryteller
         /// <summary>
         /// Keeps track of the current productivity state. 
         /// </summary>
-        /// <param name="newState">the template name of the state</param>
-        public void EnterNewState(string newState)
+        /// <param name="templateStateIdentity">the template name of the state</param>
+        public void EnterNewState(string templateStateIdentity)
         {
             // ignore specialty as it is a given
-            if (newState.IndexOf(Specialty()) != -1)
+            if (templateStateIdentity.IndexOf(Specialty()) != -1)
             {
                 // Wild assumption that all states begin with kerbal_
-                this.kerbalProductiveState = newState.Substring(7);
+                this.kerbalProductiveState = templateStateIdentity.Substring(7);
             }
         }
         
         /// <summary>
         /// Keeps track of the last emitted event in the kerbal's role. 
         /// </summary>
-        /// <param name="newActivity">the template name of the state</param>
-        public void TrackCurrentActivity(string newActivity)
+        /// <param name="newTaskName">the template name of the state</param>
+        public void TrackCurrentActivity(string newTaskName)
         {
-            this.kerbalTask = newActivity;
+            this.kerbalTask = newTaskName;
         }
 
         #endregion
