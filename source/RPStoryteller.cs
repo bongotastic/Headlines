@@ -207,7 +207,17 @@ namespace RPStoryteller
                 InitializeHMM("kerbal_" + kvp.Value.kerbalProductiveState, kerbalName: kvp.Value.UniqueName());
 
                 // Task
-                InitializeHMM("kerbal_" + kvp.Value.Specialty(), kerbalName: kvp.Value.UniqueName());
+                InitializeHMM("role_" + kvp.Value.Specialty(), kerbalName: kvp.Value.UniqueName());
+            }
+        }
+
+        private void UpdateProductiveStateOf(string kerbalName, string newStateIdentity)
+        {
+            // bother if only a productivity state
+            if (newStateIdentity.StartsWith("kerbal_") == true)
+            {
+                PersonnelFile pf = _peopleManager.GetFile(kerbalName);
+                pf.UpdateProductiveState(newStateIdentity);
             }
         }
 
@@ -244,6 +254,7 @@ namespace RPStoryteller
         /// <param name="registeredStateIdentity">The identifier as registered in the scheduler</param>
         private void InitializeHMM(string registeredStateIdentity, double timestamp = 0, string kerbalName = "")
         {
+            // TODO clean up the mess here when confirmed to be unnecessary 
             string templateStateIdentity = registeredStateIdentity;
             
             // Split template and kerbal parts when initialized from a save node
@@ -254,23 +265,25 @@ namespace RPStoryteller
                 kerbalName = registeredStateIdentity.Substring(0, splitter);
             }
             
-            // Avoid duplications
-            if (_liveProcesses.ContainsKey(registeredStateIdentity) == false)
-            {
-                HiddenState newState = new HiddenState(templateStateIdentity, kerbalName);
-                StarStruckUtil.Report(1, $"Registering {templateStateIdentity} for {kerbalName} as {newState.RealStateName()}.");
+            HiddenState newState = new HiddenState(templateStateIdentity, kerbalName);
 
+            // Avoid duplications
+            if (_liveProcesses.ContainsKey(newState.RegisteredName()) == false)
+            {
                 _liveProcesses.Add(newState.RegisteredName(), newState);
-                
-                if (timestamp == 0) _hmmScheduler.Add(newState.RegisteredName(), GetUT() + GeneratePeriod( newState.period ));
-                else _hmmScheduler.Add(newState.RegisteredName(), timestamp);
-                
-                // Record new state into personnel file
-                if (kerbalName != "")
-                {
-                    _peopleManager.GetFile(kerbalName).EnterNewState(templateStateIdentity);
-                }
             }
+            
+            timestamp = timestamp != 0 ? timestamp : StarStruckUtil.GetUT() + GeneratePeriod(newState.period);
+            
+            if (_hmmScheduler.ContainsKey(newState.RegisteredName()) == false)
+            {
+                _hmmScheduler.Add(newState.RegisteredName(), timestamp);
+            }
+            else
+            {
+                _hmmScheduler[newState.RegisteredName()] = timestamp;
+            }
+            
         }
 
         /// <summary>
@@ -290,8 +303,15 @@ namespace RPStoryteller
         /// <param name="templateFinalState">Identifier of the state to initialize without the kerbal name if applicable</param>
         private void TransitionHMM(string registeredInitialState, string templateFinalState)
         {
-            InitializeHMM(templateFinalState, kerbalName:_liveProcesses[registeredInitialState].kerbalName);
+            string fetchedKerbalName = _liveProcesses[registeredInitialState].kerbalName;
+            
+            InitializeHMM(templateFinalState, kerbalName:fetchedKerbalName);
             RemoveHMM(registeredInitialState);
+
+            if (fetchedKerbalName != "")
+            {
+                UpdateProductiveStateOf(fetchedKerbalName, templateFinalState);
+            }
         }
 
         /// <summary>

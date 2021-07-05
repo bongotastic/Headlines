@@ -51,8 +51,11 @@ namespace RPStoryteller
             
                 foreach (ConfigNode kerbalFile in folder.GetNodes())
                 {
-                    temporaryFile = new PersonnelFile(kerbalFile);
-                    personnelFolders.Add(temporaryFile.UniqueName(), temporaryFile);
+                    if (personnelFolders.ContainsKey(kerbalFile.GetValue("kerbalName")) == false)
+                    {
+                        temporaryFile = new PersonnelFile(kerbalFile);
+                        personnelFolders.Add(temporaryFile.UniqueName(), temporaryFile);
+                    }
                 }
             }
             
@@ -90,6 +93,16 @@ namespace RPStoryteller
         public PersonnelFile GetFile(string kerbalName)
         {
             if (personnelFolders.ContainsKey(kerbalName)) return personnelFolders[kerbalName];
+            else
+            {
+                // Possible when loading a save file...
+                ProtoCrewMember temppcm = HighLogic.CurrentGame.CrewRoster[kerbalName];
+                if (temppcm != null)
+                {
+                    personnelFolders.Add(kerbalName, new PersonnelFile(temppcm));
+                    return personnelFolders[kerbalName];
+                }
+            }
             return null;
         }
 
@@ -273,6 +286,14 @@ namespace RPStoryteller
 
         #region Setters
 
+        public void UpdateProductiveState(string templateName)
+        {
+            if (templateName.StartsWith("kerbal_") == true)
+            {
+                this.kerbalProductiveState = templateName.Substring(7);
+            }
+        }
+        
         /// <summary>
         /// Keeps track of the current productivity state. 
         /// </summary>
