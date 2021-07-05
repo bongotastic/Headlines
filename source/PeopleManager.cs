@@ -11,14 +11,14 @@ namespace RPStoryteller
     /// </summary>
     [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
         GameScenes.SPACECENTER)]
-    public class RPPeopleManager : ScenarioModule
+    public class PeopleManager : ScenarioModule
     {
         // Binds KSP crew and Starstruck data
         public Dictionary<string, PersonnelFile> personnelFolders = new Dictionary<string, PersonnelFile>();
 
         #region Kitchen Sink
 
-        public RPPeopleManager()
+        public PeopleManager()
         {
             RefreshPersonnelFolder();
         }
@@ -104,6 +104,22 @@ namespace RPStoryteller
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Sums all staff effectiveness as a program profile extimate.
+        /// </summary>
+        /// <returns></returns>
+        public double ProgramProfile()
+        {
+            double programProfile = 0;
+
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                programProfile += kvp.Value.Effectiveness();
+            }
+
+            return programProfile;
         }
 
         #endregion

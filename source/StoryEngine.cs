@@ -8,7 +8,7 @@ using RPStoryteller.source;
 namespace RPStoryteller
 {
     [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER, GameScenes.FLIGHT, GameScenes.TRACKSTATION)]
-    public class RPStoryteller : ScenarioModule
+    public class StoryEngine : ScenarioModule
     {
         #region Declarations
         
@@ -16,7 +16,7 @@ namespace RPStoryteller
         private static System.Random storytellerRand = new System.Random();
         
         // Mod data structures
-        private RPPeopleManager _peopleManager;
+        private PeopleManager _peopleManager;
 
         // HMM data structures and parameters
         private Dictionary<string, HiddenState> _liveProcesses = new Dictionary<string, HiddenState>();
@@ -169,7 +169,11 @@ namespace RPStoryteller
             float deltaReputation = newReputation - this.programLastKnownReputation;
 
             // Avoid processing recursively the adjustment
-            if ( reason == TransactionReasons.None) return;
+            if (reason == TransactionReasons.None)
+            {
+                this.programLastKnownReputation = newReputation;
+                return;
+            }
             
             StarStruckUtil.Report(1,$"New delta: {deltaReputation} whilst hype is {this.programHype}.");
             if (deltaReputation <= this.programHype)
@@ -200,7 +204,7 @@ namespace RPStoryteller
         /// </summary>
         private void InitializePeopleManager()
         {
-            _peopleManager = new RPPeopleManager();
+            _peopleManager = new PeopleManager();
             _peopleManager.RefreshPersonnelFolder();
 
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
@@ -450,6 +454,9 @@ namespace RPStoryteller
                 case "hype_dampened":
                     AdjustHype(-1f);
                     break;
+                case "decay_reputation":
+                    DecayReputation();
+                    break;
                 default:
                     StarStruckUtil.Report(1,$"[Emission] {eventName} is not implemented yet.");
                     break;
@@ -511,6 +518,49 @@ namespace RPStoryteller
             
             StarStruckUtil.Report(1,$"Hype on the program changed by {increment*5f} to now be {this.programHype}.");
             StarStruckUtil.ScreenMessage($"Program Hype: {string.Format("{0:0}", this.programHype)}");
+        }
+
+        /// <summary>
+        /// Degrades reputation of the program. 
+        /// </summary>
+        public void DecayReputation()
+        {
+            Reputation repInterface = Reputation.Instance;
+            
+            // Get current reputation
+            double currentReputation = repInterface.reputation;
+            
+            // Get the program's reputation floor
+            double programProfile = _peopleManager.ProgramProfile();
+            
+            // margin over profile (losable reputation)
+            double marginOverProfile = Math.Max(0, currentReputation - programProfile);
+
+            // Calculate the magic loss 0.9330 (1/2 life of 10 iterations, or baseline 1 year of doing nothing)
+            double decayReputation = marginOverProfile * 0.933;
+
+            if (storytellerRand.NextDouble() <= (marginOverProfile / 100))
+            {
+                repInterface.AddReputation((float)(-1 * decayReputation), TransactionReasons.None);
+                StarStruckUtil.Report(1,$"[Reputation] Loss of {decayReputation} to {repInterface.reputation}.");
+            }
+        }
+
+        /// <summary>
+        /// Public reevaluation of the hype around a program versus its actual reputation, and a proportional correction.
+        /// </summary>
+        public void RealityCheck()
+        {
+            Reputation repInstance = Reputation.Instance;
+
+            if (repInstance.reputation > 0)
+            {
+                float overrating = (this.programHype + repInstance.reputation) / repInstance.reputation;
+                this.programHype /= overrating;
+            
+                StarStruckUtil.Report(2,$"Public hype correction over your program.");
+            }
+            
         }
         
         #endregion
