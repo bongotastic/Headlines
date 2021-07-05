@@ -51,9 +51,11 @@ namespace RPStoryteller
             
             // Default HMM
             InitializeHMM("space_craze");
-            SchedulerCacheNextTime();
+            InitializeHMM("reputation_decay");
 
             InitializePeopleManager();
+            
+            SchedulerCacheNextTime();
             
             // Event Catching
             GameEvents.OnReputationChanged.Add(ReputationChanged);
