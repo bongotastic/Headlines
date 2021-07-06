@@ -1,2 +1,2 @@
-# RP1-Starstruck
+# Headlines
 This mod is definitely not ready for testing at this time. 
