@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using HiddenMarkovProcess;
 using RPStoryteller.source;
+using RPStoryteller.source.Emissions;
+using UnityEngine;
 
 
 namespace RPStoryteller
@@ -250,6 +252,62 @@ namespace RPStoryteller
 
             return outcome;
         }
+
+        public void KerbalImpact(PersonnelFile kerbalFile, Emissions emitData)
+        {
+            // Check for valid activities
+            List<string> validTask = new List<string>() { "media_blitz", "accelerate_research", "accelerate_assembly" };
+            if (validTask.Contains(kerbalFile.kerbalTask) == false)
+            {
+                return;
+            }
+            
+            string successLevel = SkillCheck(kerbalFile.Effectiveness());
+            if (successLevel == "FAILURE")
+            {
+                return;
+            }
+            
+            string impactType = "transient";
+            switch (successLevel)
+            {
+                case "FUMBLE":
+                    impactType = "negative";
+                    break;
+                case "CRITICAL":
+                    impactType = "lasting";
+                    break;
+            }
+
+            switch (kerbalFile.Specialty())
+            {
+                case "Pilot":
+                    PilotImpact(impactType, kerbalFile);
+                    break;
+                case "Engineer":
+                    EngineerImpact(impactType, kerbalFile);
+                    break;
+                case "Scientist":
+                    ScientistImpact(impactType, kerbalFile);
+                    break;
+            }
+            
+        }
+
+        public void PilotImpact(string impactType, PersonnelFile kerbalFile)
+        {
+            HeadlinesUtil.Report(1, $"{kerbalFile.DisplayName()} has a {impactType} impact on media operations.");
+        }
+        
+        public void ScientistImpact(string impactType, PersonnelFile kerbalFile)
+        {
+            HeadlinesUtil.Report(1, $"{kerbalFile.DisplayName()} has a {impactType} impact on R&D.");
+        }
+        
+        public void EngineerImpact(string impactType, PersonnelFile kerbalFile)
+        {
+            HeadlinesUtil.Report(1, $"{kerbalFile.DisplayName()} has a {impactType} impact on the VAB.");
+        }
         #endregion
 
         #region HMM Logic
@@ -440,6 +498,8 @@ namespace RPStoryteller
         {
             HeadlinesUtil.Report(1,$"[Emission] {eventName} at time { KSPUtil.PrintDate(GetUT(), true, false) }");
 
+            Emissions emitData = new Emissions(eventName);
+
             switch (eventName)
             {
                 case "attention_span_long":
@@ -457,6 +517,9 @@ namespace RPStoryteller
                 case "decay_reputation":
                     DecayReputation();
                     break;
+                case "reality_check":
+                    RealityCheck();
+                    break;
                 default:
                     HeadlinesUtil.Report(1,$"[Emission] {eventName} is not implemented yet.");
                     break;
@@ -471,10 +534,12 @@ namespace RPStoryteller
         public void EmitEvent(string eventName, PersonnelFile personnelFile)
         {
             personnelFile.TrackCurrentActivity(eventName);
+            Emissions emitData = new Emissions(eventName);
             
             switch (eventName)
             {
-                case "bogus":
+                case "impact":
+                    KerbalImpact(personnelFile, emitData);
                     break;
                 default:
                     HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
@@ -502,7 +567,17 @@ namespace RPStoryteller
             attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // That's a 3.24-day span
             attentionSpanFactor = Math.Min(Math.Pow(power, 3), attentionSpanFactor); // That's a 152-day span
             
-            HeadlinesUtil.Report(1,$"New attentionSpanFactor = {attentionSpanFactor}");
+            // Let player know without spamming the screen
+            if (increment > 0 && attentionSpanFactor > 1.61)
+            {
+                HeadlinesUtil.ScreenMessage($"People understand that space exploration takes time.");
+            }
+            else if (attentionSpanFactor <= 1)
+            {
+                HeadlinesUtil.ScreenMessage($"Public grow impatient. Act soon!");
+            }
+            
+            //HeadlinesUtil.Report(1,$"New attentionSpanFactor = {attentionSpanFactor}");
         }
 
         /// <summary>
@@ -517,7 +592,16 @@ namespace RPStoryteller
             this.programHype = Math.Max(0f, this.programHype);
             
             HeadlinesUtil.Report(1,$"Hype on the program changed by {increment*5f} to now be {this.programHype}.");
+            if (increment > 0)
+            {
+                HeadlinesUtil.ScreenMessage($"Space craze is heating up in the press.");
+            }
+            else
+            {
+                HeadlinesUtil.ScreenMessage($"Space craze is cooling down.");
+            }
             HeadlinesUtil.ScreenMessage($"Program Hype: {string.Format("{0:0}", this.programHype)}");
+            
         }
 
         /// <summary>
@@ -537,12 +621,12 @@ namespace RPStoryteller
             double marginOverProfile = Math.Max(0, currentReputation - programProfile);
 
             // Calculate the magic loss 0.9330 (1/2 life of 10 iterations, or baseline 1 year of doing nothing)
-            double decayReputation = marginOverProfile * 0.933;
+            double decayReputation = marginOverProfile * (1 - 0.933);
 
             if (storytellerRand.NextDouble() <= (marginOverProfile / 100))
             {
                 repInterface.AddReputation((float)(-1 * decayReputation), TransactionReasons.None);
-                HeadlinesUtil.Report(1,$"[Reputation] Loss of {decayReputation} to {repInterface.reputation}.");
+                HeadlinesUtil.Report(2,$"{(int)decayReputation} reputation lost. New total: {(int)repInterface.reputation}.");
             }
         }
 
@@ -558,7 +642,7 @@ namespace RPStoryteller
                 float overrating = (this.programHype + repInstance.reputation) / repInstance.reputation;
                 this.programHype /= overrating;
             
-                HeadlinesUtil.Report(2,$"Public hype correction over your program.");
+                HeadlinesUtil.Report(2,$"Public hype correction over your program ({(int)this.programHype}).");
             }
             
         }
