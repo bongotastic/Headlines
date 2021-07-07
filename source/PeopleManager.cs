@@ -129,9 +129,12 @@ namespace RPStoryteller
     {
         private static System.Random randomNG = new System.Random();
         
+        // Getting better through professional development
         public int trainingLevel = 0;
+        // Affects the odds of leaving the program
+        public int discontent = 1;
         
-        // While sustained
+        // While sustaining (transient)
         public int influence = 0;
         // Passive until retirement
         public int teamInfluence = 0;
@@ -191,6 +194,7 @@ namespace RPStoryteller
             this.influence = int.Parse(node.GetValue("influence"));
             this.teamInfluence = int.Parse(node.GetValue("teamInfluence"));
             this.legacy = int.Parse(node.GetValue("legacy"));
+            this.discontent = int.Parse(node.GetValue("discontent"));
 
             this.pcm = HighLogic.CurrentGame.CrewRoster[node.GetValue("kerbalName")];
         }
@@ -206,6 +210,7 @@ namespace RPStoryteller
             outputNode.AddValue("influence", this.influence);
             outputNode.AddValue("teamInfluence", this.teamInfluence);
             outputNode.AddValue("legacy", this.legacy);
+            outputNode.AddValue("discontent", this.discontent);
             
             return outputNode;
         }
@@ -344,6 +349,16 @@ namespace RPStoryteller
             this.kerbalTask = newTaskName;
         }
 
+        /// <summary>
+        /// Ensures that discontent is bounded from 0 to 5.
+        /// </summary>
+        /// <param name="increment"></param>
+        public void AdjustDiscontent(int increment)
+        {
+            this.discontent += increment;
+            this.discontent = Math.Max(this.discontent, 0);
+            this.discontent = Math.Min(this.discontent, 5);
+        }
         #endregion
         
     }

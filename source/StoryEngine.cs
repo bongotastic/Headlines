@@ -248,20 +248,20 @@ namespace RPStoryteller
         /// <param name="skillLevel">0+ arbitrary unit</param>
         /// <param name="difficulty">0+ arbitrary unit</param>
         /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
-        public static string SkillCheck(int skillLevel, int difficulty = 0)
+        public static SkillCheckOutcome SkillCheck(int skillLevel, int difficulty = 0)
         {
             int upperlimit = 3 * skillLevel;
             int lowerlimit = 3 * difficulty;
 
-            string outcome = "FAILURE";
+            SkillCheckOutcome outcome = SkillCheckOutcome.FAILURE;
 
             int die = storytellerRand.Next(1, 20);
 
             if (upperlimit > 20) die += (upperlimit - 20);
-            else if (die == 20) outcome = "FUMBLE";
+            else if (die == 20) outcome = SkillCheckOutcome.FUMBLE;
 
-            if (die == upperlimit || (upperlimit >= 20 && die >= 20)) outcome = "CRITICAL";
-            else if (die >= lowerlimit && die < upperlimit) outcome = "SUCCESS";
+            if (die == upperlimit || (upperlimit >= 20 && die >= 20)) outcome = SkillCheckOutcome.CRITICAL;
+            else if (die >= lowerlimit && die < upperlimit) outcome = SkillCheckOutcome.SUCCESS;
 
             return outcome;
         }
@@ -281,8 +281,8 @@ namespace RPStoryteller
                 return;
             }
             
-            string successLevel = SkillCheck(kerbalFile.Effectiveness());
-            if (successLevel == "FAILURE")
+            SkillCheckOutcome successLevel = SkillCheck(kerbalFile.Effectiveness());
+            if (successLevel == SkillCheckOutcome.FAILURE)
             {
                 return;
             }
@@ -290,10 +290,10 @@ namespace RPStoryteller
             ImpactType impactType = ImpactType.TRANSIENT;
             switch (successLevel)
             {
-                case "FUMBLE":
+                case SkillCheckOutcome.FUMBLE:
                     impactType = ImpactType.NEGATIVE;
                     break;
-                case "CRITICAL":
+                case SkillCheckOutcome.CRITICAL:
                     impactType = ImpactType.LASTING;
                     break;
             }
@@ -475,7 +475,7 @@ namespace RPStoryteller
         {
             personnelFile.TrackCurrentActivity(emitData.nodeName);
         }
-        #endregion
+        
 
         /// <summary>
         /// Stub for the kerbal's AI to enter a charm campaign. Currently, does nothing special.
@@ -487,6 +487,40 @@ namespace RPStoryteller
             personnelFile.TrackCurrentActivity(emitData.nodeName);
         }
 
+        /// <summary>
+        /// Kerbal taking time to get professional development. It caps skill improvement to an
+        /// effectiveness of 5, which is plenty. 
+        /// </summary>
+        /// <param name="personnelFile">the actor</param>
+        /// <param name="emitData">the event</param>
+        public void KerbalStudyLeave(PersonnelFile personnelFile, Emissions emitData)
+        {
+            CancelInfluence(personnelFile);
+
+            SkillCheckOutcome outcome = SkillCheck(5,personnelFile.Effectiveness());
+
+            if (outcome == SkillCheckOutcome.SUCCESS)
+            {
+                personnelFile.trainingLevel += 1;
+                HeadlinesUtil.Report(2,$"{personnelFile.DisplayName()} matures.");
+            }
+            else if (outcome == SkillCheckOutcome.CRITICAL)
+            {
+                personnelFile.trainingLevel += 2;
+                personnelFile.AdjustDiscontent(-1);
+                HeadlinesUtil.Report(2,$"{personnelFile.DisplayName()} has a breakthrough.");
+            }
+            else if (outcome == SkillCheckOutcome.FUMBLE)
+            {
+                personnelFile.trainingLevel -= 1;
+                personnelFile.AdjustDiscontent(1);
+                HeadlinesUtil.Report(2,$"{personnelFile.DisplayName()} goes down a misguided rabbit hole.");
+            }
+
+        }
+        
+        #endregion
+        
         #region HMM Logic
 
         /// <summary>
@@ -710,8 +744,7 @@ namespace RPStoryteller
         /// <param name="personnelFile">An instance of the personnel file for the correct kerbal</param>
         public void EmitEvent(string eventName, PersonnelFile personnelFile)
         {
-            CancelInfluence(personnelFile);
-            
+
             Emissions emitData = new Emissions(eventName);
             
             if (emitData.OngoingTask() == true)
@@ -732,7 +765,15 @@ namespace RPStoryteller
                     KerbalAccelerate(personnelFile, emitData);
                     break;
                 case "media_blitz":
+                    CancelInfluence(personnelFile);
                     KerbalMediaBlitz(personnelFile, emitData);
+                    break;
+                case "study_leave":
+                    KerbalStudyLeave(personnelFile, emitData);
+                    break;
+                case "media_training":
+                    // Don't do anything special except ensures that only pilot do that.
+                    if (personnelFile.Specialty() == "Pilot") KerbalStudyLeave(personnelFile, emitData);
                     break;
                 default:
                     HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
