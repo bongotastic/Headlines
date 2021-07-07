@@ -9,6 +9,19 @@ using UnityEngine;
 
 namespace RPStoryteller
 {
+    public enum ImpactType
+    {
+        NEGATIVE,
+        NONE,
+        TRANSIENT,
+        LASTING
+    }
+
+    public enum SkillCheckOutcome
+    {
+        FUMBLE, FAILURE, SUCCESS, CRITICAL
+    }
+    
     [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER, GameScenes.FLIGHT, GameScenes.TRACKSTATION)]
     public class StoryEngine : ScenarioModule
     {
@@ -235,7 +248,7 @@ namespace RPStoryteller
         /// <param name="skillLevel">0+ arbitrary unit</param>
         /// <param name="difficulty">0+ arbitrary unit</param>
         /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
-        static string SkillCheck(int skillLevel, int difficulty = 0)
+        public static string SkillCheck(int skillLevel, int difficulty = 0)
         {
             int upperlimit = 3 * skillLevel;
             int lowerlimit = 3 * difficulty;
@@ -253,6 +266,12 @@ namespace RPStoryteller
             return outcome;
         }
 
+        /// <summary>
+        /// Kerbal staff will alter the state of the KSC or have an effect on a media_blitz.
+        /// </summary>
+        /// <param name="kerbalFile">the actor</param>
+        /// <param name="emitData">the event</param>
+        /// <param name="legacyMode">legacy impact possible</param>
         public void KerbalImpact(PersonnelFile kerbalFile, Emissions emitData, bool legacyMode = false)
         {
             // Check for valid activities
@@ -268,14 +287,14 @@ namespace RPStoryteller
                 return;
             }
             
-            string impactType = "transient";
+            ImpactType impactType = ImpactType.TRANSIENT;
             switch (successLevel)
             {
                 case "FUMBLE":
-                    impactType = "negative";
+                    impactType = ImpactType.NEGATIVE;
                     break;
                 case "CRITICAL":
-                    impactType = "lasting";
+                    impactType = ImpactType.LASTING;
                     break;
             }
 
@@ -299,21 +318,27 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="impactType">Level of success</param>
         /// <param name="kerbalFile">The actor in this emission</param>
-        public void PilotImpact(string impactType, PersonnelFile kerbalFile)
+        public void PilotImpact(ImpactType impactType, PersonnelFile kerbalFile)
         {
             float multiplier = 1;
             switch (impactType)
             {
-                case "FUMBLE":
+                case ImpactType.NEGATIVE:
                     multiplier *= -1;
                     break;
-                case "CRITICAL":
+                case ImpactType.LASTING:
                     multiplier *= 2;
                     break;
             }
 
-            HeadlinesUtil.Report(2,$"{kerbalFile.DisplayName()} in the limelight.");
-            AdjustHype(kerbalFile.Effectiveness() * multiplier );
+            string adjective = "";
+            int effectiveness = kerbalFile.Effectiveness();
+            if (effectiveness == 0)
+            {
+                adjective = "inneffectively ";
+            }
+            HeadlinesUtil.Report(2,$"{kerbalFile.DisplayName()} {adjective}in the limelight.");
+            AdjustHype( effectiveness * multiplier );
         }
 
         /// <summary>
@@ -322,27 +347,28 @@ namespace RPStoryteller
         /// <param name="impactType">Skill check outcome</param>
         /// <param name="kerbalFile">The actor for this scence</param>
         /// <param name="legacyMode">Whether this is a legacy event or not</param>
-        public void ScientistImpact(string impactType, PersonnelFile kerbalFile, bool legacyMode = false)
+        public void ScientistImpact(ImpactType impactType, PersonnelFile kerbalFile, bool legacyMode = false)
         {
-            if (legacyMode == true && impactType == "FUMBLE") return;
+            if (legacyMode == true && impactType == ImpactType.NEGATIVE) return;
             
             // Define the magnitude of the change.
             // TODO Get from RP1 the total number of points in R&D
-            int pointsRandD = 10;
+            int pointsRandD = GetRnDPoints();
             
             // 2% of R&D or 1 point
-            int deltaRandD = Math.Max(1, (int) ((float) pointsRandD * 0.02f));
+            int deltaRandD = (int)Math.Ceiling((double)pointsRandD * 0.02);
+            if (deltaRandD == 0) return;
 
             string message = "";
             if (legacyMode == true)
             {
                 switch (impactType)
                 {
-                    case "SUCCESS":
+                    case ImpactType.TRANSIENT:
                         kerbalFile.teamInfluence += deltaRandD;
                         message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
                         break;
-                    case "CRITICAL":
+                    case ImpactType.LASTING:
                         kerbalFile.legacy += deltaRandD;
                         message = $"{kerbalFile.DisplayName()} legacy is growing.";
                         break;
@@ -352,17 +378,20 @@ namespace RPStoryteller
             {
                 switch (impactType)
                 {
-                    case "FUMBLE":
+                    case ImpactType.NEGATIVE:
                         deltaRandD *= -1;
                         message = $"{kerbalFile.DisplayName()} sows confusion in the R&D complex.";
                         break;
-                    case "CRITICAL":
+                    case ImpactType.LASTING:
                         kerbalFile.teamInfluence += deltaRandD;
                         message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
                         break;
-                    case "SUCCESS":
+                    case ImpactType.TRANSIENT:
                         kerbalFile.influence += deltaRandD;
                         message = $"{kerbalFile.DisplayName()} earns their pay at the R&D complex.";
+                        break;
+                    default:
+                        HeadlinesUtil.Report(1, $"This should never happen {impactType}");
                         break;
                 }
             }
@@ -379,27 +408,30 @@ namespace RPStoryteller
         /// <param name="impactType">Skill check outcome</param>
         /// <param name="kerbalFile">The actor</param>
         /// <param name="legacyMode">Whether this change is lasting or not</param>
-        public void EngineerImpact(string impactType, PersonnelFile kerbalFile, bool legacyMode = false)
+        public void EngineerImpact(ImpactType impactType, PersonnelFile kerbalFile, bool legacyMode = false)
         {
-            if (legacyMode == true && impactType == "FUMBLE") return;
+            if (legacyMode == true && impactType == ImpactType.NEGATIVE) return;
             
             // Define the magnitude of the change.
             // TODO Get from RP1 the total number of points in R&D
-            int pointsVAB = 10;
+            int pointsVAB = GetVABPoints();
             
             // 2% of R&D or 1 point
-            int deltaVAB = Math.Max(1, (int) ((float) pointsVAB * 0.02f));
+            int deltaVAB = (int)Math.Ceiling((double)pointsVAB * 0.02);
+            if (deltaVAB == 0) return;
+            
+            HeadlinesUtil.Report(1,$"Adjustment by {deltaVAB}");
 
             string message = "";
             if (legacyMode == true)
             {
                 switch (impactType)
                 {
-                    case "SUCCESS":
+                    case ImpactType.TRANSIENT:
                         kerbalFile.teamInfluence += deltaVAB;
                         message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
                         break;
-                    case "CRITICAL":
+                    case ImpactType.LASTING:
                         kerbalFile.legacy += deltaVAB;
                         message = $"{kerbalFile.DisplayName()} legacy is growing.";
                         break;
@@ -409,17 +441,20 @@ namespace RPStoryteller
             {
                 switch (impactType)
                 {
-                    case "FUMBLE":
+                    case ImpactType.NEGATIVE:
                         deltaVAB *= -1;
                         message = $"{kerbalFile.DisplayName()} sows confusion in the VAB.";
                         break;
-                    case "CRITICAL":
+                    case ImpactType.LASTING:
                         kerbalFile.teamInfluence += deltaVAB;
                         message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
                         break;
-                    case "SUCCESS":
+                    case ImpactType.TRANSIENT:
                         kerbalFile.influence += deltaVAB;
                         message = $"{kerbalFile.DisplayName()} earns their pay at the VAB.";
+                        break;
+                    default:
+                        HeadlinesUtil.Report(1, $"This should never happen {impactType}");
                         break;
                 }
             }
@@ -429,7 +464,28 @@ namespace RPStoryteller
             HeadlinesUtil.Report(2, message);
             HeadlinesUtil.Report(1, $"{message} ({deltaVAB})");
         }
+
+        /// <summary>
+        /// At this time, does not much more than to change the personelFile. This is redundant with the more general
+        /// task updating code in EmitEvent, but may differ at a later time.
+        /// </summary>
+        /// <param name="personnelFile">The Actor</param>
+        /// <param name="emitData">The event</param>
+        public void KerbalAccelerate(PersonnelFile personnelFile, Emissions emitData)
+        {
+            personnelFile.TrackCurrentActivity(emitData.nodeName);
+        }
         #endregion
+
+        /// <summary>
+        /// Stub for the kerbal's AI to enter a charm campaign. Currently, does nothing special.
+        /// </summary>
+        /// <param name="personnelFile">The actor</param>
+        /// <param name="emitData">The event</param>
+        public void KerbalMediaBlitz(PersonnelFile personnelFile, Emissions emitData)
+        {
+            personnelFile.TrackCurrentActivity(emitData.nodeName);
+        }
 
         #region HMM Logic
 
@@ -583,11 +639,6 @@ namespace RPStoryteller
                     if (_liveProcesses[registeredStateName].kerbalName != "")
                     {
                         PersonnelFile personnelFile = _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
-                        if (_liveProcesses[registeredStateName].TemplateStateName().StartsWith("role_") == true)
-                        {
-                            // Track only event associated with the role_ state
-                            personnelFile.TrackCurrentActivity(emittedEvent);
-                        }
                         EmitEvent(emittedEvent, personnelFile);
                     }
                     else
@@ -663,10 +714,25 @@ namespace RPStoryteller
             
             Emissions emitData = new Emissions(eventName);
             
+            if (emitData.OngoingTask() == true)
+            {
+                // Indicates a shift in focus over time
+                personnelFile.TrackCurrentActivity(eventName);
+            }
+            
             switch (eventName)
             {
                 case "impact":
                     KerbalImpact(personnelFile, emitData);
+                    break;
+                case "accelerate_research":
+                    KerbalAccelerate(personnelFile, emitData);
+                    break;
+                case "accelerate_assembly":
+                    KerbalAccelerate(personnelFile, emitData);
+                    break;
+                case "media_blitz":
+                    KerbalMediaBlitz(personnelFile, emitData);
                     break;
                 default:
                     HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
@@ -779,6 +845,24 @@ namespace RPStoryteller
         #region RP1
 
         /// <summary>
+        /// Connect to RP1 to obtain points in R&D
+        /// </summary>
+        /// <returns></returns>
+        public int GetRnDPoints()
+        {
+            return 50;
+        }
+        
+        /// <summary>
+        /// Connect to RP1 to obtain points in R&D
+        /// </summary>
+        /// <returns></returns>
+        public int GetVABPoints()
+        {
+            return 50;
+        }
+        
+        /// <summary>
         /// Change the tally of points in the R&D.
         /// </summary>
         /// <param name="deltaPoint">number of point to change</param>
@@ -802,17 +886,20 @@ namespace RPStoryteller
         /// <param name="kerbalFile">The actor</param>
         private void CancelInfluence(PersonnelFile kerbalFile)
         {
-            switch (kerbalFile.Specialty())
+            if (kerbalFile.influence != 0)
             {
-                case "Scientist":
-                    AdjustRnD(-1 * kerbalFile.influence);
-                    break;
-                case "Engineer":
-                    AdjustVAB(-1 * kerbalFile.influence);
-                    break;
-            }
+                switch (kerbalFile.Specialty())
+                {
+                    case "Scientist":
+                        AdjustRnD(-1 * kerbalFile.influence);
+                        break;
+                    case "Engineer":
+                        AdjustVAB(-1 * kerbalFile.influence);
+                        break;
+                }
 
-            kerbalFile.influence = 0;
+                kerbalFile.influence = 0;
+            }
         }
 
         #endregion

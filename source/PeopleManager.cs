@@ -239,10 +239,11 @@ namespace RPStoryteller
             
             // Profile and experience with probability for fractional points
             double tempProfile = Profile();
-            effectiveness += (int) tempProfile;
+            int wholePartProfile = (int) Math.Floor(tempProfile);
+            effectiveness += wholePartProfile;
 
             // Treat partial profile point as probabilities
-            if (randomNG.NextDouble() <= tempProfile - (double) effectiveness) effectiveness += 1;
+            if (randomNG.NextDouble() <= tempProfile - (double) wholePartProfile) effectiveness += 1;
             
             // experience Level
             effectiveness += ExperienceProfileIncrements();

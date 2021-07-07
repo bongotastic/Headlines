@@ -95,5 +95,15 @@ namespace RPStoryteller.source.Emissions
             }
             return "";
         }
+
+        public bool OngoingTask()
+        {
+            if (_node.HasValue("takesTime") == true)
+            {
+                return bool.Parse(_node.GetValue("takesTime"));
+            }
+
+            return false;
+        }
     }
 }
