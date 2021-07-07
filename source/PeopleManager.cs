@@ -131,8 +131,12 @@ namespace RPStoryteller
         
         public int trainingLevel = 0;
         
-        //public int influence = 0;
-        //public int legacy = 0;
+        // While sustained
+        public int influence = 0;
+        // Passive until retirement
+        public int teamInfluence = 0;
+        // Will never be removed
+        public int legacy = 0;
 
         // Store HMM
         public string kerbalProductiveState;
@@ -184,6 +188,9 @@ namespace RPStoryteller
             this.kerbalProductiveState = node.GetValue("kerbalState");
             this.kerbalTask = node.GetValue("kerbalTask");
             this.trainingLevel = int.Parse(node.GetValue("trainingLevel"));
+            this.influence = int.Parse(node.GetValue("influence"));
+            this.teamInfluence = int.Parse(node.GetValue("teamInfluence"));
+            this.legacy = int.Parse(node.GetValue("legacy"));
 
             this.pcm = HighLogic.CurrentGame.CrewRoster[node.GetValue("kerbalName")];
         }
@@ -196,6 +203,9 @@ namespace RPStoryteller
             outputNode.AddValue("kerbalState", this.kerbalProductiveState);
             outputNode.AddValue("kerbalTask", this.kerbalTask);
             outputNode.AddValue("trainingLevel", this.trainingLevel);
+            outputNode.AddValue("influence", this.influence);
+            outputNode.AddValue("teamInfluence", this.teamInfluence);
+            outputNode.AddValue("legacy", this.legacy);
             
             return outputNode;
         }
@@ -325,7 +335,7 @@ namespace RPStoryteller
         }
         
         /// <summary>
-        /// Keeps track of the last emitted event in the kerbal's role. 
+        /// Keeps track of the last emitted event in the role_. 
         /// </summary>
         /// <param name="newTaskName">the template name of the state</param>
         public void TrackCurrentActivity(string newTaskName)

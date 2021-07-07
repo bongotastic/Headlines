@@ -74,7 +74,7 @@ namespace HiddenMarkovProcess
         /// Accounts for the fact that a HMM is registered under a different name that its template name
         /// </summary>
         /// <returns></returns>
-        public string RealStateName()
+        public string TemplateStateName()
         {
             return this.templateStateName;
         }

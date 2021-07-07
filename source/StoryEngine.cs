@@ -99,7 +99,7 @@ namespace RPStoryteller
                 stateToSave = _liveProcesses[kvp.Key];
 
                 temporaryNode = new ConfigNode();
-                temporaryNode.AddValue("stateName", stateToSave.RealStateName());
+                temporaryNode.AddValue("stateName", stateToSave.TemplateStateName());
                 temporaryNode.AddValue("nextTrigger", triggertime);
 
                 if (stateToSave.kerbalName != "") temporaryNode.AddValue("kerbalName", stateToSave.kerbalName);
@@ -253,7 +253,7 @@ namespace RPStoryteller
             return outcome;
         }
 
-        public void KerbalImpact(PersonnelFile kerbalFile, Emissions emitData)
+        public void KerbalImpact(PersonnelFile kerbalFile, Emissions emitData, bool legacyMode = false)
         {
             // Check for valid activities
             List<string> validTask = new List<string>() { "media_blitz", "accelerate_research", "accelerate_assembly" };
@@ -285,28 +285,149 @@ namespace RPStoryteller
                     PilotImpact(impactType, kerbalFile);
                     break;
                 case "Engineer":
-                    EngineerImpact(impactType, kerbalFile);
+                    EngineerImpact(impactType, kerbalFile, legacyMode);
                     break;
                 case "Scientist":
-                    ScientistImpact(impactType, kerbalFile);
+                    ScientistImpact(impactType, kerbalFile, legacyMode);
                     break;
             }
             
         }
 
+        /// <summary>
+        /// A kerbal is in the spotlight and is either playing up the program, or down by accident.
+        /// </summary>
+        /// <param name="impactType">Level of success</param>
+        /// <param name="kerbalFile">The actor in this emission</param>
         public void PilotImpact(string impactType, PersonnelFile kerbalFile)
         {
-            HeadlinesUtil.Report(1, $"{kerbalFile.DisplayName()} has a {impactType} impact on media operations.");
+            float multiplier = 1;
+            switch (impactType)
+            {
+                case "FUMBLE":
+                    multiplier *= -1;
+                    break;
+                case "CRITICAL":
+                    multiplier *= 2;
+                    break;
+            }
+
+            HeadlinesUtil.Report(2,$"{kerbalFile.DisplayName()} in the limelight.");
+            AdjustHype(kerbalFile.Effectiveness() * multiplier );
+        }
+
+        /// <summary>
+        /// A scientist leads a research and development team to affect research rates.
+        /// </summary>
+        /// <param name="impactType">Skill check outcome</param>
+        /// <param name="kerbalFile">The actor for this scence</param>
+        /// <param name="legacyMode">Whether this is a legacy event or not</param>
+        public void ScientistImpact(string impactType, PersonnelFile kerbalFile, bool legacyMode = false)
+        {
+            if (legacyMode == true && impactType == "FUMBLE") return;
+            
+            // Define the magnitude of the change.
+            // TODO Get from RP1 the total number of points in R&D
+            int pointsRandD = 10;
+            
+            // 2% of R&D or 1 point
+            int deltaRandD = Math.Max(1, (int) ((float) pointsRandD * 0.02f));
+
+            string message = "";
+            if (legacyMode == true)
+            {
+                switch (impactType)
+                {
+                    case "SUCCESS":
+                        kerbalFile.teamInfluence += deltaRandD;
+                        message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
+                        break;
+                    case "CRITICAL":
+                        kerbalFile.legacy += deltaRandD;
+                        message = $"{kerbalFile.DisplayName()} legacy is growing.";
+                        break;
+                }
+            }
+            else
+            {
+                switch (impactType)
+                {
+                    case "FUMBLE":
+                        deltaRandD *= -1;
+                        message = $"{kerbalFile.DisplayName()} sows confusion in the R&D complex.";
+                        break;
+                    case "CRITICAL":
+                        kerbalFile.teamInfluence += deltaRandD;
+                        message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
+                        break;
+                    case "SUCCESS":
+                        kerbalFile.influence += deltaRandD;
+                        message = $"{kerbalFile.DisplayName()} earns their pay at the R&D complex.";
+                        break;
+                }
+            }
+            
+            AdjustRnD(deltaRandD);
+
+            HeadlinesUtil.Report(2, message);
+            HeadlinesUtil.Report(1, $"{message} ({deltaRandD})");
         }
         
-        public void ScientistImpact(string impactType, PersonnelFile kerbalFile)
+        /// <summary>
+        /// An engineer does wonders in the VAB with vehicle assembly
+        /// </summary>
+        /// <param name="impactType">Skill check outcome</param>
+        /// <param name="kerbalFile">The actor</param>
+        /// <param name="legacyMode">Whether this change is lasting or not</param>
+        public void EngineerImpact(string impactType, PersonnelFile kerbalFile, bool legacyMode = false)
         {
-            HeadlinesUtil.Report(1, $"{kerbalFile.DisplayName()} has a {impactType} impact on R&D.");
-        }
-        
-        public void EngineerImpact(string impactType, PersonnelFile kerbalFile)
-        {
-            HeadlinesUtil.Report(1, $"{kerbalFile.DisplayName()} has a {impactType} impact on the VAB.");
+            if (legacyMode == true && impactType == "FUMBLE") return;
+            
+            // Define the magnitude of the change.
+            // TODO Get from RP1 the total number of points in R&D
+            int pointsVAB = 10;
+            
+            // 2% of R&D or 1 point
+            int deltaVAB = Math.Max(1, (int) ((float) pointsVAB * 0.02f));
+
+            string message = "";
+            if (legacyMode == true)
+            {
+                switch (impactType)
+                {
+                    case "SUCCESS":
+                        kerbalFile.teamInfluence += deltaVAB;
+                        message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
+                        break;
+                    case "CRITICAL":
+                        kerbalFile.legacy += deltaVAB;
+                        message = $"{kerbalFile.DisplayName()} legacy is growing.";
+                        break;
+                }
+            }
+            else
+            {
+                switch (impactType)
+                {
+                    case "FUMBLE":
+                        deltaVAB *= -1;
+                        message = $"{kerbalFile.DisplayName()} sows confusion in the VAB.";
+                        break;
+                    case "CRITICAL":
+                        kerbalFile.teamInfluence += deltaVAB;
+                        message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
+                        break;
+                    case "SUCCESS":
+                        kerbalFile.influence += deltaVAB;
+                        message = $"{kerbalFile.DisplayName()} earns their pay at the VAB.";
+                        break;
+                }
+            }
+
+            AdjustVAB(deltaVAB);
+
+            HeadlinesUtil.Report(2, message);
+            HeadlinesUtil.Report(1, $"{message} ({deltaVAB})");
         }
         #endregion
 
@@ -462,6 +583,11 @@ namespace RPStoryteller
                     if (_liveProcesses[registeredStateName].kerbalName != "")
                     {
                         PersonnelFile personnelFile = _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
+                        if (_liveProcesses[registeredStateName].TemplateStateName().StartsWith("role_") == true)
+                        {
+                            // Track only event associated with the role_ state
+                            personnelFile.TrackCurrentActivity(emittedEvent);
+                        }
                         EmitEvent(emittedEvent, personnelFile);
                     }
                     else
@@ -473,7 +599,7 @@ namespace RPStoryteller
                 // HMM transition determination
                 nextTransitionState = _liveProcesses[registeredStateName].Transition();
                 
-                if (nextTransitionState != _liveProcesses[registeredStateName].RealStateName())
+                if (nextTransitionState != _liveProcesses[registeredStateName].TemplateStateName())
                 {
                     TransitionHMM(registeredStateName, nextTransitionState);
                 }
@@ -533,7 +659,8 @@ namespace RPStoryteller
         /// <param name="personnelFile">An instance of the personnel file for the correct kerbal</param>
         public void EmitEvent(string eventName, PersonnelFile personnelFile)
         {
-            personnelFile.TrackCurrentActivity(eventName);
+            CancelInfluence(personnelFile);
+            
             Emissions emitData = new Emissions(eventName);
             
             switch (eventName)
@@ -647,6 +774,47 @@ namespace RPStoryteller
             
         }
         
+        #endregion
+
+        #region RP1
+
+        /// <summary>
+        /// Change the tally of points in the R&D.
+        /// </summary>
+        /// <param name="deltaPoint">number of point to change</param>
+        public void AdjustRnD(int deltaPoint)
+        {
+            HeadlinesUtil.Report(1,$"Adjust R&D points by {deltaPoint}.");
+        }
+        
+        /// <summary>
+        /// Change the tally of points in the VAB.
+        /// </summary>
+        /// <param name="deltaPoint">number of point to change</param>
+        public void AdjustVAB(int deltaPoint)
+        {
+            HeadlinesUtil.Report(1,$"Adjust VAB points by {deltaPoint}.");
+        }
+
+        /// <summary>
+        /// Remove the live influence of a kerbal on the KSC.
+        /// </summary>
+        /// <param name="kerbalFile">The actor</param>
+        private void CancelInfluence(PersonnelFile kerbalFile)
+        {
+            switch (kerbalFile.Specialty())
+            {
+                case "Scientist":
+                    AdjustRnD(-1 * kerbalFile.influence);
+                    break;
+                case "Engineer":
+                    AdjustVAB(-1 * kerbalFile.influence);
+                    break;
+            }
+
+            kerbalFile.influence = 0;
+        }
+
         #endregion
     }
 }
