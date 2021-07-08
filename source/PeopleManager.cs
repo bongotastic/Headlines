@@ -13,6 +13,8 @@ namespace RPStoryteller
         GameScenes.SPACECENTER)]
     public class PeopleManager : ScenarioModule
     {
+        private static System.Random randomNG = new System.Random();
+        
         // Binds KSP crew and Starstruck data
         public Dictionary<string, PersonnelFile> personnelFolders = new Dictionary<string, PersonnelFile>();
 
@@ -117,19 +119,40 @@ namespace RPStoryteller
         }
 
         /// <summary>
-        /// Sums all staff effectiveness as a program profile extimate.
+        /// Returns the unique name of a random kerbal on staff. Will not return anyone on the exclude list. Meant to be
+        /// usable for many purposes. The two parameter should not be used together.
         /// </summary>
-        /// <returns></returns>
-        public double ProgramProfile()
+        /// <param name="exclude">identifiers of kerbal to exclude from selection</param>
+        /// <param name="subset">restrict selection to this subset</param>
+        /// <returns>null or a PersonnelFile</returns>
+        public PersonnelFile GetRandomKerbal(List<string> exclude = null, List<string> subset = null)
         {
-            double programProfile = 0;
+            if (exclude == null) exclude = new List<string>();
 
-            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            if (subset == null)
             {
-                programProfile += kvp.Value.Effectiveness();
+                subset = new List<string>();
+                foreach (KeyValuePair<string,PersonnelFile> kvp in personnelFolders)
+                {
+                    if (subset.Contains(kvp.Key) == false) subset.Add(kvp.Key);
+                }
             }
+            
+            if (subset.Count == 0) return null;
 
-            return programProfile;
+            return GetFile(subset[randomNG.Next() % subset.Count]);
+        }
+
+        /// <summary>
+        /// Overloading to simplify when exclude is a single kerbal.
+        /// </summary>
+        /// <param name="exclude">the personnel file of the kerbal to exclude</param>
+        /// <param name="subset">the range of kerbal to pick from</param>
+        /// <returns></returns>
+        public PersonnelFile GetRandomKerbal(PersonnelFile exclude, List<string> subset = null)
+        {
+            List<string> excludeme = new List<string>() { exclude.UniqueName() };
+            return GetRandomKerbal(excludeme, subset);
         }
 
         /// <summary>
@@ -145,6 +168,24 @@ namespace RPStoryteller
 
             return 0;
         }
+        
+        /// <summary>
+        /// Sums all staff effectiveness as a program profile extimate.
+        /// </summary>
+        /// <returns></returns>
+        public double ProgramProfile()
+        {
+            double programProfile = 0;
+
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                programProfile += kvp.Value.Effectiveness();
+            }
+
+            return programProfile;
+        }
+        
+        
 
         #endregion
     }
@@ -168,6 +209,10 @@ namespace RPStoryteller
         // Store HMM
         public string kerbalProductiveState;
         public string kerbalTask;
+        
+        // relationships
+        public List<string> collaborators = new List<string>();
+        public List<string> feuds = new List<string>();
 
         private ProtoCrewMember pcm;
         
@@ -220,6 +265,16 @@ namespace RPStoryteller
             this.legacy = int.Parse(node.GetValue("legacy"));
             this.discontent = int.Parse(node.GetValue("discontent"));
 
+            ConfigNode people = node.GetNode("people");
+            if (people != null)
+            {
+                foreach (ConfigNode.Value kerbal in people.values)
+                {
+                    if (kerbal.value == "feud" && feuds.Contains(kerbal.name) == false) feuds.Add(kerbal.name);
+                    else if (kerbal.value == "collaborator" && collaborators.Contains(kerbal.name) == false) collaborators.Add(kerbal.name);
+                }
+            }
+
             this.pcm = HighLogic.CurrentGame.CrewRoster[node.GetValue("kerbalName")];
         }
 
@@ -235,6 +290,17 @@ namespace RPStoryteller
             outputNode.AddValue("teamInfluence", this.teamInfluence);
             outputNode.AddValue("legacy", this.legacy);
             outputNode.AddValue("discontent", this.discontent);
+
+            ConfigNode people = new ConfigNode();
+            foreach (string kerbalName in collaborators)
+            {
+                people.AddValue(kerbalName, "collaborator");
+            }
+            foreach (string kerbalName in feuds)
+            {
+                people.AddValue(kerbalName, "feud");
+            }
+            outputNode.AddNode("people", people);
             
             return outputNode;
         }

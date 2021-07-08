@@ -553,6 +553,9 @@ namespace RPStoryteller
             HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} has resigned to spend more time with their family.",
                 $"{personnelFile.DisplayName()} resigns!");
             
+            // Remove influence
+            CancelInfluence(personnelFile, leaveKSC:true);
+            
             // HMMs
             RemoveHMM(personnelFile);
             
@@ -990,7 +993,8 @@ namespace RPStoryteller
         /// Remove the live influence of a kerbal on the KSC.
         /// </summary>
         /// <param name="kerbalFile">The actor</param>
-        private void CancelInfluence(PersonnelFile kerbalFile)
+        /// <param name="leaveKSC">This cancellation is the last one.</param>
+        private void CancelInfluence(PersonnelFile kerbalFile, bool leaveKSC = false)
         {
             if (kerbalFile.influence != 0)
             {
@@ -998,9 +1002,11 @@ namespace RPStoryteller
                 {
                     case "Scientist":
                         AdjustRnD(-1 * kerbalFile.influence);
+                        if (leaveKSC) AdjustRnD(-1 * kerbalFile.teamInfluence);
                         break;
                     case "Engineer":
                         AdjustVAB(-1 * kerbalFile.influence);
+                        if (leaveKSC) AdjustVAB(-1 * kerbalFile.teamInfluence);
                         break;
                 }
 
