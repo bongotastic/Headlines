@@ -39,6 +39,9 @@ namespace RPStoryteller.source
         {
             // TODO implement notification generation
             KSPLog.print("[[" + message + "]]");
+            MessageSystem ms = MessageSystem.Instance;
+            ms.AddMessage(new MessageSystem.Message(title, message,
+                MessageSystemButton.MessageButtonColor.GREEN, MessageSystemButton.ButtonIcons.MESSAGE));
         }
         
         /// <summary>

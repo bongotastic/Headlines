@@ -475,7 +475,6 @@ namespace RPStoryteller
         {
             personnelFile.TrackCurrentActivity(emitData.nodeName);
         }
-        
 
         /// <summary>
         /// Stub for the kerbal's AI to enter a charm campaign. Currently, does nothing special.
@@ -518,7 +517,48 @@ namespace RPStoryteller
             }
 
         }
-        
+
+        /// <summary>
+        /// Determines whether a Kerbal decides to walk away.
+        /// </summary>
+        /// <param name="personnelFile"></param>
+        /// <param name="emitData"></param>
+        public void KerbalConsiderResignation(PersonnelFile personnelFile, Emissions emitData)
+        {
+            // Assert resignation
+            double effectiveness = Math.Floor((double)personnelFile.Effectiveness());
+            double peer_effectiveness = Math.Floor( _peopleManager.ProgramAverageEffectiveness());
+            int netDiscontent = (int) effectiveness - (int) peer_effectiveness + personnelFile.discontent;
+            
+            SkillCheckOutcome outcome = SkillCheck(netDiscontent);
+            switch (outcome)
+            {
+                case SkillCheckOutcome.FUMBLE:
+                    personnelFile.AdjustDiscontent(-1 * personnelFile.discontent);
+                    break;
+                case SkillCheckOutcome.FAILURE:
+                    personnelFile.AdjustDiscontent(1);
+                    break;
+                default:
+                    KerbalResignation(personnelFile, emitData);
+                    return;
+            }
+            
+            HeadlinesUtil.Report(1,$"{personnelFile.DisplayName()}'s discontent is {personnelFile.discontent}.");
+        }
+
+        public void KerbalResignation(PersonnelFile personnelFile, Emissions emitData)
+        {
+            // Message
+            HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} has resigned to spend more time with their family.",
+                $"{personnelFile.DisplayName()} resigns!");
+            
+            // HMMs
+            RemoveHMM(personnelFile);
+            
+            // Make it happen
+            _peopleManager.Remove(personnelFile);
+        }
         #endregion
         
         #region HMM Logic
@@ -571,6 +611,30 @@ namespace RPStoryteller
             if (_liveProcesses.ContainsKey(registeredStateIdentity)) _liveProcesses.Remove(registeredStateIdentity);
         }
 
+        /// <summary>
+        /// Removes HMMs associated with a specific file
+        /// </summary>
+        /// <param name="personnelFile">the file of a crew member</param>
+        private void RemoveHMM(PersonnelFile personnelFile)
+        {
+            List<string> choppingBlock = new List<string>();
+            foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
+            {
+                if (kvp.Value.kerbalName == personnelFile.UniqueName())
+                {
+                    choppingBlock.Add(kvp.Key);
+                }
+            }
+
+            foreach (string registeredName in choppingBlock)
+            {
+                _liveProcesses.Remove(registeredName);
+                if (_hmmScheduler.ContainsKey(registeredName))
+                {
+                    _hmmScheduler.Remove(registeredName);
+                }
+            }
+        }
         /// <summary>
         /// Execute a HMM transition from one hidden state to another. Assumes that 
         /// </summary>
@@ -775,8 +839,11 @@ namespace RPStoryteller
                     // Don't do anything special except ensures that only pilot do that.
                     if (personnelFile.Specialty() == "Pilot") KerbalStudyLeave(personnelFile, emitData);
                     break;
+                case "quit":
+                    KerbalConsiderResignation(personnelFile, emitData);
+                    break;
                 default:
-                    HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
+                    //HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
                     break;
             }
         }
@@ -798,8 +865,8 @@ namespace RPStoryteller
             attentionSpanFactor *= power;
             
             // Clamp this factor within reasonable boundaries
-            attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // That's a 3.24-day span
-            attentionSpanFactor = Math.Min(Math.Pow(power, 3), attentionSpanFactor); // That's a 152-day span
+            attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // min is 0.47
+            attentionSpanFactor = Math.Min(Math.Pow(power, 3), attentionSpanFactor); // max is 1.56
             
             // Let player know without spamming the screen
             if (increment > 0 && attentionSpanFactor > 1.61)
@@ -810,8 +877,6 @@ namespace RPStoryteller
             {
                 HeadlinesUtil.ScreenMessage($"Public grow impatient. Act soon!");
             }
-            
-            //HeadlinesUtil.Report(1,$"New attentionSpanFactor = {attentionSpanFactor}");
         }
 
         /// <summary>

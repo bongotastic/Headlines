@@ -79,6 +79,16 @@ namespace RPStoryteller
                 }
             }
         }
+
+        /// <summary>
+        /// Delete the personnel file and remove the pcm from the game.
+        /// </summary>
+        /// <param name="personnelFile"></param>
+        public void Remove(PersonnelFile personnelFile)
+        {
+            personnelFile.Remove();
+            personnelFolders.Remove(personnelFile.UniqueName());
+        }
         
 
         #endregion
@@ -120,6 +130,20 @@ namespace RPStoryteller
             }
 
             return programProfile;
+        }
+
+        /// <summary>
+        /// Used by soul-searching kerbals wondering if they are being dragged down by their peers.
+        /// </summary>
+        /// <returns>Average program effectiveness</returns>
+        public double ProgramAverageEffectiveness(double exclusion = 0)
+        {
+            if (personnelFolders.Count > 0)
+            {
+                return (ProgramProfile() - exclusion) / (double)personnelFolders.Count;
+            }
+
+            return 0;
         }
 
         #endregion
@@ -215,6 +239,18 @@ namespace RPStoryteller
             return outputNode;
         }
         
+
+        #endregion
+
+        #region KSP
+
+        /// <summary>
+        /// Remove pcm from the game.
+        /// </summary>
+        public void Remove()
+        {
+            HighLogic.CurrentGame.CrewRoster.Remove(this.pcm);
+        }
 
         #endregion
 
