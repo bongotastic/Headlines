@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Expansions.Missions.Editor;
 using HiddenMarkovProcess;
 using RPStoryteller.source;
 using RPStoryteller.source.Emissions;
@@ -232,6 +233,11 @@ namespace RPStoryteller
             }
         }
 
+        /// <summary>
+        /// A cache into PersonnelFile so it can be serialized.
+        /// </summary>
+        /// <param name="kerbalName"></param>
+        /// <param name="newStateIdentity"></param>
         private void UpdateProductiveStateOf(string kerbalName, string newStateIdentity)
         {
             // bother if only a productivity state
@@ -547,6 +553,65 @@ namespace RPStoryteller
             HeadlinesUtil.Report(1,$"{personnelFile.DisplayName()}'s discontent is {personnelFile.discontent}.");
         }
 
+        /// <summary>
+        /// Two kerbals are discovering new ways to work together than enhances their productivity.
+        /// </summary>
+        /// <param name="personnelFile">subject triggering the event</param>
+        /// <param name="emitData"></param>
+        public void KerbalSynergy(PersonnelFile personnelFile, Emissions emitData)
+        {
+            PersonnelFile collaborator = _peopleManager.GetRandomKerbal(personnelFile);
+            if (collaborator == null)
+            {
+                return;
+            }
+            
+            if (personnelFile.IsCollaborator(collaborator) == false)
+            {
+                if (personnelFile.SetCollaborator(collaborator))
+                {
+                    HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {collaborator.DisplayName()} have entered a new and productive collaboration", 
+                        "New collaboration");
+                }
+            }
+            else if (personnelFile.IsFeuding(collaborator))
+            {
+                if (personnelFile.UnsetFeuding(collaborator))
+                {
+                    HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {collaborator.DisplayName()} have found a way to make peace, somehow.", 
+                        "Reconciliation");
+                }
+            }
+        }
+
+        public void KerbalFeud(PersonnelFile personnelFile, Emissions emitData)
+        {
+            PersonnelFile candidate = _peopleManager.GetRandomKerbal(personnelFile);
+            if (candidate == null) return;
+
+            if (personnelFile.SetFeuding(candidate))
+            {
+                HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {candidate.DisplayName()} are engaged in a destructive feud.", 
+                    "Feud in the KSC");
+            }
+        }
+        
+        public void KerbalReconcile(PersonnelFile personnelFile, Emissions emitData)
+        {
+            PersonnelFile candidate = _peopleManager.GetRandomKerbal(personnelFile, personnelFile.feuds);
+            if (candidate == null) return;
+            else if (personnelFile.UnsetFeuding(candidate))
+            {
+                HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {candidate.DisplayName()} have found a way to make peace, somehow.", 
+                    "Reconciliation");
+            }
+        }
+        
+        /// <summary>
+        /// Execute a resignation from the space program
+        /// </summary>
+        /// <param name="personnelFile">resiging kerbal</param>
+        /// <param name="emitData"></param>
         public void KerbalResignation(PersonnelFile personnelFile, Emissions emitData)
         {
             // Message
@@ -844,6 +909,15 @@ namespace RPStoryteller
                     break;
                 case "quit":
                     KerbalConsiderResignation(personnelFile, emitData);
+                    break;
+                case "synergy":
+                    KerbalSynergy(personnelFile, emitData);
+                    break;
+                case "feud":
+                    KerbalFeud(personnelFile, emitData);
+                    break;
+                case "reconcile":
+                    KerbalReconcile(personnelFile, emitData);
                     break;
                 default:
                     //HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");

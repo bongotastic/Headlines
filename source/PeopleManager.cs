@@ -92,7 +92,6 @@ namespace RPStoryteller
             personnelFolders.Remove(personnelFile.UniqueName());
         }
         
-
         #endregion
 
         #region Logic
@@ -154,7 +153,8 @@ namespace RPStoryteller
             List<string> excludeme = new List<string>() { exclude.UniqueName() };
             return GetRandomKerbal(excludeme, subset);
         }
-
+        
+        
         /// <summary>
         /// Used by soul-searching kerbals wondering if they are being dragged down by their peers.
         /// </summary>
@@ -358,6 +358,11 @@ namespace RPStoryteller
             // training
             effectiveness += this.trainingLevel;
             
+            // feuds and collaborations
+            int relationships = collaborators.Count - feuds.Count;
+            relationships = (int)Math.Min(-2, relationships);
+            relationships = (int)Math.Max(2, relationships);
+            
             // slump/inspired
             switch (this.kerbalProductiveState)
             {
@@ -369,7 +374,7 @@ namespace RPStoryteller
                    break;
             }
 
-            return effectiveness;
+            return (int)Math.Max(0, effectiveness);
         }
 
         /// <summary>
@@ -389,6 +394,16 @@ namespace RPStoryteller
             else return 4;
         }
 
+        public bool IsCollaborator(PersonnelFile candidate)
+        {
+            return collaborators.Contains(candidate.UniqueName());
+        }
+        
+        public bool IsFeuding(PersonnelFile candidate)
+        {
+            return feuds.Contains(candidate.UniqueName()) ;
+        }
+        
         /// <summary>
         /// Get User-readable name from pcm
         /// </summary>
@@ -440,6 +455,107 @@ namespace RPStoryteller
                 // Wild assumption that all states begin with kerbal_
                 this.kerbalProductiveState = templateStateIdentity.Substring(7);
             }
+        }
+
+        /// <summary>
+        /// General purpose to add and remove two types of relationships
+        /// </summary>
+        /// <param name="candidate">the other kerbal</param>
+        /// <param name="collaboration">false for feuds</param>
+        /// <param name="unset">true to unset</param>
+        /// <returns></returns>
+        private bool SetRelationship(PersonnelFile candidate, bool collaboration = true, bool unset = false)
+        {
+            List<string> mycollection;
+            List<string> othercollection;
+            
+            if (collaboration)
+            {
+                mycollection = collaborators;
+                othercollection = feuds;
+            }
+            else
+            {
+                mycollection = feuds;
+                othercollection = collaborators;
+            }
+            
+            if (unset == false)
+            {
+                if (mycollection.Contains(candidate.UniqueName()) == false)
+                {
+                    mycollection.Add(candidate.UniqueName());
+                    if (othercollection.Contains((candidate.UniqueName())))
+                    {
+                        othercollection.Remove(candidate.UniqueName());
+                        
+                    }
+                    return true;
+                }
+            }
+            else
+            {
+                if (mycollection.Contains(candidate.UniqueName()) == true)
+                {
+                    mycollection.Remove(candidate.UniqueName());
+                    if (othercollection.Contains((candidate.UniqueName())))
+                    {
+                        othercollection.Remove(candidate.UniqueName());
+                        
+                    }
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        
+        public bool SetCollaborator(PersonnelFile candidate, bool unset = false)
+        {
+            return SetRelationship(candidate);
+        }
+
+        public bool UnsetCollaborator(PersonnelFile candidate)
+        {
+            return SetRelationship(candidate, true, false);
+        }
+        
+        /// <summary>
+        /// Add/Remove candidate as feuding counterpart.
+        /// </summary>
+        /// <param name="candidate">the other kerbal</param>
+        /// <param name="unset">unset operation</param>
+        /// <returns></returns
+        public bool SetFeuding(PersonnelFile candidate, bool unset = false)
+        {
+            if (unset == false)
+            {
+                if (collaborators.Contains(candidate.UniqueName()) == false)
+                {
+                    collaborators.Add(candidate.UniqueName());
+                    return true;
+                }
+            }
+            else
+            {
+                if (collaborators.Contains(candidate.UniqueName()) == true)
+                {
+                    collaborators.Remove(candidate.UniqueName());
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///  Cleaner API to unsetting while keeping things DRY.
+        /// </summary>
+        /// <param name="candidate">the other kerbal</param>
+        /// <returns>whether it worked</returns>
+        public bool UnsetFeuding(PersonnelFile candidate)
+        {
+            return SetFeuding(candidate, true);
         }
         
         /// <summary>
