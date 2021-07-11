@@ -133,7 +133,16 @@ namespace RPStoryteller
                 subset = new List<string>();
                 foreach (KeyValuePair<string,PersonnelFile> kvp in personnelFolders)
                 {
+                    if (exclude.Contains(kvp.Key)) continue;
                     if (subset.Contains(kvp.Key) == false) subset.Add(kvp.Key);
+                }
+            }
+            else
+            {
+                List<string> copySubset = new List<string>(subset);
+                foreach (string kerbalName in copySubset)
+                {
+                    if (exclude.Contains(kerbalName)) subset.Remove(kerbalName);
                 }
             }
             
@@ -339,8 +348,9 @@ namespace RPStoryteller
         /// Computes the skill level of a kerbal. This method is non-deterministic as it treats partial profile as
         /// a probability. 
         /// </summary>
+        /// <param name="isMedia">Indicate a media task when Kerbal is not a pilot</param>
         /// <returns>effectiveness</returns>
-        public int Effectiveness()
+        public int Effectiveness(bool isMedia = false)
         {
             int effectiveness = 0;
             
@@ -352,9 +362,12 @@ namespace RPStoryteller
             // Treat partial profile point as probabilities
             if (randomNG.NextDouble() <= tempProfile - (double) wholePartProfile) effectiveness += 1;
             
-            // experience Level
-            effectiveness += ExperienceProfileIncrements();
-            
+            // experience Level (untrained if media for non-pilot
+            if (!(isMedia && Specialty() != "Pilot"))
+            {
+                effectiveness += ExperienceProfileIncrements();
+            }
+
             // training
             effectiveness += this.trainingLevel;
             
@@ -398,6 +411,11 @@ namespace RPStoryteller
         {
             return collaborators.Contains(candidate.UniqueName());
         }
+
+        public bool IsInactive()
+        {
+            return pcm.inactive;
+        }
         
         public bool IsFeuding(PersonnelFile candidate)
         {
@@ -431,6 +449,14 @@ namespace RPStoryteller
             return pcm.trait;
         }
 
+        /// <summary>
+        /// Access stupidity in the pcm object.
+        /// </summary>
+        /// <returns></returns>
+        public double Stupidity()
+        {
+            return (double) pcm.stupidity;
+        }
         #endregion
 
         #region Setters
@@ -528,24 +554,7 @@ namespace RPStoryteller
         /// <returns></returns
         public bool SetFeuding(PersonnelFile candidate, bool unset = false)
         {
-            if (unset == false)
-            {
-                if (collaborators.Contains(candidate.UniqueName()) == false)
-                {
-                    collaborators.Add(candidate.UniqueName());
-                    return true;
-                }
-            }
-            else
-            {
-                if (collaborators.Contains(candidate.UniqueName()) == true)
-                {
-                    collaborators.Remove(candidate.UniqueName());
-                    return true;
-                }
-            }
-
-            return false;
+            return SetRelationship(candidate, false, false);
         }
 
         /// <summary>
@@ -577,6 +586,12 @@ namespace RPStoryteller
             this.discontent = Math.Max(this.discontent, 0);
             this.discontent = Math.Min(this.discontent, 5);
         }
+
+        public void IncurInjury(double endTime)
+        {
+            pcm.SetInactive(endTime, false);
+        }
+
         #endregion
         
     }

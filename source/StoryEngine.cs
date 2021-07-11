@@ -54,6 +54,9 @@ namespace RPStoryteller
         // Cache of the last time we manipulated repuation
         [KSPField(isPersistant = true)] public float programLastKnownReputation = 0;
         
+        // Antagonized potential capital campaign donors
+        [KSPField(isPersistant = true)] public bool fundraisingBlackout = false;
+        
         #endregion
         
         #region UnityStuff
@@ -249,6 +252,26 @@ namespace RPStoryteller
         }
 
         /// <summary>
+        /// Rather specific method to get productivity state of a specific kerbal crew member.
+        /// </summary>
+        /// <param name="kerbalFile">kerbal crew member</param>
+        /// <returns></returns>
+        private string KerbalStateOf(PersonnelFile kerbalFile)
+        {
+            foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
+            {
+                if (kvp.Value.kerbalName == kerbalFile.UniqueName() &&
+                    kvp.Value.TemplateStateName().StartsWith("kerbal_"))
+                {
+                    return kvp.Key;
+                }
+            }
+            
+            // This should never happen
+            HeadlinesUtil.Report(1, $"Failed attempt to fetch productive state of {kerbalFile.DisplayName()}.");
+            return "";
+        }
+        /// <summary>
         /// Determines the outcome of a check based on a mashup of Pendragon and VOID.
         /// </summary>
         /// <param name="skillLevel">0+ arbitrary unit</param>
@@ -278,7 +301,8 @@ namespace RPStoryteller
         /// <param name="kerbalFile">the actor</param>
         /// <param name="emitData">the event</param>
         /// <param name="legacyMode">legacy impact possible</param>
-        public void KerbalImpact(PersonnelFile kerbalFile, Emissions emitData, bool legacyMode = false)
+        /// <param name="isMedia">Indicate a media task for non-pilot</param>
+        public void KerbalImpact(PersonnelFile kerbalFile, Emissions emitData, bool legacyMode = false, bool isMedia = false)
         {
             // Check for valid activities
             List<string> validTask = new List<string>() { "media_blitz", "accelerate_research", "accelerate_assembly" };
@@ -287,7 +311,7 @@ namespace RPStoryteller
                 return;
             }
             
-            SkillCheckOutcome successLevel = SkillCheck(kerbalFile.Effectiveness());
+            SkillCheckOutcome successLevel = SkillCheck(kerbalFile.Effectiveness(isMedia));
             if (successLevel == SkillCheckOutcome.FAILURE)
             {
                 return;
@@ -566,20 +590,22 @@ namespace RPStoryteller
                 return;
             }
             
-            if (personnelFile.IsCollaborator(collaborator) == false)
-            {
-                if (personnelFile.SetCollaborator(collaborator))
-                {
-                    HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {collaborator.DisplayName()} have entered a new and productive collaboration", 
-                        "New collaboration");
-                }
-            }
-            else if (personnelFile.IsFeuding(collaborator))
+            if (personnelFile.IsFeuding(collaborator))
             {
                 if (personnelFile.UnsetFeuding(collaborator))
                 {
+                    collaborator.UnsetFeuding(personnelFile);
                     HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {collaborator.DisplayName()} have found a way to make peace, somehow.", 
                         "Reconciliation");
+                }
+            }
+            else if (personnelFile.IsCollaborator(collaborator) == false)
+            {
+                if (personnelFile.SetCollaborator(collaborator))
+                {
+                    collaborator.SetCollaborator(personnelFile);
+                    HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {collaborator.DisplayName()} have entered a new and productive collaboration", 
+                        "New collaboration");
                 }
             }
         }
@@ -591,6 +617,7 @@ namespace RPStoryteller
 
             if (personnelFile.SetFeuding(candidate))
             {
+                candidate.SetFeuding(personnelFile);
                 HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {candidate.DisplayName()} are engaged in a destructive feud.", 
                     "Feud in the KSC");
             }
@@ -602,6 +629,7 @@ namespace RPStoryteller
             if (candidate == null) return;
             else if (personnelFile.UnsetFeuding(candidate))
             {
+                candidate.UnsetFeuding(personnelFile);
                 HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {candidate.DisplayName()} have found a way to make peace, somehow.", 
                     "Reconciliation");
             }
@@ -612,11 +640,20 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="personnelFile">resiging kerbal</param>
         /// <param name="emitData"></param>
-        public void KerbalResignation(PersonnelFile personnelFile, Emissions emitData)
+        public void KerbalResignation(PersonnelFile personnelFile, Emissions emitData, bool trajedy = false)
         {
             // Message
-            HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} has resigned to spend more time with their family.",
-                $"{personnelFile.DisplayName()} resigns!");
+            if (!trajedy)
+            {
+                HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} has resigned to spend more time with their family.",
+                    $"{personnelFile.DisplayName()} resigns!");
+            }
+            else
+            {
+                HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} has died of a dumb accident.",
+                    $"{personnelFile.DisplayName()} trajedy!");
+            }
+            
             
             // Remove influence
             CancelInfluence(personnelFile, leaveKSC:true);
@@ -626,6 +663,124 @@ namespace RPStoryteller
             
             // Make it happen
             _peopleManager.Remove(personnelFile);
+        }
+
+        /// <summary>
+        /// Helps a peer to gain training with a probability related to the difference in training level. There is a
+        /// very low probability that a less trained peer can somehow make a difference.
+        /// </summary>
+        /// <param name="personnelFile">the actor</param>
+        /// <param name="emitData">the event</param>
+        public void KerbalMentorPeer(PersonnelFile personnelFile, Emissions emitData)
+        {
+            List<string> excludeList = new List<string>() { personnelFile.UniqueName() };
+            foreach (string feudingbuddy in personnelFile.feuds)
+            {
+                excludeList.Add(feudingbuddy);
+            }
+
+            PersonnelFile peer = _peopleManager.GetRandomKerbal(excludeList);
+
+            if (peer != null)
+            {
+                int deltaSkill = personnelFile.trainingLevel - peer.trainingLevel;
+                string message = "";
+                if (deltaSkill < 0) message = "Although unlikely, ";
+
+                SkillCheckOutcome outcome = SkillCheck((int)Math.Max(1,deltaSkill));
+
+                switch (outcome)
+                {
+                    case SkillCheckOutcome.FUMBLE:
+                        message += $"{personnelFile.DisplayName()} introduces superstitious ideas taken up by {peer.DisplayName()}.";
+                        peer.trainingLevel -= 1;
+                        break;
+                    case SkillCheckOutcome.SUCCESS:
+                        message += $"{personnelFile.DisplayName()} mentors {peer.DisplayName()}.";
+                        peer.trainingLevel += 1;
+                        break;
+                    case SkillCheckOutcome.CRITICAL:
+                        message += $"{personnelFile.DisplayName()} and {peer.DisplayName()} mutually benefits from each other's company.";
+                        peer.trainingLevel += 1;
+                        personnelFile.trainingLevel += 1;
+                        break;
+                    default:
+                        return;
+                }
+                
+                HeadlinesUtil.Report(3, message, "Mentorship");
+            }
+        }
+
+        /// <summary>
+        /// Keep this one simple for now and treat the donation as a KCT point. It could be a career-saving move just as well.
+        /// </summary>
+        /// <remarks>
+        /// This should be handled proportionally to where a career is as 1 point in mid/late career is pretty meaningless and the money
+        /// should be stashed for KSC upgrades.
+        /// </remarks>
+        /// <param name="personnelFile">the fundraiser</param>
+        /// <param name="emitData">the event</param>
+        public void KerbalFundRaise(PersonnelFile personnelFile, Emissions emitData)
+        {
+            if (fundraisingBlackout == true)
+            {
+                HeadlinesUtil.Report(3,"Relationship mended with potential capital campaign donors. Fundraising is possible again.", "Fundraising again");
+                fundraisingBlackout = false;
+                return;
+            }
+            
+            SkillCheckOutcome outcome = SkillCheck(personnelFile.Effectiveness());
+
+            double funds = 0;
+
+            string message = $"{personnelFile.DisplayName()} ";
+            
+            switch (outcome)
+            {
+                case SkillCheckOutcome.SUCCESS:
+                    funds = 20000;
+                    break;
+                case SkillCheckOutcome.CRITICAL:
+                    funds = 100000;
+                    break;
+                case SkillCheckOutcome.FUMBLE:
+                    fundraisingBlackout = true;
+                    message += "commits a blunder and offends potential donors. The program enters damage control.";
+                    break;
+            }
+
+            if (funds > 0)
+            {
+                message += $"raises ${(int)(funds/1000)}K from a private foundation.";
+                Funding.Instance.AddFunds(funds, TransactionReasons.Any);
+                HeadlinesUtil.Report(3, message, "Fundraising success");
+            }
+            
+        }
+
+        /// <summary>
+        /// Stupidity kills the cat. 
+        /// </summary>
+        /// <param name="personnelFile">the actor</param>
+        /// <param name="emitData"></param>
+        public void KerbalAccident(PersonnelFile personnelFile, Emissions emitData)
+        {
+            double stupidity = personnelFile.Stupidity() * 10;
+            stupidity = Math.Max(4, stupidity);
+
+            SkillCheckOutcome outcome = SkillCheck((int) stupidity);
+            switch (outcome)
+            {
+                case SkillCheckOutcome.CRITICAL:
+                    KerbalResignation(personnelFile, emitData, trajedy:true);
+                    break;
+                case SkillCheckOutcome.SUCCESS:
+                    HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} is injured in a dumb accident. They will be off productive work for a few weeks.", $"{personnelFile.DisplayName()} injured.");
+                    // TODO inactivate the kerbal
+                    TransitionHMM(KerbalStateOf(personnelFile),"kerbal_injured");
+                    break;
+            }
         }
         #endregion
         
@@ -711,7 +866,7 @@ namespace RPStoryteller
         private void TransitionHMM(string registeredInitialState, string templateFinalState)
         {
             string fetchedKerbalName = _liveProcesses[registeredInitialState].kerbalName;
-            
+
             InitializeHMM(templateFinalState, kerbalName:fetchedKerbalName);
             RemoveHMM(registeredInitialState);
 
@@ -773,7 +928,14 @@ namespace RPStoryteller
         /// <param name="baseTime">Depending on the state itself.</param>
         public void ReScheduleHMM(string registeredStateIdentity, double baseTime)
         {
-            _hmmScheduler[registeredStateIdentity] = HeadlinesUtil.GetUT() + GeneratePeriod(_liveProcesses[registeredStateIdentity].period);
+            double deltaTime = GeneratePeriod(_liveProcesses[registeredStateIdentity].period);
+            _hmmScheduler[registeredStateIdentity] = HeadlinesUtil.GetUT() + deltaTime;
+            
+            // Punt injury inactivation into the future
+            if (registeredStateIdentity.Contains("kerbal_injured"))
+            {
+                _peopleManager.GetFile( _liveProcesses[registeredStateIdentity].kerbalName ).IncurInjury(deltaTime);
+            }
         }
 
         /// <summary>
@@ -881,6 +1043,9 @@ namespace RPStoryteller
             
             if (emitData.OngoingTask() == true)
             {
+                // Can only go forward if active
+                if (personnelFile.IsInactive()) return;
+                
                 // Indicates a shift in focus over time
                 personnelFile.TrackCurrentActivity(eventName);
             }
@@ -889,6 +1054,9 @@ namespace RPStoryteller
             {
                 case "impact":
                     KerbalImpact(personnelFile, emitData);
+                    break;
+                case "legacy_impact":
+                    KerbalImpact(personnelFile, emitData, true);
                     break;
                 case "accelerate_research":
                     KerbalAccelerate(personnelFile, emitData);
@@ -918,6 +1086,9 @@ namespace RPStoryteller
                     break;
                 case "reconcile":
                     KerbalReconcile(personnelFile, emitData);
+                    break;
+                case "fundraise":
+                    KerbalFundRaise(personnelFile, emitData);
                     break;
                 default:
                     //HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
