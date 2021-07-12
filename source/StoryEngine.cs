@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Expansions.Missions.Editor;
+using FinePrint;
 using HiddenMarkovProcess;
 using RPStoryteller.source;
 using RPStoryteller.source.Emissions;
@@ -57,6 +58,10 @@ namespace RPStoryteller
         // Antagonized potential capital campaign donors
         [KSPField(isPersistant = true)] public bool fundraisingBlackout = false;
         
+        // Visiting scholars
+        [KSPField(isPersistant = true)] public bool visitingScholar = false;
+        [KSPField(isPersistant = true)] public float programLastKnownScience = 0;
+        
         #endregion
         
         #region UnityStuff
@@ -78,6 +83,7 @@ namespace RPStoryteller
             
             // Event Catching
             GameEvents.OnReputationChanged.Add(ReputationChanged);
+            GameEvents.OnScienceChanged.Add(ScienceChanged);
         }
         
         /// <summary>
@@ -213,6 +219,24 @@ namespace RPStoryteller
             }
             HeadlinesUtil.Report(1,$"Program hype is now {this.programHype}.");
             
+        }
+
+        /// <summary>
+        /// Can do so much more interesting things than this, but this is a stub where visiting scholars are boosting science
+        /// output of experiments by 20%. Maybe a visiting scholar could be a "tourist" or a Scientist.
+        /// </summary>
+        /// <param name="newScience"></param>
+        /// <param name="reason"></param>
+        private void ScienceChanged(float newScience, TransactionReasons reason)
+        {
+            if (this.visitingScholar)
+            {
+                float deltaScience = (newScience - this.programLastKnownScience) * 0.2f;
+                ResearchAndDevelopment.Instance.CheatAddScience(deltaScience);
+                this.visitingScholar = false;
+            }
+
+            this.programLastKnownScience = newScience;
         }
         #endregion
 
@@ -782,6 +806,27 @@ namespace RPStoryteller
                     break;
             }
         }
+
+        /// <summary>
+        /// Add one new kerbal to the talent pool with a better Profile that expected.
+        /// </summary>
+        /// <param name="personnelFile"></param>
+        /// <param name="emitData"></param>
+        public void KerbalScoutTalent(PersonnelFile personnelFile, Emissions emitData)
+        {
+            // TODO implement Scout Talent
+        }
+        
+        /// <summary>
+        /// A visiting scholar allows to do more with the science units that are in the bank. 
+        /// </summary>
+        /// <param name="personnelFile"></param>
+        /// <param name="emitData"></param>
+        public void KerbalBringScholar(PersonnelFile personnelFile, Emissions emitData)
+        {
+            this.visitingScholar = true;
+            HeadlinesUtil.Report(3,$"A visiting scholar brought by {personnelFile.DisplayName()} get clearance to work at the R&D complex.","Visiting scholar");
+        }
         #endregion
         
         #region HMM Logic
@@ -959,6 +1004,9 @@ namespace RPStoryteller
             
             foreach (string registeredStateName in triggerStates)
             {
+                // Check for validity as it *may* have been removed recently
+                if (_liveProcesses.ContainsKey(registeredStateName) == false) continue;
+                
                 // HMM emission call
                 emittedEvent = _liveProcesses[registeredStateName].Emission();
 
@@ -1090,8 +1138,14 @@ namespace RPStoryteller
                 case "fundraise":
                     KerbalFundRaise(personnelFile, emitData);
                     break;
+                case "scout_talent":
+                    KerbalScoutTalent(personnelFile, emitData);
+                    break;
+                case "bring_visiting_scholar":
+                    KerbalBringScholar(personnelFile, emitData);
+                    break;
                 default:
-                    //HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
+                    HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
                     break;
             }
         }
