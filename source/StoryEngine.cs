@@ -28,6 +28,7 @@ namespace RPStoryteller
     public class StoryEngine : ScenarioModule
     {
         #region Declarations
+        public static StoryEngine Instance { get; private set; }
         
         // Random number generator
         private static System.Random storytellerRand = new System.Random();
