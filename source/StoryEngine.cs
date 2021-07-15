@@ -28,7 +28,8 @@ namespace RPStoryteller
     public class StoryEngine : ScenarioModule
     {
         #region Declarations
-        public static StoryEngine Instance { get; private set; }
+
+        public static StoryEngine Instance = null;
         
         // Random number generator
         private static System.Random storytellerRand = new System.Random();
@@ -56,6 +57,9 @@ namespace RPStoryteller
         // Cache of the last time we manipulated repuation
         [KSPField(isPersistant = true)] public float programLastKnownReputation = 0;
         
+        // Highest reputation achieved (including overvaluation)
+        [KSPField(isPersistant = true)] public float programHighestValuation = 0;
+        
         // Antagonized potential capital campaign donors
         [KSPField(isPersistant = true)] public bool fundraisingBlackout = false;
         
@@ -72,6 +76,8 @@ namespace RPStoryteller
         /// </summary>
         public void Start()
         {
+            Instance = this;
+            
             HeadlinesUtil.Report(1,"Initializing Starstruck");
             
             // Default HMM
@@ -198,6 +204,11 @@ namespace RPStoryteller
             if (reason == TransactionReasons.None)
             {
                 this.programLastKnownReputation = newReputation;
+
+                if (newReputation + this.programHype > this.programHighestValuation)
+                {
+                    this.programHighestValuation = newReputation + this.programHype;
+                }
                 return;
             }
             
@@ -218,6 +229,12 @@ namespace RPStoryteller
                 // Surplus reputation goes as additional hype
                 this.programHype = deltaReputation - this.programHype;
             }
+
+            if (Reputation.CurrentRep + this.programHype > this.programHighestValuation)
+            {
+                this.programHighestValuation = Reputation.CurrentRep + this.programHype;
+            }
+            
             HeadlinesUtil.Report(1,$"Program hype is now {this.programHype}.");
             
         }
@@ -1145,6 +1162,9 @@ namespace RPStoryteller
                 case "bring_visiting_scholar":
                     KerbalBringScholar(personnelFile, emitData);
                     break;
+                case "mentor_peer":
+                    KerbalMentorPeer(personnelFile, emitData);
+                    break;
                 default:
                     HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
                     break;
@@ -1249,6 +1269,62 @@ namespace RPStoryteller
             
         }
         
+        #endregion
+
+        #region GUIDisplay
+
+        public string GUIReputation()
+        {
+            float reputation = Reputation.CurrentRep + this.programHype;
+
+            string output;
+            if (reputation <= 100) output = "Underdog";
+            else if (reputation <= 200) output = "Renowned";
+            else if (reputation <= 400) output = "Leader";
+            else if (reputation <= 600) output = "Excellent";
+            else  output = "Legendary";
+
+            return output + $" ({(int) Math.Floor(reputation)})";
+        }
+
+        public string GUIOvervaluation()
+        {
+            float reputation = Reputation.CurrentRep;
+
+            if (reputation + this.programHype == 0f)
+            {
+                return "0%";
+            }
+
+            return $"{(int)Math.Floor(100f* Math.Floor(this.programHype) / Math.Floor(reputation+this.programHype))}%";
+        }
+
+        public string GUISpaceCraze()
+        {
+            if (this.attentionSpanFactor < 0.6) return "High";
+            else if (this.attentionSpanFactor > 1.619)
+            {
+                return "Low";
+            }
+
+            return "Nominal";
+        }
+
+        public string GUIRelativeToPeak()
+        {
+            return $"{ Math.Round(100 * (GetValuation()/this.programHighestValuation))}%";
+        }
+
+        #endregion
+
+        #region InternalLogic
+
+        public double GetValuation()
+        {
+            return this.programLastKnownReputation + this.programHype;
+        }
+        
+
         #endregion
 
         #region RP1
