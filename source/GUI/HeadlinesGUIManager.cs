@@ -9,7 +9,7 @@ namespace RPStoryteller.source.GUI
     public class HeadlinesGUIManager : MonoBehaviour
     {
         private StoryEngine storyEngine;
-        private ApplicationLauncherButton stockButton;
+        private static ApplicationLauncherButton stockButton;
         private HeadlinesGUIRenderer guiRenderer;
 
         public bool _isDisplayed = false;
@@ -34,20 +34,23 @@ namespace RPStoryteller.source.GUI
 
         private void UpdateToolbarStock()
         {
-            HeadlinesUtil.Report(1,"Headlines GUI loading...");
-            stockButton = ApplicationLauncher.Instance.AddModApplication(
-                OpenWindow,
-                CloseWindow,
-                null,
-                null,
-                null,
-                null,
-                ApplicationLauncher.AppScenes.SPACECENTER,
-                GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching2 ", false)
-            );
-            HeadlinesUtil.Report(1,"Headlines GUI loaded.");
-            if (_isDisplayed)
-                stockButton.SetTrue();
+            if (stockButton == null)
+            {
+                HeadlinesUtil.Report(1,"Headlines GUI loading...");
+                stockButton = ApplicationLauncher.Instance.AddModApplication(
+                    OpenWindow,
+                    CloseWindow,
+                    null,
+                    null,
+                    null,
+                    null,
+                    ApplicationLauncher.AppScenes.SPACECENTER,
+                    GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching2 ", false)
+                );
+                HeadlinesUtil.Report(1,"Headlines GUI loaded.");
+                if (_isDisplayed)
+                    stockButton.SetTrue();
+            }
         }
 
         public void OpenWindow()
@@ -109,7 +112,7 @@ namespace RPStoryteller.source.GUI
         {
             GUILayout.BeginVertical();
             
-            GUILayout.Box("Program Dashboard");
+            GUILayout.Box($"Program Dashboard ({storyEngine.GUIAverageProfile()})");
 
             GUILayout.Label($"   Reputation: {storyEngine.GUIReputation()}");
             GUILayout.Label($"Overvaluation: {storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine.programHype, MidpointRounding.ToEven)})");
@@ -121,7 +124,12 @@ namespace RPStoryteller.source.GUI
             GUILayout.Space(10);
             
             GUILayout.Box("Impact");
-            GUILayout.Space(10);
+            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}");
+            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}");
+            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}");
+            GUILayout.EndHorizontal();
             
             GUILayout.EndVertical();
         }

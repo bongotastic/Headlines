@@ -48,6 +48,9 @@ namespace RPStoryteller
         private double _assumedPeriod = 60;
         //private double _assumedPeriod = 3600 * 24 * 36;
         
+        // Prevent infinite recusion
+        private bool _scienceManipultation = false;
+
         // Multiplier to the _assumedPeriod when it comes to HMM triggering
         [KSPField(isPersistant = true)] public double attentionSpanFactor = 1;
         
@@ -63,9 +66,14 @@ namespace RPStoryteller
         // Antagonized potential capital campaign donors
         [KSPField(isPersistant = true)] public bool fundraisingBlackout = false;
         
+        // sum of raised funds
+        [KSPField(isPersistant = true)] public double fundraisingTally = 0;
+        
         // Visiting scholars
         [KSPField(isPersistant = true)] public bool visitingScholar = false;
         [KSPField(isPersistant = true)] public float programLastKnownScience = 0;
+        [KSPField(isPersistant = true)] public float visitingScienceTally = 0;
+        [KSPField(isPersistant = true)] public float totalScience = 0;
         
         #endregion
         
@@ -247,11 +255,29 @@ namespace RPStoryteller
         /// <param name="reason"></param>
         private void ScienceChanged(float newScience, TransactionReasons reason)
         {
-            if (this.visitingScholar)
+            HeadlinesUtil.Report(1,$"new science: {newScience}");
+            HeadlinesUtil.Report(1,$"total: {totalScience}");
+            HeadlinesUtil.Report(1,$"visiting: {visitingScienceTally}");
+            // Kills recursion
+            if (_scienceManipultation == true)
             {
-                float deltaScience = (newScience - this.programLastKnownScience) * 0.2f;
-                ResearchAndDevelopment.Instance.CheatAddScience(deltaScience);
-                this.visitingScholar = false;
+                _scienceManipultation = false;
+                return;
+            }
+            
+            float deltaScience = (newScience - this.programLastKnownScience);
+            if (deltaScience > 0) totalScience += deltaScience;
+            
+            if (this.visitingScholar == true)
+            {
+                deltaScience *= 0.2f;
+                if (deltaScience >= 0)
+                {
+                    this.visitingScienceTally += deltaScience;
+                    this.visitingScholar = false;
+                    this._scienceManipultation = true;
+                    ResearchAndDevelopment.Instance.CheatAddScience(deltaScience);
+                }
             }
 
             this.programLastKnownScience = newScience;
@@ -797,6 +823,7 @@ namespace RPStoryteller
                 message += $"raises ${(int)(funds/1000)}K from a private foundation.";
                 Funding.Instance.AddFunds(funds, TransactionReasons.Any);
                 HeadlinesUtil.Report(3, message, "Fundraising success");
+                this.fundraisingTally += funds;
             }
             
         }
@@ -1310,11 +1337,40 @@ namespace RPStoryteller
             return "Nominal";
         }
 
+        public string GUIAverageProfile()
+        {
+            double averageProfile = _peopleManager.ProgramAverageEffectiveness();
+            return _peopleManager.QualitativeEffectiveness(averageProfile);
+        }
         public string GUIRelativeToPeak()
         {
             return $"{ Math.Round(100 * (GetValuation()/this.programHighestValuation))}%";
         }
 
+        public double GUIVisitingSciencePercent()
+        {
+            if (totalScience == 0) return 0;
+            
+            double ratio = visitingScienceTally / totalScience;
+            ratio *= 100;
+            return Math.Round(ratio, 1);
+        }
+
+        public double GUIFundraised()
+        {
+            return Math.Floor(this.fundraisingTally);
+        }
+
+        public int GUIVABEnhancement()
+        {
+            return _peopleManager.KSCImpact("Engineer");
+            
+        }
+
+        public int GUIRnDEnhancement()
+        {
+            return _peopleManager.KSCImpact("Scientist");
+        }
         #endregion
 
         #region InternalLogic

@@ -168,33 +168,73 @@ namespace RPStoryteller
         /// Used by soul-searching kerbals wondering if they are being dragged down by their peers.
         /// </summary>
         /// <returns>Average program effectiveness</returns>
-        public double ProgramAverageEffectiveness(double exclusion = 0)
+        public double ProgramAverageEffectiveness(double exclusion = 0, bool determinisitic = false)
         {
             if (personnelFolders.Count > 0)
             {
-                return (ProgramProfile() - exclusion) / (double)personnelFolders.Count;
+                return (ProgramProfile(determinisitic) - exclusion) / (double)personnelFolders.Count;
             }
 
             return 0;
+        }
+
+        public string QualitativeEffectiveness(double value)
+        {
+            if (value <= 1) return "inept";
+            else if (value <= 2)
+            {
+                return "naive";
+            }
+            else if (value <= 4)
+            {
+                return "junior";
+            }
+            else if (value <= 6)
+            {
+                return "competent";
+            }
+            else if (value <= 10)
+            {
+                return "excellent";
+            }
+            else return "legendary";
         }
         
         /// <summary>
         /// Sums all staff effectiveness as a program profile extimate.
         /// </summary>
         /// <returns></returns>
-        public double ProgramProfile()
+        public double ProgramProfile(bool deterministic = false)
         {
             double programProfile = 0;
 
             foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
             {
-                programProfile += kvp.Value.Effectiveness();
+                programProfile += kvp.Value.Effectiveness(deterministic:deterministic);
             }
 
             return programProfile;
         }
-        
-        
+
+        /// <summary>
+        /// Tallies all impact on a building by all kerbals at this moment
+        /// </summary>
+        /// <param name="asA">Either Scientist or Engineer</param>
+        /// <returns>Point value</returns>
+        public int KSCImpact(string asA = "Engineer")
+        {
+            int output = 0;
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                if (kvp.Value.Specialty() == asA)
+                {
+                    output += kvp.Value.influence + kvp.Value.teamInfluence + kvp.Value.legacy;
+                }
+            }
+
+            return output;
+        }
+
 
         #endregion
     }
@@ -350,7 +390,7 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="isMedia">Indicate a media task when Kerbal is not a pilot</param>
         /// <returns>effectiveness</returns>
-        public int Effectiveness(bool isMedia = false)
+        public int Effectiveness(bool isMedia = false, bool deterministic = false)
         {
             int effectiveness = 0;
             
@@ -360,7 +400,7 @@ namespace RPStoryteller
             effectiveness += wholePartProfile;
 
             // Treat partial profile point as probabilities
-            if (randomNG.NextDouble() <= tempProfile - (double) wholePartProfile) effectiveness += 1;
+            if (!deterministic && randomNG.NextDouble() <= tempProfile - (double) wholePartProfile) effectiveness += 1;
             
             // experience Level (untrained if media for non-pilot
             if (!(isMedia && Specialty() != "Pilot"))
@@ -457,6 +497,7 @@ namespace RPStoryteller
         {
             return (double) pcm.stupidity;
         }
+        
         #endregion
 
         #region Setters
