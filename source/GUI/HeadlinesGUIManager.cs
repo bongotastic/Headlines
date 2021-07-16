@@ -169,10 +169,15 @@ namespace RPStoryteller.source.GUI
                     }
                     else myStyle.font.material.color = Color.red;
                     */
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Button("Pledge");
                     GUILayout.Label($"{myContract.Title} ({(int)Math.Ceiling(100f*ratio)}%)" );
+                    GUILayout.EndHorizontal();
                 }
                 
             }
+            
+            // pledge Clock (if applicable) and total tally 
         }
     }
 }
