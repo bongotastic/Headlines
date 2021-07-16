@@ -1,4 +1,5 @@
 using System;
+using Contracts;
 using KSP.UI.Screens;
 using UnityEngine;
 
@@ -10,26 +11,21 @@ namespace RPStoryteller.source.GUI
     {
         private StoryEngine storyEngine;
         private static ApplicationLauncherButton stockButton;
-        private HeadlinesGUIRenderer guiRenderer;
 
         public bool _isDisplayed = false;
 
         public Rect position;
-        private GUIStyle windowGUIStyle;
+
 
 
         public void Start()
         {
-            HeadlinesUtil.Report(1,"Headlines GUI loading...");
-            guiRenderer = new HeadlinesGUIRenderer(this);
             UpdateToolbarStock();
             
             storyEngine = StoryEngine.Instance;
 
             position = new Rect(100f, 100f, 200f, 200f);
 
-            //windowGUIStyle = new GUIStyle();
-            //windowGUIStyle.alignment = TextAnchor.UpperLeft;
         }
 
         private void UpdateToolbarStock()
@@ -47,9 +43,14 @@ namespace RPStoryteller.source.GUI
                     ApplicationLauncher.AppScenes.SPACECENTER,
                     GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching2 ", false)
                 );
+                ApplicationLauncher.Instance.AddOnHideCallback(HideButton);
                 HeadlinesUtil.Report(1,"Headlines GUI loaded.");
                 if (_isDisplayed)
                     stockButton.SetTrue();
+            }
+            else
+            {
+                stockButton.SetTrue();
             }
         }
 
@@ -61,7 +62,7 @@ namespace RPStoryteller.source.GUI
                 HeadlinesUtil.Report(1, $"Set storyEngine {storyEngine != null}");
             }
             
-                if (_isDisplayed == false)
+            if (_isDisplayed == false)
             {
                 HeadlinesUtil.Report(1,"Button set to True", "GUI");
                 storyEngine = StoryEngine.Instance;
@@ -78,7 +79,17 @@ namespace RPStoryteller.source.GUI
                 _isDisplayed = false;
                 UpdateButtonIcon();
             }
+            else
+            {
+                _isDisplayed = false;
+            }
         }        
+        
+        public void HideButton()
+        {
+            CloseWindow();
+            ApplicationLauncher.Instance.RemoveModApplication(stockButton);
+        }
         
         private void UpdateButtonIcon()
         {
@@ -120,7 +131,8 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"  Space Craze: {storyEngine.GUISpaceCraze()}");
             GUILayout.Space(10);
             
-            GUILayout.Box("Contracts");
+            GUILayout.Box("Contracts (% hyped)");
+            DrawContracts();
             GUILayout.Space(10);
             
             GUILayout.Box("Impact");
@@ -132,6 +144,35 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndHorizontal();
             
             GUILayout.EndVertical();
+        }
+
+        public void DrawContracts()
+        {
+            float ratio = 0f;
+
+            HeadlinesUtil.Report(1, "DrawContract");
+            
+            foreach (Contract myContract in ContractSystem.Instance.GetCurrentContracts<Contract>())
+            {
+                HeadlinesUtil.Report(1, $"{myContract.ToString()}");
+                if (myContract.ContractState == Contract.State.Active)
+                {
+                    ratio = storyEngine.programHype / myContract.ReputationCompletion;
+                    /*
+                    if (ratio >= 1f)
+                    {
+                        myStyle.font.material.color = Color.green;
+                    }
+                    else if (ratio >= 0.5f)
+                    {
+                        myStyle.font.material.color = Color.yellow;
+                    }
+                    else myStyle.font.material.color = Color.red;
+                    */
+                    GUILayout.Label($"{myContract.Title} ({(int)Math.Ceiling(100f*ratio)}%)" );
+                }
+                
+            }
         }
     }
 }
