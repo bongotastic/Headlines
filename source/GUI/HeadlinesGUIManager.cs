@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Contracts;
 using KSP.UI.Screens;
 using UnityEngine;
@@ -13,6 +14,13 @@ namespace RPStoryteller.source.GUI
         private static ApplicationLauncherButton stockButton;
 
         public bool _isDisplayed = false;
+        private bool _programTab = true;
+        private bool _crewTab = false;
+        private int _selectedCrew = 0;
+
+        private PeopleManager peopleManager;
+        private List<string> crewRoster;
+        private List<string> tabLabels;
 
         public Rect position;
 
@@ -24,7 +32,7 @@ namespace RPStoryteller.source.GUI
             
             storyEngine = StoryEngine.Instance;
 
-            position = new Rect(100f, 100f, 200f, 200f);
+            position = new Rect(100f, 100f, 300f, 200f);
 
         }
 
@@ -32,7 +40,6 @@ namespace RPStoryteller.source.GUI
         {
             if (stockButton == null)
             {
-                HeadlinesUtil.Report(1,"Headlines GUI loading...");
                 stockButton = ApplicationLauncher.Instance.AddModApplication(
                     OpenWindow,
                     CloseWindow,
@@ -44,7 +51,6 @@ namespace RPStoryteller.source.GUI
                     GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching2 ", false)
                 );
                 ApplicationLauncher.Instance.AddOnHideCallback(HideButton);
-                HeadlinesUtil.Report(1,"Headlines GUI loaded.");
                 if (_isDisplayed)
                     stockButton.SetTrue();
             }
@@ -59,12 +65,10 @@ namespace RPStoryteller.source.GUI
             if (storyEngine == null)
             {
                 storyEngine = StoryEngine.Instance;
-                HeadlinesUtil.Report(1, $"Set storyEngine {storyEngine != null}");
             }
             
             if (_isDisplayed == false)
             {
-                HeadlinesUtil.Report(1,"Button set to True", "GUI");
                 storyEngine = StoryEngine.Instance;
                 _isDisplayed = true;
                 UpdateButtonIcon();
@@ -75,7 +79,6 @@ namespace RPStoryteller.source.GUI
         {
             if (_isDisplayed == true)
             {
-                HeadlinesUtil.Report(1,"Button set to False", "GUI");
                 _isDisplayed = false;
                 UpdateButtonIcon();
             }
@@ -116,9 +119,37 @@ namespace RPStoryteller.source.GUI
 
         public void DrawWindow(int windowID)
         {
-            DrawProgramDashboard(windowID);
+            // Tab area
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Program"))
+            {
+                _programTab = true;
+                _crewTab = false;
+            }
+            else if (GUILayout.Button("Personnel"))
+            {
+                _programTab = false;
+                _crewTab = true;
+            }
+            GUILayout.EndHorizontal();
+
+            if (_programTab)
+            {
+                DrawProgramDashboard(windowID);
+            }
+            else if (_crewTab)
+            {
+                DrawPersonelPanel();
+            }
+            
+            
+            
         }
 
+        /// <summary>
+        /// Display program information and (eventually) the pledging mechanism 
+        /// </summary>
+        /// <param name="windowID"></param>
         public void DrawProgramDashboard(int windowID)
         {
             GUILayout.BeginVertical();
@@ -146,38 +177,129 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        /// Contract view and controls for the program view.
+        /// </summary>
         public void DrawContracts()
         {
             float ratio = 0f;
-
-            HeadlinesUtil.Report(1, "DrawContract");
             
+
+            Color originalColor = UnityEngine.GUI.contentColor;
+
             foreach (Contract myContract in ContractSystem.Instance.GetCurrentContracts<Contract>())
             {
-                HeadlinesUtil.Report(1, $"{myContract.ToString()}");
                 if (myContract.ContractState == Contract.State.Active)
                 {
                     ratio = storyEngine.programHype / myContract.ReputationCompletion;
-                    /*
+                    
                     if (ratio >= 1f)
                     {
-                        myStyle.font.material.color = Color.green;
+                        UnityEngine.GUI.contentColor = Color.green;
                     }
                     else if (ratio >= 0.5f)
                     {
-                        myStyle.font.material.color = Color.yellow;
+                        UnityEngine.GUI.contentColor = Color.gray;
                     }
-                    else myStyle.font.material.color = Color.red;
-                    */
+                    else UnityEngine.GUI.contentColor = Color.black;
+                    
                     GUILayout.BeginHorizontal();
-                    GUILayout.Button("Pledge");
+                    //GUILayout.Button("Pledge");
                     GUILayout.Label($"{myContract.Title} ({(int)Math.Ceiling(100f*ratio)}%)" );
                     GUILayout.EndHorizontal();
                 }
                 
             }
-            
+
+            UnityEngine.GUI.contentColor = originalColor;
+
             // pledge Clock (if applicable) and total tally 
+        }
+
+        public void DrawPersonelPanel()
+        {
+            RefreshRoster();
+            
+            GUILayout.BeginVertical();
+            _selectedCrew = GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3);
+            DrawCrew();
+            GUILayout.EndVertical();
+        }
+
+        public void RefreshRoster()
+        {
+            peopleManager = storyEngine.GetPeopleManager();
+
+            crewRoster = new List<string>();
+            foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)
+            {
+                crewRoster.Add(kvp.Value.DisplayName());
+            }
+        }
+
+        public PersonnelFile GetFileFromDisplay(string displayName)
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)
+            {
+                if (kvp.Value.DisplayName() == displayName) return kvp.Value;
+            }
+
+            return null;
+        }
+
+        public void DrawCrew()
+        {
+            string crewName = crewRoster[_selectedCrew];
+            PersonnelFile focusCrew = GetFileFromDisplay(crewName);
+            GUILayout.Box(focusCrew.DisplayName());
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Effectiveness: {peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))}");
+            GUILayout.Label($"training: {focusCrew.trainingLevel}");
+            GUILayout.Label($"Discontent: {focusCrew.discontent}");
+            GUILayout.EndHorizontal();
+            
+            // Relationships
+            if (focusCrew.feuds.Count + focusCrew.collaborators.Count != 0)
+            {
+                GUILayout.Box($"Relationships");
+                foreach (string otherCrew in focusCrew.collaborators)
+                {
+                    DrawRelationship(peopleManager.GetFile(otherCrew), isFeud:false);
+                }
+                foreach (string otherCrew in focusCrew.feuds)
+                {
+                    DrawRelationship(peopleManager.GetFile(otherCrew), isFeud:true);
+                }
+            }
+            
+            // Activity controls
+            GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
+        }
+
+        public void DrawRelationship(PersonnelFile crewMember, bool isFeud = false)
+        {
+            
+            
+            GUILayout.BeginHorizontal();
+            Color oldColor = UnityEngine.GUI.contentColor;
+            if (isFeud == true)
+            {
+                UnityEngine.GUI.contentColor = Color.red;
+                GUILayout.Label("[FEUD]");
+            }
+            else
+            {
+                UnityEngine.GUI.contentColor = Color.green;
+                GUILayout.Label("[COLL]");
+            }
+            UnityEngine.GUI.contentColor = oldColor;
+            
+            GUILayout.Label($"{crewMember.DisplayName()}");
+            GUILayout.Label($"{crewMember.Specialty()} ( ({peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))})");
+            
+            GUILayout.EndHorizontal();
+
+            
         }
     }
 }

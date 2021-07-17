@@ -14,15 +14,20 @@ namespace RPStoryteller
     public class PeopleManager : ScenarioModule
     {
         private static System.Random randomNG = new System.Random();
+
+        public static PeopleManager Instance = null;
         
         // Binds KSP crew and Starstruck data
         public Dictionary<string, PersonnelFile> personnelFolders = new Dictionary<string, PersonnelFile>();
+
+        [KSPField(isPersistant = true)] private int bogus = 0;
 
         #region Kitchen Sink
 
         public PeopleManager()
         {
             RefreshPersonnelFolder();
+            Instance = this;
         }
         
         public override void OnSave(ConfigNode node)
@@ -103,6 +108,7 @@ namespace RPStoryteller
         /// <returns>Instance of the file</returns>
         public PersonnelFile GetFile(string kerbalName)
         {
+            bogus += 1;
             if (personnelFolders.ContainsKey(kerbalName)) return personnelFolders[kerbalName];
             else
             {
@@ -117,6 +123,20 @@ namespace RPStoryteller
             return null;
         }
 
+        /// <summary>
+        /// Needed by the GUI to build a roster selector
+        /// </summary>
+        /// <returns></returns>
+        public List<string> GetDisplayNameRoster()
+        {
+            List<string> output = new List<string>();
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                output.Add(kvp.Value.DisplayName());
+            }
+
+            return output;
+        }
         /// <summary>
         /// Returns the unique name of a random kerbal on staff. Will not return anyone on the exclude list. Meant to be
         /// usable for many purposes. The two parameter should not be used together.
@@ -341,12 +361,15 @@ namespace RPStoryteller
             outputNode.AddValue("discontent", this.discontent);
 
             ConfigNode people = new ConfigNode();
+            HeadlinesUtil.Report(1,$"Writing collabs/feud {collaborators.Count} {feuds.Count}", "Headdebug");
             foreach (string kerbalName in collaborators)
             {
+                HeadlinesUtil.Report(1,$"Adding collaborator {kerbalName}", "Headdebug");
                 people.AddValue(kerbalName, "collaborator");
             }
             foreach (string kerbalName in feuds)
             {
+                HeadlinesUtil.Report(1,$"Adding feuding {kerbalName}", "Headdebug");
                 people.AddValue(kerbalName, "feud");
             }
             outputNode.AddNode("people", people);

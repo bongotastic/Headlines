@@ -291,7 +291,7 @@ namespace RPStoryteller
         /// </summary>
         private void InitializePeopleManager()
         {
-            _peopleManager = new PeopleManager();
+            _peopleManager = PeopleManager.Instance;
             _peopleManager.RefreshPersonnelFolder();
 
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
@@ -1380,6 +1380,10 @@ namespace RPStoryteller
             return this.programLastKnownReputation + this.programHype;
         }
         
+        public PeopleManager GetPeopleManager()
+        {
+            return _peopleManager;
+        }
 
         #endregion
 
