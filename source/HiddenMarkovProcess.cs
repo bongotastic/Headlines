@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using RPStoryteller.source;
 using UniLinq;
 using UnityEngine;
@@ -89,6 +90,16 @@ namespace HiddenMarkovProcess
             else return this.templateStateName;
         }
 
+        public List<string> ListEmissions()
+        {
+            List<string> output = new List<string>();
+            foreach (KeyValuePair<string, float> kvp in _emissions)
+            {
+                if (kvp.Key != "") output.Add(kvp.Key);
+            }
+
+            return output;
+        }
         #endregion
 
         #region KSP

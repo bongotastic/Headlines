@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Contracts;
+using HiddenMarkovProcess;
 using KSP.UI.Screens;
 using UnityEngine;
 
@@ -17,11 +18,14 @@ namespace RPStoryteller.source.GUI
         private bool _programTab = true;
         private bool _crewTab = false;
         private int _selectedCrew = 0;
+        private int _currentActivity = 0;
 
         private PeopleManager peopleManager;
         private List<string> crewRoster;
         private List<string> tabLabels;
+        private List<string> activityLabels;
 
+        // location of the Window
         public Rect position;
 
 
@@ -60,6 +64,12 @@ namespace RPStoryteller.source.GUI
             }
         }
 
+        private void BuildActivityLabels(string role)
+        {
+            HiddenState hmmprocess = new HiddenState("role_" + role);
+            activityLabels = hmmprocess.ListEmissions();
+        }
+        
         public void OpenWindow()
         {
             if (storyEngine == null)
@@ -160,12 +170,10 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"Overvaluation: {storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine.programHype, MidpointRounding.ToEven)})");
             GUILayout.Label($"         Peak: {storyEngine.GUIRelativeToPeak()}");
             GUILayout.Label($"  Space Craze: {storyEngine.GUISpaceCraze()}");
-            GUILayout.Space(10);
+            GUILayout.Space(20);
             
-            GUILayout.Box("Contracts (% hyped)");
             DrawContracts();
-            GUILayout.Space(10);
-            
+
             GUILayout.Box("Impact");
             GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}");
             GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%");
@@ -183,25 +191,31 @@ namespace RPStoryteller.source.GUI
         public void DrawContracts()
         {
             float ratio = 0f;
-            
+            bool hasheader = false;
 
             Color originalColor = UnityEngine.GUI.contentColor;
 
             foreach (Contract myContract in ContractSystem.Instance.GetCurrentContracts<Contract>())
             {
+                if (!hasheader)
+                {
+                    GUILayout.Box("Contracts (% hyped)");
+                    hasheader = true;
+                }
                 if (myContract.ContractState == Contract.State.Active)
                 {
                     ratio = storyEngine.programHype / myContract.ReputationCompletion;
-                    
+
                     if (ratio >= 1f)
                     {
                         UnityEngine.GUI.contentColor = Color.green;
                     }
+
                     else if (ratio >= 0.5f)
                     {
-                        UnityEngine.GUI.contentColor = Color.gray;
+                        UnityEngine.GUI.contentColor = Color.yellow;
                     }
-                    else UnityEngine.GUI.contentColor = Color.black;
+                    else UnityEngine.GUI.contentColor = Color.red;
                     
                     GUILayout.BeginHorizontal();
                     //GUILayout.Button("Pledge");
@@ -210,7 +224,8 @@ namespace RPStoryteller.source.GUI
                 }
                 
             }
-
+            GUILayout.Space(20);
+            
             UnityEngine.GUI.contentColor = originalColor;
 
             // pledge Clock (if applicable) and total tally 
@@ -251,12 +266,28 @@ namespace RPStoryteller.source.GUI
         {
             string crewName = crewRoster[_selectedCrew];
             PersonnelFile focusCrew = GetFileFromDisplay(crewName);
-            GUILayout.Box(focusCrew.DisplayName());
+            GUILayout.Box($"Effectiveness ({peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))})");
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Effectiveness: {peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))}");
+            GUILayout.Label($"Raw Score: {focusCrew.Effectiveness(deterministic:true)}");
+            GUILayout.Label($"Profile: {Math.Round(focusCrew.Profile(),2)}");
             GUILayout.Label($"training: {focusCrew.trainingLevel}");
-            GUILayout.Label($"Discontent: {focusCrew.discontent}");
+            GUILayout.Label($"Discontent: {focusCrew.GetDiscontent()}");
             GUILayout.EndHorizontal();
+            GUILayout.Space(20);
+            
+            // Impact
+            if (focusCrew.Specialty() != "Pilot")
+            {
+                string location = "VAB";
+                if (focusCrew.Specialty() == "Scientist") location = "R&D complex";
+                GUILayout.Box($"Impact on {location} ({focusCrew.influence+focusCrew.teamInfluence+focusCrew.legacy} pts)");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"Immediate: {focusCrew.influence}");
+                GUILayout.Label($"Lasting: {focusCrew.teamInfluence}");
+                GUILayout.Label($"Legacy: {focusCrew.legacy}");
+                GUILayout.EndHorizontal();
+                GUILayout.Space(20);
+            }
             
             // Relationships
             if (focusCrew.feuds.Count + focusCrew.collaborators.Count != 0)
@@ -270,10 +301,19 @@ namespace RPStoryteller.source.GUI
                 {
                     DrawRelationship(peopleManager.GetFile(otherCrew), isFeud:true);
                 }
+                GUILayout.Space(20);
             }
             
             // Activity controls
+            BuildActivityLabels(focusCrew.Specialty()); // inefficient
             GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
+            _currentActivity = activityLabels.IndexOf(focusCrew.kerbalTask);
+            _currentActivity = GUILayout.SelectionGrid(_currentActivity, activityLabels.ToArray(), 2);
+            if (_currentActivity != activityLabels.IndexOf(focusCrew.kerbalTask))
+            {
+                focusCrew.OrderTask(activityLabels[_currentActivity]);
+            }
+
         }
 
         public void DrawRelationship(PersonnelFile crewMember, bool isFeud = false)

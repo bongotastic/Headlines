@@ -9,8 +9,7 @@ namespace RPStoryteller
     /// <summary>
     /// This class manages the Kerbal interface of the Storyteller mod: a mix of HR and the PR department.
     /// </summary>
-    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
-        GameScenes.SPACECENTER)]
+    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
     public class PeopleManager : ScenarioModule
     {
         private static System.Random randomNG = new System.Random();
@@ -26,7 +25,7 @@ namespace RPStoryteller
 
         public PeopleManager()
         {
-            RefreshPersonnelFolder();
+            //RefreshPersonnelFolder();
             Instance = this;
         }
         
@@ -54,6 +53,7 @@ namespace RPStoryteller
             ConfigNode folder = node.GetNode("PERSONNELFILES");
             if (folder != null)
             {
+                HeadlinesUtil.Report(1, "Found PERSONNELFILES");
                 PersonnelFile temporaryFile;
             
                 foreach (ConfigNode kerbalFile in folder.GetNodes())
@@ -265,8 +265,13 @@ namespace RPStoryteller
         
         // Getting better through professional development
         public int trainingLevel = 0;
+        
         // Affects the odds of leaving the program
-        public int discontent = 1;
+        [KSPField(isPersistant = true)]
+        private int discontent = 1;
+        
+        // Indicate that the current task was ordered by the player
+        public bool coercedTask = false;
         
         // While sustaining (transient)
         public int influence = 0;
@@ -326,6 +331,7 @@ namespace RPStoryteller
 
         public void FromConfigNode(ConfigNode node)
         {
+            HeadlinesUtil.Report(1,$"{node}");
             this.kerbalProductiveState = node.GetValue("kerbalState");
             this.kerbalTask = node.GetValue("kerbalTask");
             this.trainingLevel = int.Parse(node.GetValue("trainingLevel"));
@@ -334,11 +340,16 @@ namespace RPStoryteller
             this.legacy = int.Parse(node.GetValue("legacy"));
             this.discontent = int.Parse(node.GetValue("discontent"));
 
+            HeadlinesUtil.Report(1,"About to read relationships");
             ConfigNode people = node.GetNode("people");
+            HeadlinesUtil.Report(1,$"node people is {people}");
             if (people != null)
             {
+                HeadlinesUtil.Report(1,"We're in");
                 foreach (ConfigNode.Value kerbal in people.values)
                 {
+                    HeadlinesUtil.Report(1,$"Name: {kerbal.name}, value:{kerbal.value}");
+                    HeadlinesUtil.Report(1,$"feuds: {feuds}, coll:{collaborators}");
                     if (kerbal.value == "feud" && feuds.Contains(kerbal.name) == false) feuds.Add(kerbal.name);
                     else if (kerbal.value == "collaborator" && collaborators.Contains(kerbal.name) == false) collaborators.Add(kerbal.name);
                 }
@@ -400,7 +411,7 @@ namespace RPStoryteller
         /// <returns>Zero-bound value</returns>
         public double Profile()
         {
-            double outputProfile = 2 * (pcm.courage * (2 * Math.Abs(0.5 - pcm.stupidity)));
+            double outputProfile = 2 * (pcm.courage + (2 * Math.Abs(0.5 - pcm.stupidity)));
 
             outputProfile += (double)pcm.experience;
             
@@ -434,10 +445,20 @@ namespace RPStoryteller
             // training
             effectiveness += this.trainingLevel;
             
-            // feuds and collaborations
-            int relationships = collaborators.Count - feuds.Count;
-            relationships = (int)Math.Min(-2, relationships);
-            relationships = (int)Math.Max(2, relationships);
+            // feuds, collaborations, discontentment (human factors)
+            effectiveness += collaborators.Count;
+            
+            if (isMedia == true || Specialty() == "Pilot")
+            {
+                // Feuds can be ignored in charm campaigns (outside of the KSC)
+                effectiveness -= discontent;
+            }
+            else
+            {
+                // Feuds can't be ignored when working at the KSC
+                effectiveness -= (discontent + feuds.Count);
+            }
+            
             
             // slump/inspired
             switch (this.kerbalProductiveState)
@@ -520,7 +541,12 @@ namespace RPStoryteller
         {
             return (double) pcm.stupidity;
         }
-        
+
+        public int GetDiscontent()
+        {
+            int output = discontent - collaborators.Count + feuds.Count;
+            return Math.Max(0, Math.Min(5,output));
+        }
         #endregion
 
         #region Setters
@@ -656,6 +682,11 @@ namespace RPStoryteller
             pcm.SetInactive(endTime, false);
         }
 
+        public void OrderTask(string newtask)
+        {
+            kerbalTask = newtask;
+            coercedTask = true;
+        }
         #endregion
         
     }

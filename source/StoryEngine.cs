@@ -19,12 +19,15 @@ namespace RPStoryteller
         LASTING
     }
 
+    /// <summary>
+    /// As per PENDRAGON system 
+    /// </summary>
     public enum SkillCheckOutcome
     {
         FUMBLE, FAILURE, SUCCESS, CRITICAL
     }
     
-    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER, GameScenes.FLIGHT, GameScenes.TRACKSTATION)]
+    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
     public class StoryEngine : ScenarioModule
     {
         #region Declarations
@@ -626,13 +629,13 @@ namespace RPStoryteller
             // Assert resignation
             double effectiveness = Math.Floor((double)personnelFile.Effectiveness());
             double peer_effectiveness = Math.Floor( _peopleManager.ProgramAverageEffectiveness());
-            int netDiscontent = (int) effectiveness - (int) peer_effectiveness + personnelFile.discontent;
+            int netDiscontent = (int) effectiveness - (int) peer_effectiveness + personnelFile.GetDiscontent();
             
             SkillCheckOutcome outcome = SkillCheck(netDiscontent);
             switch (outcome)
             {
                 case SkillCheckOutcome.FUMBLE:
-                    personnelFile.AdjustDiscontent(-1 * personnelFile.discontent);
+                    personnelFile.AdjustDiscontent(-1 * personnelFile.GetDiscontent());
                     break;
                 case SkillCheckOutcome.FAILURE:
                     personnelFile.AdjustDiscontent(1);
@@ -642,7 +645,7 @@ namespace RPStoryteller
                     return;
             }
             
-            HeadlinesUtil.Report(1,$"{personnelFile.DisplayName()}'s discontent is {personnelFile.discontent}.");
+            HeadlinesUtil.Report(1,$"{personnelFile.DisplayName()}'s discontent is {personnelFile.GetDiscontent()}.");
         }
 
         /// <summary>
