@@ -93,8 +93,13 @@ namespace RPStoryteller
         /// <param name="personnelFile"></param>
         public void Remove(PersonnelFile personnelFile)
         {
-            personnelFile.Remove();
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                kvp.Value.NotifyOfRemoval(personnelFile.UniqueName());
+            }
+            
             personnelFolders.Remove(personnelFile.UniqueName());
+            personnelFile.Remove();
         }
         
         #endregion
@@ -399,6 +404,12 @@ namespace RPStoryteller
         public void Remove()
         {
             HighLogic.CurrentGame.CrewRoster.Remove(this.pcm);
+        }
+
+        public void NotifyOfRemoval(string kerbalName)
+        {
+            if (feuds.Contains(kerbalName)) feuds.Remove(kerbalName);
+            if (collaborators.Contains(kerbalName)) collaborators.Remove(kerbalName);
         }
 
         #endregion

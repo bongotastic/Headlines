@@ -102,6 +102,9 @@ namespace RPStoryteller
             // Event Catching
             GameEvents.OnReputationChanged.Add(ReputationChanged);
             GameEvents.OnScienceChanged.Add(ScienceChanged);
+            GameEvents.OnCrewmemberSacked.Add(CrewSacked);
+            GameEvents.OnCrewmemberHired.Add(CrewHired);
+            GameEvents.onCrewKilled.Add(CrewKilled);
         }
         
         /// <summary>
@@ -285,6 +288,22 @@ namespace RPStoryteller
 
             this.programLastKnownScience = newScience;
         }
+
+        public void CrewSacked(ProtoCrewMember pcm, int count)
+        {
+            
+        }
+
+        public void CrewHired(ProtoCrewMember pcm, int count)
+        {
+            
+        }
+
+        public void CrewKilled(EventReport data)
+        {
+            
+        }
+        
         #endregion
 
         #region kerbals
@@ -951,6 +970,7 @@ namespace RPStoryteller
                 }
             }
         }
+        
         /// <summary>
         /// Execute a HMM transition from one hidden state to another. Assumes that 
         /// </summary>
