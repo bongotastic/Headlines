@@ -88,6 +88,15 @@ namespace RPStoryteller
         }
 
         /// <summary>
+        /// Manual Add of a crew to the roster (through hiring)
+        /// </summary>
+        /// <param name="newCrew"></param>
+        public void AddCrew(PersonnelFile newCrew)
+        {
+            personnelFolders.Add(newCrew.UniqueName(), newCrew);
+        }
+
+        /// <summary>
         /// Delete the personnel file and remove the pcm from the game.
         /// </summary>
         /// <param name="personnelFile"></param>
@@ -203,6 +212,11 @@ namespace RPStoryteller
             return 0;
         }
 
+        /// <summary>
+        /// Provide a qualifier to translate point into an English adjective.
+        /// </summary>
+        /// <param name="value">Effectiveness</param>
+        /// <returns></returns>
         public string QualitativeEffectiveness(double value)
         {
             if (value <= 1) return "inept";
@@ -699,6 +713,20 @@ namespace RPStoryteller
             coercedTask = true;
         }
         #endregion
-        
+
+        #region logic
+
+        /// <summary>
+        /// Shake things up so not all new crew members are the same.
+        /// </summary>
+        public void Randomize()
+        {
+            trainingLevel = randomNG.Next(0, 3);
+            discontent = randomNG.Next(0, 2);
+            
+            // Pick 0+ personality trait.
+        }
+
+        #endregion
     }
 }

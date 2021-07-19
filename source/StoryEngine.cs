@@ -291,17 +291,27 @@ namespace RPStoryteller
 
         public void CrewSacked(ProtoCrewMember pcm, int count)
         {
-            
+            // TODO being fired isn't the same as quitting for logging purpose.
+            KerbalResignation(_peopleManager.GetFile(pcm.name), new Emissions("quit"));
         }
 
+        /// <summary>
+        /// Catches new hires from the kerbonaut centre and add to Headlines' _peopleManager
+        /// </summary>
+        /// <param name="pcm"></param>
+        /// <param name="count"></param>
         public void CrewHired(ProtoCrewMember pcm, int count)
         {
-            
+            PersonnelFile newCrew = new PersonnelFile(pcm);
+            newCrew.Randomize();
+            _peopleManager.AddCrew(newCrew);
         }
 
         public void CrewKilled(EventReport data)
         {
-            
+            // TODO handle operational death differently than accidents
+            PersonnelFile personnelFile = _peopleManager.GetFile(data.sender);
+            KerbalResignation(personnelFile, new Emissions("quit"), trajedy:true);
         }
         
         #endregion
