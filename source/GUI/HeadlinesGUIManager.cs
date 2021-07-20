@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace RPStoryteller.source.GUI
 {
-    [KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
+    [KSPAddon(KSPAddon.Startup.FlightEditorAndKSC, false)]
     public class HeadlinesGUIManager : MonoBehaviour
     {
         private StoryEngine storyEngine;
@@ -29,10 +29,24 @@ namespace RPStoryteller.source.GUI
         public Rect position;
 
 
-
+        #region Unity stuff
+        
+        protected void Awake()
+        {
+            try
+            {
+                GameEvents.onGUIApplicationLauncherReady.Add(OnGuiAppLauncherReady);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[Headlines] failed to register UIHolder.OnGuiAppLauncherReady");
+                Debug.LogException(ex);
+            }
+        }
+        
         public void Start()
         {
-            UpdateToolbarStock();
+            //UpdateToolbarStock();
             
             storyEngine = StoryEngine.Instance;
 
@@ -40,28 +54,43 @@ namespace RPStoryteller.source.GUI
 
         }
 
-        private void UpdateToolbarStock()
+        protected void OnDestroy()
+        {
+            try
+            {
+                GameEvents.onGUIApplicationLauncherReady.Remove(OnGuiAppLauncherReady);
+                if (stockButton != null)
+                    ApplicationLauncher.Instance.RemoveModApplication(stockButton);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        }
+        
+        private void OnGuiAppLauncherReady()
         {
             if (stockButton == null)
             {
                 stockButton = ApplicationLauncher.Instance.AddModApplication(
-                    OpenWindow,
-                    CloseWindow,
+                    ShowWindow,
+                    HideWindow,
                     null,
                     null,
                     null,
                     null,
-                    ApplicationLauncher.AppScenes.SPACECENTER,
+                    ApplicationLauncher.AppScenes.SPACECENTER | ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
                     GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching2 ", false)
                 );
-                ApplicationLauncher.Instance.AddOnHideCallback(HideButton);
-                if (_isDisplayed)
-                    stockButton.SetTrue();
+                //ApplicationLauncher.Instance.AddOnHideCallback(HideButton);
+                GameEvents.onGameSceneLoadRequested.Add(OnSceneChange);
             }
-            else
-            {
-                stockButton.SetTrue();
-            }
+        }
+        
+        private void OnSceneChange(GameScenes s)
+        {
+            if (s == GameScenes.FLIGHT)
+                HideWindow();
         }
 
         private void BuildActivityLabels(string role)
@@ -69,54 +98,19 @@ namespace RPStoryteller.source.GUI
             HiddenState hmmprocess = new HiddenState("role_" + role);
             activityLabels = hmmprocess.ListEmissions();
         }
-        
-        public void OpenWindow()
+
+        private void ShowWindow()
         {
             if (storyEngine == null)
             {
                 storyEngine = StoryEngine.Instance;
             }
-            
-            if (_isDisplayed == false)
-            {
-                storyEngine = StoryEngine.Instance;
-                _isDisplayed = true;
-                UpdateButtonIcon();
-            }
-        }
-
-        public void CloseWindow()
-        {
-            if (_isDisplayed == true)
-            {
-                _isDisplayed = false;
-                UpdateButtonIcon();
-            }
-            else
-            {
-                _isDisplayed = false;
-            }
-        }        
-        
-        public void HideButton()
-        {
-            CloseWindow();
-            ApplicationLauncher.Instance.RemoveModApplication(stockButton);
+            _isDisplayed = true;
         }
         
-        private void UpdateButtonIcon()
+        private void HideWindow()
         {
-            if (stockButton != null)
-            {
-                if (_isDisplayed)
-                {
-                    stockButton.SetTrue();
-                }
-                else
-                {
-                    stockButton.SetFalse();
-                }
-            }
+            _isDisplayed = false;
         }
 
         public void OnGUI()
@@ -126,7 +120,11 @@ namespace RPStoryteller.source.GUI
                 position = GUILayout.Window(GetInstanceID(), position, DrawWindow, "Headlines");
             }
         }
+        
+        #endregion
 
+        #region Drawing
+        
         public void DrawWindow(int windowID)
         {
             // Tab area
@@ -151,9 +149,7 @@ namespace RPStoryteller.source.GUI
             {
                 DrawPersonelPanel();
             }
-            
-            
-            
+            UnityEngine.GUI.DragWindow();
         }
 
         /// <summary>
@@ -166,17 +162,31 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.Box($"Program Dashboard ({storyEngine.GUIAverageProfile()})");
 
-            GUILayout.Label($"   Reputation: {storyEngine.GUIReputation()}");
-            GUILayout.Label($"Overvaluation: {storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine.programHype, MidpointRounding.ToEven)})");
-            GUILayout.Label($"         Peak: {storyEngine.GUIRelativeToPeak()}");
-            GUILayout.Label($"  Space Craze: {storyEngine.GUISpaceCraze()}");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"   Reputation:");
+            GUILayout.Label($"{storyEngine.GUIReputation()}");
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Overvaluation:");
+            GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine.programHype, MidpointRounding.ToEven)})");
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"         Peak:");
+            GUILayout.Label($"{storyEngine.GUIRelativeToPeak()}");
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"  Space Craze:");
+            GUILayout.Label($"{storyEngine.GUISpaceCraze()}");
+            GUILayout.EndHorizontal();
             GUILayout.Space(20);
             
             DrawContracts();
 
             GUILayout.Box("Impact");
+            GUILayout.BeginHorizontal();
             GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}");
             GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%");
+            GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}");
             GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}");
@@ -240,28 +250,7 @@ namespace RPStoryteller.source.GUI
             DrawCrew();
             GUILayout.EndVertical();
         }
-
-        public void RefreshRoster()
-        {
-            peopleManager = storyEngine.GetPeopleManager();
-
-            crewRoster = new List<string>();
-            foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)
-            {
-                crewRoster.Add(kvp.Value.DisplayName());
-            }
-        }
-
-        public PersonnelFile GetFileFromDisplay(string displayName)
-        {
-            foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)
-            {
-                if (kvp.Value.DisplayName() == displayName) return kvp.Value;
-            }
-
-            return null;
-        }
-
+        
         public void DrawCrew()
         {
             string crewName = crewRoster[_selectedCrew];
@@ -338,8 +327,34 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"{crewMember.Specialty()} ( ({peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))})");
             
             GUILayout.EndHorizontal();
-
-            
         }
+        
+        #endregion
+
+        #region Logic
+        
+
+        public void RefreshRoster()
+        {
+            peopleManager = storyEngine.GetPeopleManager();
+
+            crewRoster = new List<string>();
+            foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)
+            {
+                crewRoster.Add(kvp.Value.DisplayName());
+            }
+        }
+
+        public PersonnelFile GetFileFromDisplay(string displayName)
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)
+            {
+                if (kvp.Value.DisplayName() == displayName) return kvp.Value;
+            }
+
+            return null;
+        }
+        
+        #endregion
     }
 }
