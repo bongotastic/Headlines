@@ -4,6 +4,7 @@ using System.Linq;
 using Expansions.Missions.Editor;
 using FinePrint;
 using HiddenMarkovProcess;
+using KerbalConstructionTime;
 using RPStoryteller.source;
 using RPStoryteller.source.Emissions;
 using UnityEngine;
@@ -1496,7 +1497,7 @@ namespace RPStoryteller
         /// <returns></returns>
         public int GetRnDPoints()
         {
-            return 50;
+            return Utilities.GetSpentUpgradesFor(SpaceCenterFacility.ResearchAndDevelopment);
         }
         
         /// <summary>
@@ -1505,7 +1506,7 @@ namespace RPStoryteller
         /// <returns></returns>
         public int GetVABPoints()
         {
-            return 50;
+            return Utilities.GetSpentUpgradesFor(SpaceCenterFacility.VehicleAssemblyBuilding);
         }
         
         /// <summary>
@@ -1514,6 +1515,8 @@ namespace RPStoryteller
         /// <param name="deltaPoint">number of point to change</param>
         public void AdjustRnD(int deltaPoint)
         {
+            KSCItem ksc = KCTGameStates.ActiveKSC;
+            ksc.RDUpgrades[0] += deltaPoint;
             HeadlinesUtil.Report(1,$"Adjust R&D points by {deltaPoint}.");
         }
         
@@ -1521,8 +1524,10 @@ namespace RPStoryteller
         /// Change the tally of points in the VAB.
         /// </summary>
         /// <param name="deltaPoint">number of point to change</param>
-        public void AdjustVAB(int deltaPoint)
+        public void AdjustVAB(int deltaPoint, int line = 0)
         {
+            KSCItem ksc = KCTGameStates.ActiveKSC;
+            ksc.VABUpgrades[line] += deltaPoint;
             HeadlinesUtil.Report(1,$"Adjust VAB points by {deltaPoint}.");
         }
 
