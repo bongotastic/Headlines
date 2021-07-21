@@ -18,8 +18,7 @@ namespace RPStoryteller
         
         // Binds KSP crew and Starstruck data
         public Dictionary<string, PersonnelFile> personnelFolders = new Dictionary<string, PersonnelFile>();
-
-        [KSPField(isPersistant = true)] private int bogus = 0;
+        
 
         #region Kitchen Sink
 
@@ -82,6 +81,7 @@ namespace RPStoryteller
                 if (personnelFolders.ContainsKey(pcm.name) == false)
                 {
                     PersonnelFile newKerbal = new PersonnelFile(pcm);
+                    newKerbal.Randomize();
                     personnelFolders.Add( pcm.name, newKerbal);
                 }
             }
@@ -122,7 +122,6 @@ namespace RPStoryteller
         /// <returns>Instance of the file</returns>
         public PersonnelFile GetFile(string kerbalName)
         {
-            bogus += 1;
             if (personnelFolders.ContainsKey(kerbalName)) return personnelFolders[kerbalName];
             else
             {
@@ -288,7 +287,7 @@ namespace RPStoryteller
         // Affects the odds of leaving the program
         [KSPField(isPersistant = true)]
         private int discontent = 1;
-        
+
         // Indicate that the current task was ordered by the player
         public bool coercedTask = false;
         
@@ -306,6 +305,9 @@ namespace RPStoryteller
         // relationships
         public List<string> collaborators = new List<string>();
         public List<string> feuds = new List<string>();
+        
+        // Personality
+        //private string personalityTrait = "";
 
         private ProtoCrewMember pcm;
         
@@ -572,6 +574,7 @@ namespace RPStoryteller
             int output = discontent - collaborators.Count + feuds.Count;
             return Math.Max(0, Math.Min(5,output));
         }
+
         #endregion
 
         #region Setters
@@ -707,6 +710,10 @@ namespace RPStoryteller
             pcm.SetInactive(endTime, false);
         }
 
+        /// <summary>
+        /// This is triggered by the UI when a player changes the stored kerbaltask
+        /// </summary>
+        /// <param name="newtask">the new task</param>
         public void OrderTask(string newtask)
         {
             kerbalTask = newtask;
@@ -724,7 +731,7 @@ namespace RPStoryteller
             trainingLevel = randomNG.Next(0, 3);
             discontent = randomNG.Next(0, 2);
             
-            // Pick 0+ personality trait.
+            // TODO Pick 0+ personality trait.
         }
 
         #endregion

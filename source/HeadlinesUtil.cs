@@ -37,7 +37,6 @@ namespace RPStoryteller.source
         /// <param name="title"></param>
         public static void CreateMessage(string message, string title)
         {
-            // TODO implement notification generation
             KSPLog.print("[[" + message + "]]");
             MessageSystem ms = MessageSystem.Instance;
             ms.AddMessage(new MessageSystem.Message(title, message,

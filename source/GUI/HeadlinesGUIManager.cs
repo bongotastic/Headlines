@@ -22,7 +22,7 @@ namespace RPStoryteller.source.GUI
 
         private PeopleManager peopleManager;
         private List<string> crewRoster;
-        private List<string> tabLabels;
+        //private List<string> tabLabels;
         private List<string> activityLabels;
 
         // location of the Window
@@ -160,7 +160,7 @@ namespace RPStoryteller.source.GUI
         {
             GUILayout.BeginVertical();
             
-            GUILayout.Box($"Program Dashboard ({storyEngine.GUIAverageProfile()})");
+            GUILayout.Box($"Program Dashboard (Staff: {storyEngine.GUIAverageProfile()})");
 
             GUILayout.BeginHorizontal();
             GUILayout.Label($"   Reputation:");
@@ -244,9 +244,15 @@ namespace RPStoryteller.source.GUI
         public void DrawPersonelPanel()
         {
             RefreshRoster();
+
+            if (crewRoster.Count == 0) return;
             
             GUILayout.BeginVertical();
             _selectedCrew = GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3);
+            if (_selectedCrew >= crewRoster.Count)
+            {
+                _selectedCrew = 0;
+            }
             DrawCrew();
             GUILayout.EndVertical();
         }
@@ -301,6 +307,11 @@ namespace RPStoryteller.source.GUI
             if (_currentActivity != activityLabels.IndexOf(focusCrew.kerbalTask))
             {
                 focusCrew.OrderTask(activityLabels[_currentActivity]);
+            }
+
+            if (focusCrew.coercedTask)
+            {
+                focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
             }
 
         }

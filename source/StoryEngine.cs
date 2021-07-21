@@ -424,7 +424,11 @@ namespace RPStoryteller
                     impactType = ImpactType.NEGATIVE;
                     break;
                 case SkillCheckOutcome.CRITICAL:
+                    KerbalRegisterSuccess(kerbalFile, true);
                     impactType = ImpactType.LASTING;
+                    break;
+                default:
+                    KerbalRegisterSuccess(kerbalFile);
                     break;
             }
 
@@ -467,8 +471,8 @@ namespace RPStoryteller
             {
                 adjective = "inneffectively ";
             }
-            HeadlinesUtil.Report(2,$"{kerbalFile.DisplayName()} {adjective}in the limelight.");
-            AdjustHype( effectiveness * multiplier );
+            HeadlinesUtil.Report(2,$"{kerbalFile.DisplayName()} {adjective}in the limelight. ({Math.Max(1, effectiveness) * multiplier})");
+            AdjustHype( Math.Max(1, effectiveness) * multiplier );
         }
 
         /// <summary>
@@ -631,12 +635,13 @@ namespace RPStoryteller
             if (outcome == SkillCheckOutcome.SUCCESS)
             {
                 personnelFile.trainingLevel += 1;
+                KerbalRegisterSuccess(personnelFile);
                 HeadlinesUtil.Report(2,$"{personnelFile.DisplayName()} matures.");
             }
             else if (outcome == SkillCheckOutcome.CRITICAL)
             {
                 personnelFile.trainingLevel += 2;
-                personnelFile.AdjustDiscontent(-1);
+                KerbalRegisterSuccess(personnelFile, true);
                 HeadlinesUtil.Report(2,$"{personnelFile.DisplayName()} has a breakthrough.");
             }
             else if (outcome == SkillCheckOutcome.FUMBLE)
@@ -797,10 +802,12 @@ namespace RPStoryteller
                         break;
                     case SkillCheckOutcome.SUCCESS:
                         message += $"{personnelFile.DisplayName()} mentors {peer.DisplayName()}.";
+                        KerbalRegisterSuccess(personnelFile);
                         peer.trainingLevel += 1;
                         break;
                     case SkillCheckOutcome.CRITICAL:
                         message += $"{personnelFile.DisplayName()} and {peer.DisplayName()} mutually benefits from each other's company.";
+                        KerbalRegisterSuccess(personnelFile, true);
                         peer.trainingLevel += 1;
                         personnelFile.trainingLevel += 1;
                         break;
@@ -839,9 +846,11 @@ namespace RPStoryteller
             switch (outcome)
             {
                 case SkillCheckOutcome.SUCCESS:
+                    KerbalRegisterSuccess(personnelFile);
                     funds = 20000;
                     break;
                 case SkillCheckOutcome.CRITICAL:
+                    KerbalRegisterSuccess(personnelFile, true);
                     funds = 100000;
                     break;
                 case SkillCheckOutcome.FUMBLE:
@@ -878,7 +887,6 @@ namespace RPStoryteller
                     break;
                 case SkillCheckOutcome.SUCCESS:
                     HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} is injured in a dumb accident. They will be off productive work for a few weeks.", $"{personnelFile.DisplayName()} injured.");
-                    // TODO inactivate the kerbal
                     TransitionHMM(KerbalStateOf(personnelFile),"kerbal_injured");
                     break;
             }
@@ -904,6 +912,36 @@ namespace RPStoryteller
             this.visitingScholar = true;
             HeadlinesUtil.Report(3,$"A visiting scholar brought by {personnelFile.DisplayName()} get clearance to work at the R&D complex.","Visiting scholar");
         }
+
+        public void KerbalCoercedTask(PersonnelFile personnelFile)
+        {
+            string message = $"{personnelFile.DisplayName()} is told to {personnelFile.kerbalTask} ";
+            if (storytellerRand.NextDouble() < 0.5)
+            {
+                message += "one last time ";
+                personnelFile.coercedTask = false;
+            }
+            if (storytellerRand.NextDouble() < 0.20)
+            {
+                message += "and isn't happy";
+                personnelFile.AdjustDiscontent(1);
+            }
+            HeadlinesUtil.Report(2,message+".");
+            EmitEvent(personnelFile.kerbalTask, personnelFile);
+        }
+
+        /// <summary>
+        /// Workplace satisfaction when successful (with a probability)
+        /// </summary>
+        /// <param name="personnelFile">the actor</param>
+        /// <param name="critical">force adjustment</param>
+        public void KerbalRegisterSuccess(PersonnelFile personnelFile, bool critical = false)
+        {
+            if (critical | storytellerRand.NextDouble() < 0.5)
+            {
+                personnelFile.AdjustDiscontent(-1);
+            }
+        }
         #endregion
         
         #region HMM Logic
@@ -914,7 +952,6 @@ namespace RPStoryteller
         /// <param name="registeredStateIdentity">The identifier as registered in the scheduler</param>
         private void InitializeHMM(string registeredStateIdentity, double timestamp = 0, string kerbalName = "")
         {
-            // TODO clean up the mess here when confirmed to be unnecessary 
             string templateStateIdentity = registeredStateIdentity;
             
             // Split template and kerbal parts when initialized from a save node
@@ -1087,13 +1124,21 @@ namespace RPStoryteller
                 
                 // HMM emission call
                 emittedEvent = _liveProcesses[registeredStateName].Emission();
-
+                
                 if (emittedEvent != "")
                 {
                     if (_liveProcesses[registeredStateName].kerbalName != "")
                     {
                         PersonnelFile personnelFile = _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
-                        EmitEvent(emittedEvent, personnelFile);
+                        if (personnelFile.coercedTask)
+                        {
+                            EmitEvent(personnelFile.kerbalTask, personnelFile);
+                            KerbalCoercedTask(personnelFile);
+                        }
+                        else
+                        {
+                            EmitEvent(emittedEvent, personnelFile);
+                        }
                     }
                     else
                     {
@@ -1283,6 +1328,11 @@ namespace RPStoryteller
                 HeadlinesUtil.ScreenMessage($"Space craze is cooling down.");
             }
             HeadlinesUtil.ScreenMessage($"Program Hype: {string.Format("{0:0}", this.programHype)}");
+
+            if (programHype + Reputation.CurrentRep > programHighestValuation)
+            {
+                programHighestValuation = programHype + Reputation.CurrentRep;
+            }
             
         }
 
@@ -1301,6 +1351,14 @@ namespace RPStoryteller
             
             // margin over profile (losable reputation)
             double marginOverProfile = Math.Max(0, currentReputation - programProfile);
+
+            // reputation tends to program profile if too low.
+            if (marginOverProfile == 0f)
+            {
+                repInterface.AddReputation((float) (0.5 * (programProfile - currentReputation)), TransactionReasons.None);
+                HeadlinesUtil.Report(1,"Reputation increased to approach program profile.");
+                return;
+            }
 
             // Calculate the magic loss 0.9330 (1/2 life of 10 iterations, or baseline 1 year of doing nothing)
             double decayReputation = marginOverProfile * (1 - 0.933);
@@ -1325,6 +1383,11 @@ namespace RPStoryteller
                 this.programHype /= overrating;
             
                 HeadlinesUtil.Report(2,$"Public hype correction over your program ({(int)this.programHype}).");
+            }
+            else
+            {
+                // Edge case where there is no reputation (start game), be nice
+                programHype *= 0.8f;
             }
             
         }
@@ -1372,11 +1435,16 @@ namespace RPStoryteller
 
         public string GUIAverageProfile()
         {
-            double averageProfile = _peopleManager.ProgramAverageEffectiveness();
+            double averageProfile = _peopleManager.ProgramAverageEffectiveness(determinisitic:true);
             return _peopleManager.QualitativeEffectiveness(averageProfile);
         }
         public string GUIRelativeToPeak()
         {
+            double valuation = GetValuation();
+            if (valuation > programHighestValuation)
+            {
+                programHighestValuation = (float)valuation;
+            }
             return $"{ Math.Round(100 * (GetValuation()/this.programHighestValuation))}%";
         }
 
