@@ -232,11 +232,7 @@ namespace RPStoryteller
             if (reason == TransactionReasons.None)
             {
                 this.programLastKnownReputation = newReputation;
-
-                if (newReputation + this.programHype > this.programHighestValuation)
-                {
-                    this.programHighestValuation = newReputation + this.programHype;
-                }
+                UpdatePeakValuation();
 
                 return;
             }
@@ -251,7 +247,7 @@ namespace RPStoryteller
             {
                 // Retroactively cap the reputation gain to the active hype
                 float realDelta = programHype;
-                if (wageredReputation != 0)
+                if (wageredReputation >= 0)
                 {
                     realDelta = Math.Min(deltaReputation, programHype*2f);
                     HeadlinesUtil.ScreenMessage(
@@ -270,10 +266,7 @@ namespace RPStoryteller
                 Reputation.Instance.SetReputation(this.programLastKnownReputation + realDelta, TransactionReasons.None);
             }
 
-            if (Reputation.CurrentRep + this.programHype > this.programHighestValuation)
-            {
-                this.programHighestValuation = Reputation.CurrentRep + this.programHype;
-            }
+            UpdatePeakValuation();
 
             HeadlinesUtil.Report(1, $"Program hype is now {this.programHype}.");
         }
@@ -1552,6 +1545,19 @@ namespace RPStoryteller
             return this.programLastKnownReputation + this.programHype;
         }
 
+        public void UpdatePeakValuation()
+        {
+            if (GetValuation() > programHighestValuation)
+            {
+                programHighestValuation = (float)GetValuation();
+            }
+        }
+
+        public double GetReputation()
+        {
+            return programLastKnownReputation;
+        }
+
         public PeopleManager GetPeopleManager()
         {
             return _peopleManager;
@@ -1573,8 +1579,9 @@ namespace RPStoryteller
         /// </summary>
         public void EndMediaSpotlight()
         {
-            if (invitePress < HeadlinesUtil.GetUT() & wageredReputation != 0)
+            if (wageredReputation >= 0 & invitePress < HeadlinesUtil.GetUT())
             {
+                HeadlinesUtil.Report(1, $"Media invite expires {wageredReputation} wagered, {Reputation.CurrentRep} actual");
                 double shortcoming = wageredReputation - Reputation.CurrentRep;
                 if (shortcoming > 0)
                 {
@@ -1582,7 +1589,13 @@ namespace RPStoryteller
                     Reputation.Instance.AddReputation((float)shortcoming, TransactionReasons.None);
                     programHype = 0;
                     wageredReputation = 0;
-                    HeadlinesUtil.Report(2,$"The media crews are leaving disappointed. ({Math.Round(shortcoming,2)})");
+                    HeadlinesUtil.Report(3,$"The media crews are leaving disappointed. (Rep: {Math.Round(shortcoming,2)})", "Media debrief: failure");
+                }
+                else
+                {
+                    wageredReputation = 0;
+                    programHype *= 2;
+                    HeadlinesUtil.Report(3,$"The media crews are leaving impressed. (Hype: {programHype})", "Media Debrief: success");
                 }
             }
         }
