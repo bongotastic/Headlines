@@ -214,7 +214,14 @@ namespace RPStoryteller.source.GUI
                 }
                 if (myContract.ContractState == Contract.State.Active)
                 {
-                    ratio = storyEngine.programHype / myContract.ReputationCompletion;
+                    if (myContract.ReputationCompletion > 0)
+                    {
+                        ratio = storyEngine.programHype / myContract.ReputationCompletion;
+                    }
+                    else
+                    {
+                        ratio = 1f;
+                    }
 
                     if (ratio >= 1f)
                     {
@@ -234,9 +241,19 @@ namespace RPStoryteller.source.GUI
                 }
                 
             }
-            GUILayout.Space(20);
-            
+
             UnityEngine.GUI.contentColor = originalColor;
+            GUILayout.Space(20);
+            if (storyEngine.invitePress < HeadlinesUtil.GetUT())
+            {
+                storyEngine.InvitePress(GUILayout.Button("Invite Press"));
+            }
+            else
+            {
+                GUILayout.Box($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine.invitePress - HeadlinesUtil.GetUT(), true, true)}");
+            }
+            GUILayout.Space(10);
+            
 
             // pledge Clock (if applicable) and total tally 
         }
@@ -261,12 +278,16 @@ namespace RPStoryteller.source.GUI
         {
             string crewName = crewRoster[_selectedCrew];
             PersonnelFile focusCrew = GetFileFromDisplay(crewName);
-            GUILayout.Box($"Effectiveness ({peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))})");
+            GUILayout.Box($"{peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))} {focusCrew.Specialty().ToLower()}");
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Raw Score: {focusCrew.Effectiveness(deterministic:true)}");
-            GUILayout.Label($"Profile: {Math.Round(focusCrew.Profile(),2)}");
+            GUILayout.Label($"Net Score: {focusCrew.Effectiveness(deterministic:true)}");
             GUILayout.Label($"training: {focusCrew.trainingLevel}");
             GUILayout.Label($"Discontent: {focusCrew.GetDiscontent()}");
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Profile: {Math.Round(focusCrew.Profile(),2)}");
+            GUILayout.Label($"Stupidity: {Math.Round(focusCrew.Stupidity(), 2)}");
+            GUILayout.Label($"Courage: {Math.Round(focusCrew.Courage(),2)}");
             GUILayout.EndHorizontal();
             GUILayout.Space(20);
             
@@ -335,7 +356,7 @@ namespace RPStoryteller.source.GUI
             UnityEngine.GUI.contentColor = oldColor;
             
             GUILayout.Label($"{crewMember.DisplayName()}");
-            GUILayout.Label($"{crewMember.Specialty()} ( ({peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))})");
+            GUILayout.Label($"{crewMember.Specialty()} ({peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))})");
             
             GUILayout.EndHorizontal();
         }

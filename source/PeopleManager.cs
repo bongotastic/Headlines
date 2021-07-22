@@ -52,7 +52,6 @@ namespace RPStoryteller
             ConfigNode folder = node.GetNode("PERSONNELFILES");
             if (folder != null)
             {
-                HeadlinesUtil.Report(1, "Found PERSONNELFILES");
                 PersonnelFile temporaryFile;
             
                 foreach (ConfigNode kerbalFile in folder.GetNodes())
@@ -352,7 +351,6 @@ namespace RPStoryteller
 
         public void FromConfigNode(ConfigNode node)
         {
-            HeadlinesUtil.Report(1,$"{node}");
             this.kerbalProductiveState = node.GetValue("kerbalState");
             this.kerbalTask = node.GetValue("kerbalTask");
             this.trainingLevel = int.Parse(node.GetValue("trainingLevel"));
@@ -360,17 +358,13 @@ namespace RPStoryteller
             this.teamInfluence = int.Parse(node.GetValue("teamInfluence"));
             this.legacy = int.Parse(node.GetValue("legacy"));
             this.discontent = int.Parse(node.GetValue("discontent"));
-
-            HeadlinesUtil.Report(1,"About to read relationships");
+            
             ConfigNode people = node.GetNode("people");
-            HeadlinesUtil.Report(1,$"node people is {people}");
+            
             if (people != null)
             {
-                HeadlinesUtil.Report(1,"We're in");
                 foreach (ConfigNode.Value kerbal in people.values)
                 {
-                    HeadlinesUtil.Report(1,$"Name: {kerbal.name}, value:{kerbal.value}");
-                    HeadlinesUtil.Report(1,$"feuds: {feuds}, coll:{collaborators}");
                     if (kerbal.value == "feud" && feuds.Contains(kerbal.name) == false) feuds.Add(kerbal.name);
                     else if (kerbal.value == "collaborator" && collaborators.Contains(kerbal.name) == false) collaborators.Add(kerbal.name);
                 }
@@ -393,15 +387,13 @@ namespace RPStoryteller
             outputNode.AddValue("discontent", this.discontent);
 
             ConfigNode people = new ConfigNode();
-            HeadlinesUtil.Report(1,$"Writing collabs/feud {collaborators.Count} {feuds.Count}", "Headdebug");
+
             foreach (string kerbalName in collaborators)
             {
-                HeadlinesUtil.Report(1,$"Adding collaborator {kerbalName}", "Headdebug");
                 people.AddValue(kerbalName, "collaborator");
             }
             foreach (string kerbalName in feuds)
             {
-                HeadlinesUtil.Report(1,$"Adding feuding {kerbalName}", "Headdebug");
                 people.AddValue(kerbalName, "feud");
             }
             outputNode.AddNode("people", people);
@@ -567,6 +559,11 @@ namespace RPStoryteller
         public double Stupidity()
         {
             return (double) pcm.stupidity;
+        }
+
+        public double Courage()
+        {
+            return (double) pcm.courage;
         }
 
         public int GetDiscontent()

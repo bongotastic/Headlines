@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Contracts;
 using Expansions.Missions.Editor;
 using FinePrint;
 using HiddenMarkovProcess;
@@ -27,17 +28,18 @@ namespace RPStoryteller
     {
         FUMBLE, FAILURE, SUCCESS, CRITICAL
     }
-    
-    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
+
+    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
+        GameScenes.SPACECENTER)]
     public class StoryEngine : ScenarioModule
     {
         #region Declarations
 
         public static StoryEngine Instance = null;
-        
+
         // Random number generator
         private static System.Random storytellerRand = new System.Random();
-        
+
         // Mod data structures
         private PeopleManager _peopleManager;
 
@@ -47,73 +49,84 @@ namespace RPStoryteller
 
         // Cached value for the next trigger so the Scheduler doesn't have to scan constantly
         private double _nextUpdate = -1;
-        
+
         // Master switch of the mod's tempo in second. Should be 36 days for a real run. 
-        private double _assumedPeriod = 60;
-        //private double _assumedPeriod = 3600 * 24 * 36;
-        
+        //private double _assumedPeriod = 60;
+        private double _assumedPeriod = 3600 * 24;
+
         // Prevent infinite recusion
         private bool _scienceManipultation = false;
 
         // Multiplier to the _assumedPeriod when it comes to HMM triggering
         [KSPField(isPersistant = true)] public double attentionSpanFactor = 1;
-        
+
         // Maximum earning in repuation in a single increase call.
-        [KSPField(isPersistant = true)] public float programHype = 1;
+        [KSPField(isPersistant = true)] public float programHype = 10;
+
+        // Pledged hype when inviting the public
+        [KSPField(isPersistant = true)] public double invitePress = 0;
+        [KSPField(isPersistant = true)] public double wageredReputation = 0;
         
+        //[KSPField(isPersistant = true)] public Dictionary<System.Guid, double> pledgedContracts = 10;
+
         // Cache of the last time we manipulated repuation
         [KSPField(isPersistant = true)] public float programLastKnownReputation = 0;
-        
+
         // Highest reputation achieved (including overvaluation)
         [KSPField(isPersistant = true)] public float programHighestValuation = 0;
-        
+
         // Antagonized potential capital campaign donors
         [KSPField(isPersistant = true)] public bool fundraisingBlackout = false;
-        
+
         // sum of raised funds
         [KSPField(isPersistant = true)] public double fundraisingTally = 0;
-        
+
         // Visiting scholars
         [KSPField(isPersistant = true)] public bool visitingScholar = false;
         [KSPField(isPersistant = true)] public float programLastKnownScience = 0;
         [KSPField(isPersistant = true)] public float visitingScienceTally = 0;
         [KSPField(isPersistant = true)] public float totalScience = 0;
-        
+
         #endregion
-        
+
         #region UnityStuff
-        
+
         /// <summary>
         /// Unity method with some basics stuff that needs to run once inside a the scene.
         /// </summary>
         public void Start()
         {
             Instance = this;
-            
-            HeadlinesUtil.Report(1,"Initializing Starstruck");
-            
+
+            HeadlinesUtil.Report(1, "Initializing Starstruck");
+
             // Default HMM
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
 
             InitializePeopleManager();
-            
+
             SchedulerCacheNextTime();
-            
+
             // Event Catching
             GameEvents.OnReputationChanged.Add(ReputationChanged);
             GameEvents.OnScienceChanged.Add(ScienceChanged);
             GameEvents.OnCrewmemberSacked.Add(CrewSacked);
             GameEvents.OnCrewmemberHired.Add(CrewHired);
             GameEvents.onCrewKilled.Add(CrewKilled);
+            GameEvents.Contract.onCompleted.Add(ContractCompleted);
+            GameEvents.Contract.onCompleted.Add(ContractAccepted);
         }
-        
+
         /// <summary>
         /// Heartbeat of the Starstruck mod. Using a cached _nextupdate so as to
         /// avoid checking the collection's values all the time.
         /// </summary>
         public void Update()
         {
+            // End of Media spotlight?
+            EndMediaSpotlight();
+            
             // Minimizing the profile of this method's call.
             if (_nextUpdate <= GetUT()) SchedulerUpdate(GetUT());
         }
@@ -121,7 +134,7 @@ namespace RPStoryteller
         #endregion
 
         #region KSP
-        
+
         /// <summary>
         /// Specialized serialization. Handles serialization of the Scheduler. 
         /// </summary>
@@ -133,7 +146,7 @@ namespace RPStoryteller
             // Record all of the time triggers for Hidden models
             ConfigNode hmmSet = new ConfigNode("HIDDENMODELS");
 
-            
+
             double triggertime;
             HiddenState stateToSave;
             ConfigNode temporaryNode = new ConfigNode();
@@ -159,7 +172,7 @@ namespace RPStoryteller
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
-            
+
             _liveProcesses.Clear();
             _hmmScheduler.Clear();
 
@@ -170,10 +183,10 @@ namespace RPStoryteller
                 double transientTime;
                 string modelName;
                 string kerbalName;
-                
+
                 foreach (ConfigNode itemNode in hmNode.GetNodes())
                 {
-                    
+
                     modelName = itemNode.GetValue("stateName");
                     transientTime = double.Parse(itemNode.GetValue("nextTrigger"));
                     if (itemNode.HasValue("kerbalName"))
@@ -224,10 +237,11 @@ namespace RPStoryteller
                 {
                     this.programHighestValuation = newReputation + this.programHype;
                 }
+
                 return;
             }
-            
-            HeadlinesUtil.Report(1,$"New delta: {deltaReputation} whilst hype is {this.programHype}.");
+
+            HeadlinesUtil.Report(1, $"New delta rep: {deltaReputation} whilst hype is {this.programHype}.");
             if (deltaReputation <= this.programHype)
             {
                 this.programHype -= deltaReputation;
@@ -236,22 +250,32 @@ namespace RPStoryteller
             else
             {
                 // Retroactively cap the reputation gain to the active hype
-                this.programLastKnownReputation += this.programHype;
-                Reputation.Instance.SetReputation(this.programLastKnownReputation, TransactionReasons.None);
-                HeadlinesUtil.Report(1,$"Reputation was capped at {this.programHype} due to insufficient hype.");
-                HeadlinesUtil.ScreenMessage($"Underrated! Your achievement's impact is limited.\n({(this.programHype/deltaReputation).ToString("P1")})");
+                float realDelta = programHype;
+                if (wageredReputation != 0)
+                {
+                    realDelta = Math.Min(deltaReputation, programHype*2f);
+                    HeadlinesUtil.ScreenMessage(
+                        $"Thanks to the media invitation, you capture the public's imagination.");
+                }
+                else
+                {
+                    HeadlinesUtil.Report(1, $"Reputation was capped at {this.programHype} due to insufficient hype.");
+                    HeadlinesUtil.ScreenMessage(
+                        $"Underrated! Your achievement's impact is limited.\n({(this.programHype / deltaReputation).ToString("P1")})");
+                    
+                }
                 
                 // Surplus reputation goes as additional hype
-                this.programHype = deltaReputation - this.programHype;
+                programHype = deltaReputation - programHype;
+                Reputation.Instance.SetReputation(this.programLastKnownReputation + realDelta, TransactionReasons.None);
             }
 
             if (Reputation.CurrentRep + this.programHype > this.programHighestValuation)
             {
                 this.programHighestValuation = Reputation.CurrentRep + this.programHype;
             }
-            
-            HeadlinesUtil.Report(1,$"Program hype is now {this.programHype}.");
-            
+
+            HeadlinesUtil.Report(1, $"Program hype is now {this.programHype}.");
         }
 
         /// <summary>
@@ -262,19 +286,19 @@ namespace RPStoryteller
         /// <param name="reason"></param>
         private void ScienceChanged(float newScience, TransactionReasons reason)
         {
-            HeadlinesUtil.Report(1,$"new science: {newScience}");
-            HeadlinesUtil.Report(1,$"total: {totalScience}");
-            HeadlinesUtil.Report(1,$"visiting: {visitingScienceTally}");
+            HeadlinesUtil.Report(1, $"new science: {newScience}");
+            HeadlinesUtil.Report(1, $"total: {totalScience}");
+            HeadlinesUtil.Report(1, $"visiting: {visitingScienceTally}");
             // Kills recursion
             if (_scienceManipultation == true)
             {
                 _scienceManipultation = false;
                 return;
             }
-            
+
             float deltaScience = (newScience - this.programLastKnownScience);
             if (deltaScience > 0) totalScience += deltaScience;
-            
+
             if (this.visitingScholar == true)
             {
                 deltaScience *= 0.2f;
@@ -312,9 +336,9 @@ namespace RPStoryteller
         {
             // TODO handle operational death differently than accidents
             PersonnelFile personnelFile = _peopleManager.GetFile(data.sender);
-            KerbalResignation(personnelFile, new Emissions("quit"), trajedy:true);
+            KerbalResignation(personnelFile, new Emissions("quit"), trajedy: true);
         }
-        
+
         #endregion
 
         #region kerbals
@@ -367,11 +391,12 @@ namespace RPStoryteller
                     return kvp.Key;
                 }
             }
-            
+
             // This should never happen
             HeadlinesUtil.Report(1, $"Failed attempt to fetch productive state of {kerbalFile.DisplayName()}.");
             return "";
         }
+
         /// <summary>
         /// Determines the outcome of a check based on a mashup of Pendragon and VOID.
         /// </summary>
@@ -403,21 +428,22 @@ namespace RPStoryteller
         /// <param name="emitData">the event</param>
         /// <param name="legacyMode">legacy impact possible</param>
         /// <param name="isMedia">Indicate a media task for non-pilot</param>
-        public void KerbalImpact(PersonnelFile kerbalFile, Emissions emitData, bool legacyMode = false, bool isMedia = false)
+        public void KerbalImpact(PersonnelFile kerbalFile, Emissions emitData, bool legacyMode = false,
+            bool isMedia = false)
         {
             // Check for valid activities
-            List<string> validTask = new List<string>() { "media_blitz", "accelerate_research", "accelerate_assembly" };
+            List<string> validTask = new List<string>() {"media_blitz", "accelerate_research", "accelerate_assembly"};
             if (validTask.Contains(kerbalFile.kerbalTask) == false)
             {
                 return;
             }
-            
+
             SkillCheckOutcome successLevel = SkillCheck(kerbalFile.Effectiveness(isMedia));
             if (successLevel == SkillCheckOutcome.FAILURE)
             {
                 return;
             }
-            
+
             ImpactType impactType = ImpactType.TRANSIENT;
             switch (successLevel)
             {
@@ -445,7 +471,7 @@ namespace RPStoryteller
                     ScientistImpact(impactType, kerbalFile, legacyMode);
                     break;
             }
-            
+
         }
 
         /// <summary>
@@ -472,8 +498,10 @@ namespace RPStoryteller
             {
                 adjective = "inneffectively ";
             }
-            HeadlinesUtil.Report(2,$"{kerbalFile.DisplayName()} {adjective}in the limelight. ({Math.Max(1, effectiveness) * multiplier})");
-            AdjustHype( Math.Max(1, effectiveness) * multiplier );
+
+            HeadlinesUtil.Report(2,
+                $"{kerbalFile.DisplayName()} {adjective}in the limelight. ({Math.Max(1, effectiveness) * multiplier})");
+            AdjustHype(Math.Max(1, effectiveness) * multiplier);
         }
 
         /// <summary>
@@ -485,13 +513,13 @@ namespace RPStoryteller
         public void ScientistImpact(ImpactType impactType, PersonnelFile kerbalFile, bool legacyMode = false)
         {
             if (legacyMode == true && impactType == ImpactType.NEGATIVE) return;
-            
+
             // Define the magnitude of the change.
             // TODO Get from RP1 the total number of points in R&D
             int pointsRandD = GetRnDPoints();
-            
+
             // 2% of R&D or 1 point
-            int deltaRandD = (int)Math.Ceiling((double)pointsRandD * 0.02);
+            int deltaRandD = (int) Math.Ceiling((double) pointsRandD * 0.02);
             if (deltaRandD == 0) return;
 
             string message = "";
@@ -530,13 +558,13 @@ namespace RPStoryteller
                         break;
                 }
             }
-            
+
             AdjustRnD(deltaRandD);
 
             HeadlinesUtil.Report(2, message);
             HeadlinesUtil.Report(1, $"{message} ({deltaRandD})");
         }
-        
+
         /// <summary>
         /// An engineer does wonders in the VAB with vehicle assembly
         /// </summary>
@@ -546,16 +574,16 @@ namespace RPStoryteller
         public void EngineerImpact(ImpactType impactType, PersonnelFile kerbalFile, bool legacyMode = false)
         {
             if (legacyMode == true && impactType == ImpactType.NEGATIVE) return;
-            
+
             // Define the magnitude of the change.
             // TODO Get from RP1 the total number of points in R&D
             int pointsVAB = GetVABPoints();
-            
+
             // 2% of R&D or 1 point
-            int deltaVAB = (int)Math.Ceiling((double)pointsVAB * 0.02);
+            int deltaVAB = (int) Math.Ceiling((double) pointsVAB * 0.02);
             if (deltaVAB == 0) return;
-            
-            HeadlinesUtil.Report(1,$"Adjustment by {deltaVAB}");
+
+            HeadlinesUtil.Report(1, $"Adjustment by {deltaVAB}");
 
             string message = "";
             if (legacyMode == true)
@@ -631,25 +659,25 @@ namespace RPStoryteller
         {
             CancelInfluence(personnelFile);
 
-            SkillCheckOutcome outcome = SkillCheck(5,personnelFile.Effectiveness());
+            SkillCheckOutcome outcome = SkillCheck(5, personnelFile.Effectiveness());
 
             if (outcome == SkillCheckOutcome.SUCCESS)
             {
                 personnelFile.trainingLevel += 1;
                 KerbalRegisterSuccess(personnelFile);
-                HeadlinesUtil.Report(2,$"{personnelFile.DisplayName()} matures.");
+                HeadlinesUtil.Report(2, $"{personnelFile.DisplayName()} matures.");
             }
             else if (outcome == SkillCheckOutcome.CRITICAL)
             {
                 personnelFile.trainingLevel += 2;
                 KerbalRegisterSuccess(personnelFile, true);
-                HeadlinesUtil.Report(2,$"{personnelFile.DisplayName()} has a breakthrough.");
+                HeadlinesUtil.Report(2, $"{personnelFile.DisplayName()} has a breakthrough.");
             }
             else if (outcome == SkillCheckOutcome.FUMBLE)
             {
                 personnelFile.trainingLevel -= 1;
                 personnelFile.AdjustDiscontent(1);
-                HeadlinesUtil.Report(2,$"{personnelFile.DisplayName()} goes down a misguided rabbit hole.");
+                HeadlinesUtil.Report(2, $"{personnelFile.DisplayName()} goes down a misguided rabbit hole.");
             }
 
         }
@@ -662,10 +690,10 @@ namespace RPStoryteller
         public void KerbalConsiderResignation(PersonnelFile personnelFile, Emissions emitData)
         {
             // Assert resignation
-            double effectiveness = Math.Floor((double)personnelFile.Effectiveness());
-            double peer_effectiveness = Math.Floor( _peopleManager.ProgramAverageEffectiveness());
+            double effectiveness = Math.Floor((double) personnelFile.Effectiveness());
+            double peer_effectiveness = Math.Floor(_peopleManager.ProgramAverageEffectiveness());
             int netDiscontent = (int) effectiveness - (int) peer_effectiveness + personnelFile.GetDiscontent();
-            
+
             SkillCheckOutcome outcome = SkillCheck(netDiscontent);
             switch (outcome)
             {
@@ -679,8 +707,8 @@ namespace RPStoryteller
                     KerbalResignation(personnelFile, emitData);
                     return;
             }
-            
-            HeadlinesUtil.Report(1,$"{personnelFile.DisplayName()}'s discontent is {personnelFile.GetDiscontent()}.");
+
+            HeadlinesUtil.Report(1, $"{personnelFile.DisplayName()}'s discontent is {personnelFile.GetDiscontent()}.");
         }
 
         /// <summary>
@@ -695,13 +723,14 @@ namespace RPStoryteller
             {
                 return;
             }
-            
+
             if (personnelFile.IsFeuding(collaborator))
             {
                 if (personnelFile.UnsetFeuding(collaborator))
                 {
                     collaborator.UnsetFeuding(personnelFile);
-                    HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {collaborator.DisplayName()} have found a way to make peace, somehow.", 
+                    HeadlinesUtil.Report(3,
+                        $"{personnelFile.DisplayName()} and {collaborator.DisplayName()} have found a way to make peace, somehow.",
                         "Reconciliation");
                 }
             }
@@ -710,7 +739,8 @@ namespace RPStoryteller
                 if (personnelFile.SetCollaborator(collaborator))
                 {
                     collaborator.SetCollaborator(personnelFile);
-                    HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {collaborator.DisplayName()} have entered a new and productive collaboration", 
+                    HeadlinesUtil.Report(3,
+                        $"{personnelFile.DisplayName()} and {collaborator.DisplayName()} have entered a new and productive collaboration",
                         "New collaboration");
                 }
             }
@@ -724,11 +754,12 @@ namespace RPStoryteller
             if (personnelFile.SetFeuding(candidate))
             {
                 candidate.SetFeuding(personnelFile);
-                HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {candidate.DisplayName()} are engaged in a destructive feud.", 
+                HeadlinesUtil.Report(3,
+                    $"{personnelFile.DisplayName()} and {candidate.DisplayName()} are engaged in a destructive feud.",
                     "Feud in the KSC");
             }
         }
-        
+
         public void KerbalReconcile(PersonnelFile personnelFile, Emissions emitData)
         {
             PersonnelFile candidate = _peopleManager.GetRandomKerbal(personnelFile, personnelFile.feuds);
@@ -736,11 +767,12 @@ namespace RPStoryteller
             else if (personnelFile.UnsetFeuding(candidate))
             {
                 candidate.UnsetFeuding(personnelFile);
-                HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} and {candidate.DisplayName()} have found a way to make peace, somehow.", 
+                HeadlinesUtil.Report(3,
+                    $"{personnelFile.DisplayName()} and {candidate.DisplayName()} have found a way to make peace, somehow.",
                     "Reconciliation");
             }
         }
-        
+
         /// <summary>
         /// Execute a resignation from the space program
         /// </summary>
@@ -751,22 +783,23 @@ namespace RPStoryteller
             // Message
             if (!trajedy)
             {
-                HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} has resigned to spend more time with their family.",
+                HeadlinesUtil.Report(3,
+                    $"{personnelFile.DisplayName()} has resigned to spend more time with their family.",
                     $"{personnelFile.DisplayName()} resigns!");
             }
             else
             {
-                HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} has died of a dumb accident.",
+                HeadlinesUtil.Report(3, $"{personnelFile.DisplayName()} has died of a dumb accident.",
                     $"{personnelFile.DisplayName()} trajedy!");
             }
-            
-            
+
+
             // Remove influence
-            CancelInfluence(personnelFile, leaveKSC:true);
-            
+            CancelInfluence(personnelFile, leaveKSC: true);
+
             // HMMs
             RemoveHMM(personnelFile);
-            
+
             // Make it happen
             _peopleManager.Remove(personnelFile);
         }
@@ -779,7 +812,7 @@ namespace RPStoryteller
         /// <param name="emitData">the event</param>
         public void KerbalMentorPeer(PersonnelFile personnelFile, Emissions emitData)
         {
-            List<string> excludeList = new List<string>() { personnelFile.UniqueName() };
+            List<string> excludeList = new List<string>() {personnelFile.UniqueName()};
             foreach (string feudingbuddy in personnelFile.feuds)
             {
                 excludeList.Add(feudingbuddy);
@@ -793,12 +826,13 @@ namespace RPStoryteller
                 string message = "";
                 if (deltaSkill < 0) message = "Although unlikely, ";
 
-                SkillCheckOutcome outcome = SkillCheck((int)Math.Max(1,deltaSkill));
+                SkillCheckOutcome outcome = SkillCheck((int) Math.Max(1, deltaSkill));
 
                 switch (outcome)
                 {
                     case SkillCheckOutcome.FUMBLE:
-                        message += $"{personnelFile.DisplayName()} introduces superstitious ideas taken up by {peer.DisplayName()}.";
+                        message +=
+                            $"{personnelFile.DisplayName()} introduces superstitious ideas taken up by {peer.DisplayName()}.";
                         peer.trainingLevel -= 1;
                         break;
                     case SkillCheckOutcome.SUCCESS:
@@ -807,7 +841,8 @@ namespace RPStoryteller
                         peer.trainingLevel += 1;
                         break;
                     case SkillCheckOutcome.CRITICAL:
-                        message += $"{personnelFile.DisplayName()} and {peer.DisplayName()} mutually benefits from each other's company.";
+                        message +=
+                            $"{personnelFile.DisplayName()} and {peer.DisplayName()} mutually benefits from each other's company.";
                         KerbalRegisterSuccess(personnelFile, true);
                         peer.trainingLevel += 1;
                         personnelFile.trainingLevel += 1;
@@ -815,7 +850,7 @@ namespace RPStoryteller
                     default:
                         return;
                 }
-                
+
                 HeadlinesUtil.Report(3, message, "Mentorship");
             }
         }
@@ -833,17 +868,19 @@ namespace RPStoryteller
         {
             if (fundraisingBlackout == true)
             {
-                HeadlinesUtil.Report(3,"Relationship mended with potential capital campaign donors. Fundraising is possible again.", "Fundraising again");
+                HeadlinesUtil.Report(3,
+                    "Relationship mended with potential capital campaign donors. Fundraising is possible again.",
+                    "Fundraising again");
                 fundraisingBlackout = false;
                 return;
             }
-            
+
             SkillCheckOutcome outcome = SkillCheck(personnelFile.Effectiveness());
 
             double funds = 0;
 
             string message = $"{personnelFile.DisplayName()} ";
-            
+
             switch (outcome)
             {
                 case SkillCheckOutcome.SUCCESS:
@@ -862,12 +899,12 @@ namespace RPStoryteller
 
             if (funds > 0)
             {
-                message += $"raises ${(int)(funds/1000)}K from a private foundation.";
+                message += $"raises ${(int) (funds / 1000)}K from a private foundation.";
                 Funding.Instance.AddFunds(funds, TransactionReasons.Any);
                 HeadlinesUtil.Report(3, message, "Fundraising success");
                 this.fundraisingTally += funds;
             }
-            
+
         }
 
         /// <summary>
@@ -884,11 +921,13 @@ namespace RPStoryteller
             switch (outcome)
             {
                 case SkillCheckOutcome.CRITICAL:
-                    KerbalResignation(personnelFile, emitData, trajedy:true);
+                    KerbalResignation(personnelFile, emitData, trajedy: true);
                     break;
                 case SkillCheckOutcome.SUCCESS:
-                    HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} is injured in a dumb accident. They will be off productive work for a few weeks.", $"{personnelFile.DisplayName()} injured.");
-                    TransitionHMM(KerbalStateOf(personnelFile),"kerbal_injured");
+                    HeadlinesUtil.Report(3,
+                        $"{personnelFile.DisplayName()} is injured in a dumb accident. They will be off productive work for a few weeks.",
+                        $"{personnelFile.DisplayName()} injured.");
+                    TransitionHMM(KerbalStateOf(personnelFile), "kerbal_injured");
                     break;
             }
         }
@@ -902,7 +941,7 @@ namespace RPStoryteller
         {
             // TODO implement Scout Talent
         }
-        
+
         /// <summary>
         /// A visiting scholar allows to do more with the science units that are in the bank. 
         /// </summary>
@@ -911,7 +950,9 @@ namespace RPStoryteller
         public void KerbalBringScholar(PersonnelFile personnelFile, Emissions emitData)
         {
             this.visitingScholar = true;
-            HeadlinesUtil.Report(3,$"A visiting scholar brought by {personnelFile.DisplayName()} get clearance to work at the R&D complex.","Visiting scholar");
+            HeadlinesUtil.Report(3,
+                $"A visiting scholar brought by {personnelFile.DisplayName()} get clearance to work at the R&D complex.",
+                "Visiting scholar");
         }
 
         public void KerbalCoercedTask(PersonnelFile personnelFile)
@@ -922,12 +963,14 @@ namespace RPStoryteller
                 message += "one last time ";
                 personnelFile.coercedTask = false;
             }
+
             if (storytellerRand.NextDouble() < 0.20)
             {
                 message += "and isn't happy";
                 personnelFile.AdjustDiscontent(1);
             }
-            HeadlinesUtil.Report(2,message+".");
+
+            HeadlinesUtil.Report(2, message + ".");
             EmitEvent(personnelFile.kerbalTask, personnelFile);
         }
 
@@ -943,8 +986,9 @@ namespace RPStoryteller
                 personnelFile.AdjustDiscontent(-1);
             }
         }
+
         #endregion
-        
+
         #region HMM Logic
 
         /// <summary>
@@ -954,7 +998,7 @@ namespace RPStoryteller
         private void InitializeHMM(string registeredStateIdentity, double timestamp = 0, string kerbalName = "")
         {
             string templateStateIdentity = registeredStateIdentity;
-            
+
             // Split template and kerbal parts when initialized from a save node
             int splitter = registeredStateIdentity.IndexOf("@");
             if (splitter != -1)
@@ -962,7 +1006,7 @@ namespace RPStoryteller
                 templateStateIdentity = registeredStateIdentity.Substring(splitter + 1);
                 kerbalName = registeredStateIdentity.Substring(0, splitter);
             }
-            
+
             HiddenState newState = new HiddenState(templateStateIdentity, kerbalName);
 
             // Avoid duplications
@@ -970,9 +1014,9 @@ namespace RPStoryteller
             {
                 _liveProcesses.Add(newState.RegisteredName(), newState);
             }
-            
+
             timestamp = timestamp != 0 ? timestamp : HeadlinesUtil.GetUT() + GeneratePeriod(newState.period);
-            
+
             if (_hmmScheduler.ContainsKey(newState.RegisteredName()) == false)
             {
                 _hmmScheduler.Add(newState.RegisteredName(), timestamp);
@@ -981,7 +1025,7 @@ namespace RPStoryteller
             {
                 _hmmScheduler[newState.RegisteredName()] = timestamp;
             }
-            
+
         }
 
         /// <summary>
@@ -1018,7 +1062,7 @@ namespace RPStoryteller
                 }
             }
         }
-        
+
         /// <summary>
         /// Execute a HMM transition from one hidden state to another. Assumes that 
         /// </summary>
@@ -1028,7 +1072,7 @@ namespace RPStoryteller
         {
             string fetchedKerbalName = _liveProcesses[registeredInitialState].kerbalName;
 
-            InitializeHMM(templateFinalState, kerbalName:fetchedKerbalName);
+            InitializeHMM(templateFinalState, kerbalName: fetchedKerbalName);
             RemoveHMM(registeredInitialState);
 
             if (fetchedKerbalName != "")
@@ -1048,8 +1092,8 @@ namespace RPStoryteller
         private double GeneratePeriod(double meanValue)
         {
             double stdDev = meanValue / 3;
-            double u1 = 1.0- storytellerRand.NextDouble(); 
-            double u2 = 1.0- storytellerRand.NextDouble();
+            double u1 = 1.0 - storytellerRand.NextDouble();
+            double u2 = 1.0 - storytellerRand.NextDouble();
             double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) *
                                    Math.Sin(2.0 * Math.PI * u2);
             double returnedVal = meanValue + stdDev * randStdNormal;
@@ -1057,8 +1101,9 @@ namespace RPStoryteller
             double outValue = Math.Max(returnedVal * attentionSpanFactor, floorVal);
 
             // Convert to seconds based on hardcoded period
-            return outValue * _assumedPeriod; 
+            return outValue * _assumedPeriod;
         }
+
         #endregion
 
         #region Scheduling
@@ -1069,7 +1114,7 @@ namespace RPStoryteller
         private void SchedulerCacheNextTime()
         {
             _nextUpdate = HeadlinesUtil.GetUT();
-            
+
             double minVal = 60;
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
             {
@@ -1079,6 +1124,7 @@ namespace RPStoryteller
                     if (kvp.Value < minVal) minVal = kvp.Value;
                 }
             }
+
             _nextUpdate = minVal;
         }
 
@@ -1091,11 +1137,11 @@ namespace RPStoryteller
         {
             double deltaTime = GeneratePeriod(_liveProcesses[registeredStateIdentity].period);
             _hmmScheduler[registeredStateIdentity] = HeadlinesUtil.GetUT() + deltaTime;
-            
+
             // Punt injury inactivation into the future
             if (registeredStateIdentity.Contains("kerbal_injured"))
             {
-                _peopleManager.GetFile( _liveProcesses[registeredStateIdentity].kerbalName ).IncurInjury(deltaTime);
+                _peopleManager.GetFile(_liveProcesses[registeredStateIdentity].kerbalName).IncurInjury(deltaTime);
             }
         }
 
@@ -1107,7 +1153,7 @@ namespace RPStoryteller
         {
             string emittedEvent = "";
             string nextTransitionState = "";
-            
+
             // Make a list of states to trigger
             List<string> triggerStates = new List<string>();
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
@@ -1117,20 +1163,21 @@ namespace RPStoryteller
                     triggerStates.Add(kvp.Key);
                 }
             }
-            
+
             foreach (string registeredStateName in triggerStates)
             {
                 // Check for validity as it *may* have been removed recently
                 if (_liveProcesses.ContainsKey(registeredStateName) == false) continue;
-                
+
                 // HMM emission call
                 emittedEvent = _liveProcesses[registeredStateName].Emission();
-                
+
                 if (emittedEvent != "")
                 {
                     if (_liveProcesses[registeredStateName].kerbalName != "")
                     {
-                        PersonnelFile personnelFile = _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
+                        PersonnelFile personnelFile =
+                            _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
                         if (personnelFile.coercedTask)
                         {
                             EmitEvent(personnelFile.kerbalTask, personnelFile);
@@ -1149,7 +1196,7 @@ namespace RPStoryteller
 
                 // HMM transition determination
                 nextTransitionState = _liveProcesses[registeredStateName].Transition();
-                
+
                 if (nextTransitionState != _liveProcesses[registeredStateName].TemplateStateName())
                 {
                     TransitionHMM(registeredStateName, nextTransitionState);
@@ -1157,8 +1204,9 @@ namespace RPStoryteller
                 else
                 {
                     ReScheduleHMM(registeredStateName, _liveProcesses[registeredStateName].period);
-                } 
+                }
             }
+
             SchedulerCacheNextTime();
         }
 
@@ -1173,7 +1221,7 @@ namespace RPStoryteller
         /// <param name="eventName"></param>
         public void EmitEvent(string eventName)
         {
-            HeadlinesUtil.Report(1,$"[Emission] {eventName} at time { KSPUtil.PrintDate(GetUT(), true, false) }");
+            HeadlinesUtil.Report(1, $"[Emission] {eventName} at time {KSPUtil.PrintDate(GetUT(), true, false)}");
 
             Emissions emitData = new Emissions(eventName);
 
@@ -1198,11 +1246,11 @@ namespace RPStoryteller
                     RealityCheck();
                     break;
                 default:
-                    HeadlinesUtil.Report(1,$"[Emission] {eventName} is not implemented yet.");
+                    HeadlinesUtil.Report(1, $"[Emission] {eventName} is not implemented yet.");
                     break;
             }
         }
-        
+
         /// <summary>
         /// Emission handler for HMM with a kerbal associated.
         /// </summary>
@@ -1212,16 +1260,16 @@ namespace RPStoryteller
         {
 
             Emissions emitData = new Emissions(eventName);
-            
+
             if (emitData.OngoingTask() == true)
             {
                 // Can only go forward if active
                 if (personnelFile.IsInactive()) return;
-                
+
                 // Indicates a shift in focus over time
                 personnelFile.TrackCurrentActivity(eventName);
             }
-            
+
             switch (eventName)
             {
                 case "impact":
@@ -1272,7 +1320,7 @@ namespace RPStoryteller
                     KerbalMentorPeer(personnelFile, emitData);
                     break;
                 default:
-                    HeadlinesUtil.Report(1,$"[Emission] Event {eventName} is not implemented yet.");
+                    HeadlinesUtil.Report(1, $"[Emission] Event {eventName} is not implemented yet.");
                     break;
             }
         }
@@ -1292,11 +1340,11 @@ namespace RPStoryteller
             }
 
             attentionSpanFactor *= power;
-            
+
             // Clamp this factor within reasonable boundaries
             attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // min is 0.47
             attentionSpanFactor = Math.Min(Math.Pow(power, 3), attentionSpanFactor); // max is 1.56
-            
+
             // Let player know without spamming the screen
             if (increment > 0 && attentionSpanFactor > 1.61)
             {
@@ -1318,8 +1366,8 @@ namespace RPStoryteller
             // Simplistic model ignoring reasonable targets
             this.programHype += increment * 5f;
             this.programHype = Math.Max(0f, this.programHype);
-            
-            HeadlinesUtil.Report(1,$"Hype on the program changed by {increment*5f} to now be {this.programHype}.");
+
+            HeadlinesUtil.Report(1, $"Hype on the program changed by {increment * 5f} to now be {this.programHype}.");
             if (increment > 0)
             {
                 HeadlinesUtil.ScreenMessage($"Space craze is heating up in the press.");
@@ -1328,13 +1376,14 @@ namespace RPStoryteller
             {
                 HeadlinesUtil.ScreenMessage($"Space craze is cooling down.");
             }
+
             HeadlinesUtil.ScreenMessage($"Program Hype: {string.Format("{0:0}", this.programHype)}");
 
             if (programHype + Reputation.CurrentRep > programHighestValuation)
             {
                 programHighestValuation = programHype + Reputation.CurrentRep;
             }
-            
+
         }
 
         /// <summary>
@@ -1343,21 +1392,22 @@ namespace RPStoryteller
         public void DecayReputation()
         {
             Reputation repInterface = Reputation.Instance;
-            
+
             // Get current reputation
             double currentReputation = repInterface.reputation;
-            
+
             // Get the program's reputation floor
             double programProfile = _peopleManager.ProgramProfile();
-            
+
             // margin over profile (losable reputation)
             double marginOverProfile = Math.Max(0, currentReputation - programProfile);
 
             // reputation tends to program profile if too low.
             if (marginOverProfile == 0f)
             {
-                repInterface.AddReputation((float) (0.5 * (programProfile - currentReputation)), TransactionReasons.None);
-                HeadlinesUtil.Report(1,"Reputation increased to approach program profile.");
+                repInterface.AddReputation((float) (0.5 * (programProfile - currentReputation)),
+                    TransactionReasons.None);
+                HeadlinesUtil.Report(1, "Reputation increased to approach program profile.");
                 return;
             }
 
@@ -1366,8 +1416,9 @@ namespace RPStoryteller
 
             if (storytellerRand.NextDouble() <= (marginOverProfile / 100))
             {
-                repInterface.AddReputation((float)(-1 * decayReputation), TransactionReasons.None);
-                HeadlinesUtil.Report(2,$"{(int)decayReputation} reputation lost. New total: {(int)repInterface.reputation}.");
+                repInterface.AddReputation((float) (-1 * decayReputation), TransactionReasons.None);
+                HeadlinesUtil.Report(2,
+                    $"{(int) decayReputation} reputation lost. New total: {(int) repInterface.reputation}.");
             }
         }
 
@@ -1382,17 +1433,32 @@ namespace RPStoryteller
             {
                 float overrating = (this.programHype + repInstance.reputation) / repInstance.reputation;
                 this.programHype /= overrating;
-            
-                HeadlinesUtil.Report(2,$"Public hype correction over your program ({(int)this.programHype}).");
+
+                HeadlinesUtil.Report(2, $"Public hype correction over your program ({(int) this.programHype}).");
             }
             else
             {
                 // Edge case where there is no reputation (start game), be nice
                 programHype *= 0.8f;
             }
-            
+
         }
-        
+
+        public void ContractCompleted(Contract contract)
+        {
+
+        }
+
+        public void ContractAccepted(Contract contract)
+        {
+
+        }
+
+        public void ContractPledged(Contract contract, double nDays = 3)
+        {
+            //pledgedContracts.Add(contract.Title, HeadlinesUtil.GetUT() + (nDays * 3600 * 24));
+        }
+
         #endregion
 
         #region GUIDisplay
@@ -1406,7 +1472,7 @@ namespace RPStoryteller
             else if (reputation <= 200) output = "Renowned";
             else if (reputation <= 400) output = "Leader";
             else if (reputation <= 600) output = "Excellent";
-            else  output = "Legendary";
+            else output = "Legendary";
 
             return output + $" ({(int) Math.Floor(reputation)})";
         }
@@ -1420,7 +1486,8 @@ namespace RPStoryteller
                 return "0%";
             }
 
-            return $"{(int)Math.Floor(100f* Math.Floor(this.programHype) / Math.Floor(reputation+this.programHype))}%";
+            return
+                $"{(int) Math.Floor(100f * Math.Floor(this.programHype) / Math.Floor(reputation + this.programHype))}%";
         }
 
         public string GUISpaceCraze()
@@ -1436,23 +1503,25 @@ namespace RPStoryteller
 
         public string GUIAverageProfile()
         {
-            double averageProfile = _peopleManager.ProgramAverageEffectiveness(determinisitic:true);
+            double averageProfile = _peopleManager.ProgramAverageEffectiveness(determinisitic: true);
             return _peopleManager.QualitativeEffectiveness(averageProfile);
         }
+
         public string GUIRelativeToPeak()
         {
             double valuation = GetValuation();
             if (valuation > programHighestValuation)
             {
-                programHighestValuation = (float)valuation;
+                programHighestValuation = (float) valuation;
             }
-            return $"{ Math.Round(100 * (GetValuation()/this.programHighestValuation))}%";
+
+            return $"{Math.Round(100 * (GetValuation() / this.programHighestValuation))}%";
         }
 
         public double GUIVisitingSciencePercent()
         {
             if (totalScience == 0) return 0;
-            
+
             double ratio = visitingScienceTally / totalScience;
             ratio *= 100;
             return Math.Round(ratio, 1);
@@ -1466,13 +1535,14 @@ namespace RPStoryteller
         public int GUIVABEnhancement()
         {
             return _peopleManager.KSCImpact("Engineer");
-            
+
         }
 
         public int GUIRnDEnhancement()
         {
             return _peopleManager.KSCImpact("Scientist");
         }
+
         #endregion
 
         #region InternalLogic
@@ -1481,12 +1551,41 @@ namespace RPStoryteller
         {
             return this.programLastKnownReputation + this.programHype;
         }
-        
+
         public PeopleManager GetPeopleManager()
         {
             return _peopleManager;
         }
 
+        public void InvitePress(bool invite)
+        {
+            double now = HeadlinesUtil.GetUT();
+            
+            if (invitePress < now & invite)
+            {
+                invitePress = HeadlinesUtil.GetUT() + (3600*24*2);
+                wageredReputation = Reputation.CurrentRep + programHype;
+            }
+        }
+
+        /// <summary>
+        /// If time expires and the target isn't met, deduce the shortcoming from actual reputation and zero hype.
+        /// </summary>
+        public void EndMediaSpotlight()
+        {
+            if (invitePress < HeadlinesUtil.GetUT() & wageredReputation != 0)
+            {
+                double shortcoming = wageredReputation - Reputation.CurrentRep;
+                if (shortcoming > 0)
+                {
+                    shortcoming *= -1;
+                    Reputation.Instance.AddReputation((float)shortcoming, TransactionReasons.None);
+                    programHype = 0;
+                    wageredReputation = 0;
+                    HeadlinesUtil.Report(2,$"The media crews are leaving disappointed. ({Math.Round(shortcoming,2)})");
+                }
+            }
+        }
         #endregion
 
         #region RP1
@@ -1499,7 +1598,7 @@ namespace RPStoryteller
         {
             return Utilities.GetSpentUpgradesFor(SpaceCenterFacility.ResearchAndDevelopment);
         }
-        
+
         /// <summary>
         /// Connect to RP1 to obtain points in R&D
         /// </summary>
@@ -1508,7 +1607,7 @@ namespace RPStoryteller
         {
             return Utilities.GetSpentUpgradesFor(SpaceCenterFacility.VehicleAssemblyBuilding);
         }
-        
+
         /// <summary>
         /// Change the tally of points in the R&D.
         /// </summary>
@@ -1517,9 +1616,9 @@ namespace RPStoryteller
         {
             KSCItem ksc = KCTGameStates.ActiveKSC;
             ksc.RDUpgrades[0] += deltaPoint;
-            HeadlinesUtil.Report(1,$"Adjust R&D points by {deltaPoint}.");
+            HeadlinesUtil.Report(1, $"Adjust R&D points by {deltaPoint}.");
         }
-        
+
         /// <summary>
         /// Change the tally of points in the VAB.
         /// </summary>
@@ -1528,7 +1627,7 @@ namespace RPStoryteller
         {
             KSCItem ksc = KCTGameStates.ActiveKSC;
             ksc.VABUpgrades[line] += deltaPoint;
-            HeadlinesUtil.Report(1,$"Adjust VAB points by {deltaPoint}.");
+            HeadlinesUtil.Report(1, $"Adjust VAB points by {deltaPoint}.");
         }
 
         /// <summary>
