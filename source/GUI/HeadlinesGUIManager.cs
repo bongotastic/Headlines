@@ -295,7 +295,37 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"Stupidity: {Math.Round(focusCrew.Stupidity(), 2)}");
             GUILayout.Label($"Courage: {Math.Round(focusCrew.Courage(),2)}");
             GUILayout.EndHorizontal();
-            GUILayout.Space(20);
+            GUILayout.Space(10);
+            
+            // If untrained, offers to reassign
+            if (focusCrew.trainingLevel == 0)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Retrain as: ");
+                if (focusCrew.Specialty() != "Pilot")
+                {
+                    if (GUILayout.Button("Pilot"))
+                    {
+                        KerbalRoster.SetExperienceTrait(focusCrew.GetKSPData(), "Pilot");
+                    }
+                }
+                if (focusCrew.Specialty() != "Scientist")
+                {
+                    if (GUILayout.Button("Scientist"))
+                    {
+                        KerbalRoster.SetExperienceTrait(focusCrew.GetKSPData(), "Scientist");
+                    }
+                }
+                if (focusCrew.Specialty() != "Engineer")
+                {
+                    if (GUILayout.Button("Engineer"))
+                    {
+                        KerbalRoster.SetExperienceTrait(focusCrew.GetKSPData(), "Engineer");
+                    }
+                }
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.Space(10);
             
             // Impact
             if (focusCrew.Specialty() != "Pilot")

@@ -424,6 +424,11 @@ namespace RPStoryteller
 
         #region Getter
 
+        public ProtoCrewMember GetKSPData()
+        {
+            return pcm;
+        }
+        
         /// <summary>
         /// Profile is a key metric in evaluating the impact of a kerbal. People value courage and extremes in stupidity.
         /// </summary>
