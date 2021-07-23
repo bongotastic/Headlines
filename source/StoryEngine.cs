@@ -9,6 +9,7 @@ using KerbalConstructionTime;
 using RPStoryteller.source;
 using RPStoryteller.source.Emissions;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 
 namespace RPStoryteller
@@ -16,7 +17,7 @@ namespace RPStoryteller
     public enum ImpactType
     {
         NEGATIVE,
-        NONE,
+        PASSIVE,
         TRANSIENT,
         LASTING
     }
@@ -64,7 +65,8 @@ namespace RPStoryteller
         [KSPField(isPersistant = true)] public float programHype = 10;
 
         // Pledged hype when inviting the public
-        [KSPField(isPersistant = true)] public double invitePress = 0;
+        [KSPField(isPersistant = true)] public bool mediaSpotlight = false;
+        [KSPField(isPersistant = true)] public double endSpotlight = 0;
         [KSPField(isPersistant = true)] public double wageredReputation = 0;
         
         //[KSPField(isPersistant = true)] public Dictionary<System.Guid, double> pledgedContracts = 10;
@@ -98,7 +100,7 @@ namespace RPStoryteller
         {
             Instance = this;
 
-            HeadlinesUtil.Report(1, "Initializing Starstruck");
+            HeadlinesUtil.Report(1, "Initializing Storyteller");
 
             // Default HMM
             InitializeHMM("space_craze");
@@ -432,14 +434,14 @@ namespace RPStoryteller
             }
 
             SkillCheckOutcome successLevel = SkillCheck(kerbalFile.Effectiveness(isMedia));
-            if (successLevel == SkillCheckOutcome.FAILURE)
-            {
-                return;
-            }
+
 
             ImpactType impactType = ImpactType.TRANSIENT;
             switch (successLevel)
             {
+                case SkillCheckOutcome.FAILURE:
+                    impactType = ImpactType.PASSIVE;
+                    break;
                 case SkillCheckOutcome.FUMBLE:
                     impactType = ImpactType.NEGATIVE;
                     break;
@@ -478,23 +480,32 @@ namespace RPStoryteller
             switch (impactType)
             {
                 case ImpactType.NEGATIVE:
-                    multiplier *= -1;
+                    multiplier *= -1f;
                     break;
                 case ImpactType.LASTING:
-                    multiplier *= 2;
+                    multiplier *= 2f;
+                    break;
+                case ImpactType.PASSIVE:
+                    multiplier *= 0.5f;
                     break;
             }
 
             string adjective = "";
             int effectiveness = kerbalFile.Effectiveness();
-            if (effectiveness == 0)
+            float deltaHype = effectiveness * multiplier;
+            if (deltaHype < 0f)
             {
-                adjective = "inneffectively ";
+                adjective = "negatively ";
+            }
+            else if (deltaHype < 1f)
+            {
+                adjective = "innefectively ";
+                deltaHype = 1f;
             }
 
             HeadlinesUtil.Report(2,
-                $"{kerbalFile.DisplayName()} {adjective}in the limelight. ({Math.Max(1, effectiveness) * multiplier})");
-            AdjustHype(Math.Max(1, effectiveness) * multiplier);
+                $"{kerbalFile.DisplayName()} {adjective}in the limelight. ({deltaHype})");
+            AdjustHype(deltaHype);
         }
 
         /// <summary>
@@ -506,6 +517,7 @@ namespace RPStoryteller
         public void ScientistImpact(ImpactType impactType, PersonnelFile kerbalFile, bool legacyMode = false)
         {
             if (legacyMode == true && impactType == ImpactType.NEGATIVE) return;
+            if (impactType == ImpactType.PASSIVE) return;
 
             // Define the magnitude of the change.
             // TODO Get from RP1 the total number of points in R&D
@@ -567,6 +579,7 @@ namespace RPStoryteller
         public void EngineerImpact(ImpactType impactType, PersonnelFile kerbalFile, bool legacyMode = false)
         {
             if (legacyMode == true && impactType == ImpactType.NEGATIVE) return;
+            if (impactType == ImpactType.PASSIVE) return;
 
             // Define the magnitude of the change.
             // TODO Get from RP1 the total number of points in R&D
@@ -1565,12 +1578,12 @@ namespace RPStoryteller
 
         public void InvitePress(bool invite)
         {
-            double now = HeadlinesUtil.GetUT();
-            
-            if (invitePress < now & invite)
+            if (!mediaSpotlight & invite)
             {
-                invitePress = HeadlinesUtil.GetUT() + (3600*24*2);
+                mediaSpotlight = true;
+                endSpotlight = HeadlinesUtil.GetUT() + (3600*24*2);
                 wageredReputation = Reputation.CurrentRep + programHype;
+                HeadlinesUtil.Report(1, $"Media Spotlight started with end at {KSPUtil.PrintDateCompact(endSpotlight,true,true)}");
             }
         }
 
@@ -1579,7 +1592,12 @@ namespace RPStoryteller
         /// </summary>
         public void EndMediaSpotlight()
         {
-            if (wageredReputation >= 0 & invitePress < HeadlinesUtil.GetUT())
+            if (!mediaSpotlight)
+            {
+                return;
+            }
+
+            if (endSpotlight < HeadlinesUtil.GetUT())
             {
                 HeadlinesUtil.Report(1, $"Media invite expires {wageredReputation} wagered, {Reputation.CurrentRep} actual");
                 double shortcoming = wageredReputation - Reputation.CurrentRep;
@@ -1597,6 +1615,8 @@ namespace RPStoryteller
                     programHype *= 2;
                     HeadlinesUtil.Report(3,$"The media crews are leaving impressed. (Hype: {programHype})", "Media Debrief: success");
                 }
+
+                mediaSpotlight = false;
             }
         }
         #endregion

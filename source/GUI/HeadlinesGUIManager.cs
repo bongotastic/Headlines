@@ -191,6 +191,10 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}");
             GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}");
             GUILayout.EndHorizontal();
+            if (storyEngine.visitingScholar)
+            {
+                GUILayout.Label("Visiting scholar boost on next science gain.");
+            }
             
             GUILayout.EndVertical();
         }
@@ -244,13 +248,13 @@ namespace RPStoryteller.source.GUI
 
             UnityEngine.GUI.contentColor = originalColor;
             GUILayout.Space(20);
-            if (storyEngine.invitePress < HeadlinesUtil.GetUT())
+            if (storyEngine.endSpotlight < HeadlinesUtil.GetUT())
             {
                 storyEngine.InvitePress(GUILayout.Button("Invite Press"));
             }
             else
             {
-                GUILayout.Box($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine.invitePress - HeadlinesUtil.GetUT(), true, true)}");
+                GUILayout.Box($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine.endSpotlight - HeadlinesUtil.GetUT(), true, true)}");
             }
             GUILayout.Space(10);
             
@@ -270,6 +274,8 @@ namespace RPStoryteller.source.GUI
             {
                 _selectedCrew = 0;
             }
+            GUILayout.Space(20);
+            
             DrawCrew();
             GUILayout.EndVertical();
         }
