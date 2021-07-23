@@ -392,6 +392,22 @@ namespace RPStoryteller
             return "";
         }
 
+        public void RetrainKerbal(PersonnelFile crewmember, string newRole)
+        {
+            HeadlinesUtil.Report(1, $"Retraining {crewmember.DisplayName()} from {crewmember.Specialty()} to {newRole}");
+            KerbalRoster.SetExperienceTrait(crewmember.GetKSPData(), newRole);
+            HeadlinesUtil.Report(1, $"Now a {crewmember.Specialty()}");
+            
+            // Delete role HMM
+            HeadlinesUtil.Report(1, $"Old hmm: {GetRoleHMM(crewmember)}");
+            RemoveHMM(GetRoleHMM(crewmember).RegisteredName());
+            HeadlinesUtil.Report(1, $"After deletion ({GetRoleHMM(crewmember)})");
+            
+            // Create role HMM
+            InitializeHMM(crewmember.Specialty(), kerbalName:crewmember.UniqueName());
+            HeadlinesUtil.Report(1, $"Finallu: {GetRoleHMM(crewmember)}");
+        }
+
         /// <summary>
         /// Determines the outcome of a check based on a mashup of Pendragon and VOID.
         /// </summary>
@@ -1085,6 +1101,26 @@ namespace RPStoryteller
             {
                 UpdateProductiveStateOf(fetchedKerbalName, templateFinalState);
             }
+        }
+
+        public HiddenState GetRoleHMM(PersonnelFile crewmember)
+        {
+            foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
+            {
+                HeadlinesUtil.Report(1, $"Kerbal name: {kvp.Value.kerbalName} vs {crewmember.UniqueName()}");
+                if (kvp.Value.kerbalName == crewmember.UniqueName())
+                {
+                    HeadlinesUtil.Report(1,$"hmm {kvp.Key}");
+                    if (kvp.Value.templateStateName.StartsWith("role_"))
+                    {
+                        HeadlinesUtil.Report(1, $"Returning...");
+                        return kvp.Value;
+                    }
+                    HeadlinesUtil.Report(1,$"Skipped...");
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

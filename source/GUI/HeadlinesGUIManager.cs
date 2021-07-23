@@ -80,7 +80,7 @@ namespace RPStoryteller.source.GUI
                     null,
                     null,
                     ApplicationLauncher.AppScenes.SPACECENTER | ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
-                    GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching2 ", false)
+                    GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching28 ", false)
                 );
                 //ApplicationLauncher.Instance.AddOnHideCallback(HideButton);
                 GameEvents.onGameSceneLoadRequested.Add(OnSceneChange);
@@ -306,21 +306,21 @@ namespace RPStoryteller.source.GUI
                 {
                     if (GUILayout.Button("Pilot"))
                     {
-                        KerbalRoster.SetExperienceTrait(focusCrew.GetKSPData(), "Pilot");
+                        storyEngine.RetrainKerbal(focusCrew, "Pilot");
                     }
                 }
                 if (focusCrew.Specialty() != "Scientist")
                 {
                     if (GUILayout.Button("Scientist"))
                     {
-                        KerbalRoster.SetExperienceTrait(focusCrew.GetKSPData(), "Scientist");
+                        storyEngine.RetrainKerbal(focusCrew, "Scientist");
                     }
                 }
                 if (focusCrew.Specialty() != "Engineer")
                 {
                     if (GUILayout.Button("Engineer"))
                     {
-                        KerbalRoster.SetExperienceTrait(focusCrew.GetKSPData(), "Engineer");
+                        storyEngine.RetrainKerbal(focusCrew, "Engineer");
                     }
                 }
                 GUILayout.EndHorizontal();
