@@ -1,2 +1,6 @@
-# Headlines
-Headlines is a learning project that will not make sense to anyone at time time. The time scales are wrong, RP-1 is not intergrated, and there are no UI. 
+Headlines bring reputation and elements of storytelling to a RP1 career. It is not in the beta stage at this time. 
+
+More information: Please refer to the project's wiki. 
+
+Dependencies: 
+* Realistic Progression 1
