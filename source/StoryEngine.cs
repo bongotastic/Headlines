@@ -43,10 +43,13 @@ namespace RPStoryteller
 
         // Mod data structures
         private PeopleManager _peopleManager;
+        
+        // Terrible hack
+        private int updateIndex = 0;
 
         // HMM data structures and parameters
         private Dictionary<string, HiddenState> _liveProcesses = new Dictionary<string, HiddenState>();
-        private Dictionary<string, double> _hmmScheduler = new Dictionary<string, double>();
+        public Dictionary<string, double> _hmmScheduler = new Dictionary<string, double>();
 
         // Cached value for the next trigger so the Scheduler doesn't have to scan constantly
         private double _nextUpdate = -1;
@@ -105,9 +108,8 @@ namespace RPStoryteller
             // Default HMM
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
-
+            
             InitializePeopleManager();
-
             SchedulerCacheNextTime();
 
             // Event Catching
@@ -126,6 +128,17 @@ namespace RPStoryteller
         /// </summary>
         public void Update()
         {
+            // Shameless hack.
+            if (updateIndex < 10)
+            {
+                if (updateIndex == 9)
+                {
+                    AssertRoleHMM();
+                    _peopleManager.initialized = true;
+                }
+                updateIndex += 1;
+            }
+
             // End of Media spotlight?
             EndMediaSpotlight();
             
@@ -404,8 +417,8 @@ namespace RPStoryteller
             HeadlinesUtil.Report(1, $"After deletion ({GetRoleHMM(crewmember)})");
             
             // Create role HMM
-            InitializeHMM(crewmember.Specialty(), kerbalName:crewmember.UniqueName());
-            HeadlinesUtil.Report(1, $"Finallu: {GetRoleHMM(crewmember)}");
+            InitializeHMM("role_"+crewmember.Specialty(), kerbalName:crewmember.UniqueName());
+            HeadlinesUtil.Report(1, $"Final: {GetRoleHMM(crewmember)}");
         }
 
         /// <summary>
@@ -1014,6 +1027,25 @@ namespace RPStoryteller
         #region HMM Logic
 
         /// <summary>
+        /// Unfortunate method to catch cases where the role was misread because RP1 changd it after initializing this object.
+        /// </summary>
+        public void AssertRoleHMM()
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
+            {
+                HiddenState roleHMM = GetRoleHMM(kvp.Value);
+                HeadlinesUtil.Report(1,$"{kvp.Value.UniqueName()} has {roleHMM.templateStateName}");
+                HeadlinesUtil.Report(1,$"{roleHMM.templateStateName} has {kvp.Value.Specialty()}: {roleHMM.templateStateName.Contains(kvp.Value.Specialty())}");
+                if (roleHMM.templateStateName.Contains(kvp.Value.Specialty()) == false)
+                {
+                    HeadlinesUtil.Report(1,"And it is wrong.");
+                    RemoveHMM(roleHMM.RegisteredName());
+                    InitializeHMM("role_"+kvp.Value.Specialty(),kerbalName:kvp.Value.UniqueName());
+                }
+            }  
+        }
+        
+        /// <summary>
         /// Create a HMM and place it to be triggered at a later time.
         /// </summary>
         /// <param name="registeredStateIdentity">The identifier as registered in the scheduler</param>
@@ -1107,16 +1139,12 @@ namespace RPStoryteller
         {
             foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
             {
-                HeadlinesUtil.Report(1, $"Kerbal name: {kvp.Value.kerbalName} vs {crewmember.UniqueName()}");
                 if (kvp.Value.kerbalName == crewmember.UniqueName())
                 {
-                    HeadlinesUtil.Report(1,$"hmm {kvp.Key}");
                     if (kvp.Value.templateStateName.StartsWith("role_"))
                     {
-                        HeadlinesUtil.Report(1, $"Returning...");
                         return kvp.Value;
                     }
-                    HeadlinesUtil.Report(1,$"Skipped...");
                 }
             }
 

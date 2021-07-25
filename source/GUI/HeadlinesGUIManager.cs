@@ -15,8 +15,7 @@ namespace RPStoryteller.source.GUI
         private static ApplicationLauncherButton stockButton;
 
         public bool _isDisplayed = false;
-        private bool _programTab = true;
-        private bool _crewTab = false;
+        private string _activeTab = "program";
         private int _selectedCrew = 0;
         private int _currentActivity = 0;
 
@@ -124,6 +123,15 @@ namespace RPStoryteller.source.GUI
         #endregion
 
         #region Drawing
+
+        /// <summary>
+        /// Store the tab to display
+        /// </summary>
+        /// <param name="activeTab"></param>
+        private void SwitchTab(string activeTab)
+        {
+            _activeTab = activeTab;
+        }
         
         public void DrawWindow(int windowID)
         {
@@ -131,24 +139,38 @@ namespace RPStoryteller.source.GUI
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Program"))
             {
-                _programTab = true;
-                _crewTab = false;
+                SwitchTab("program");
             }
             else if (GUILayout.Button("Personnel"))
             {
-                _programTab = false;
-                _crewTab = true;
+                SwitchTab("personnel");
+            }
+            else if (GUILayout.Button("Recruitment"))
+            {
+                SwitchTab("recruitment");
+            }
+            else if (GUILayout.Button("GM"))
+            {
+                SwitchTab("gm");
             }
             GUILayout.EndHorizontal();
 
-            if (_programTab)
+            switch (_activeTab)
             {
-                DrawProgramDashboard(windowID);
+                case "program":
+                    DrawProgramDashboard(windowID);
+                    break;
+                case "personnel":
+                    DrawPersonelPanel();
+                    break;
+                case "recruitment":
+                    DrawRecruitmentPanel();
+                    break;
+                case "gm":
+                    DrawGMPanel();
+                    break;
             }
-            else if (_crewTab)
-            {
-                DrawPersonelPanel();
-            }
+            
             UnityEngine.GUI.DragWindow();
         }
 
@@ -396,7 +418,44 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.EndHorizontal();
         }
-        
+
+        public void DrawRecruitmentPanel()
+        {
+            
+        }
+
+        public void DrawGMPanel()
+        {
+            double clock = HeadlinesUtil.GetUT();
+            
+            GUILayout.BeginVertical();
+            GUILayout.Box("Cheats");
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Add 5 Hype"))
+            {
+                storyEngine.programHype += 5;
+            }
+            if (GUILayout.Button("Add 5 Reputation"))
+            {
+                Reputation.Instance.AddReputation(5, TransactionReasons.None);
+            }
+            GUILayout.EndHorizontal();
+            if (GUILayout.Button("Trigger Decay"))
+            {
+                storyEngine.DecayReputation();
+            }
+            if (GUILayout.Button("Reality Check"))
+            {
+                storyEngine.RealityCheck();
+            }
+            GUILayout.Space(10);
+            GUILayout.Box("HMM");
+            foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
+            {
+                GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value-clock, true, false)} - {kvp.Key}");
+            }
+            GUILayout.EndVertical();
+        }
         #endregion
 
         #region Logic
@@ -423,6 +482,11 @@ namespace RPStoryteller.source.GUI
             return null;
         }
         
+        #endregion
+
+        #region UIcontrols
+        
+
         #endregion
     }
 }

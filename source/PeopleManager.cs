@@ -15,6 +15,8 @@ namespace RPStoryteller
         private static System.Random randomNG = new System.Random();
 
         public static PeopleManager Instance = null;
+
+        public bool initialized = false;
         
         // Binds KSP crew and Starstruck data
         public Dictionary<string, PersonnelFile> personnelFolders = new Dictionary<string, PersonnelFile>();
