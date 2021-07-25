@@ -838,7 +838,7 @@ namespace RPStoryteller
         public void Randomize(int level = 0)
         {
             // Add some wiggle room within a level
-            level += randomNG.Next(-1, 1);
+            level += randomNG.Next(-1, 2);
             level = Math.Min(5, level);
             level = Math.Max(0, level);
             
