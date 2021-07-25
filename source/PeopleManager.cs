@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CommNet.Network;
 using RPStoryteller.source;
 using Smooth.Collections;
+using UniLinq;
 
 namespace RPStoryteller
 {
@@ -17,17 +18,21 @@ namespace RPStoryteller
         public static PeopleManager Instance = null;
 
         public bool initialized = false;
-        
+
         // Binds KSP crew and Starstruck data
         public Dictionary<string, PersonnelFile> personnelFolders = new Dictionary<string, PersonnelFile>();
+        
+        // Prospective crew members
+        public Dictionary<string, PersonnelFile> applicantFolders = new Dictionary<string, PersonnelFile>();
         
 
         #region Kitchen Sink
 
         public PeopleManager()
         {
-            //RefreshPersonnelFolder();
             Instance = this;
+            
+            GameEvents.OnCrewmemberHired.Add(HiringEventHandler);
         }
         
         public override void OnSave(ConfigNode node)
@@ -35,14 +40,21 @@ namespace RPStoryteller
             base.OnSave(node);
             
             // Save personnel files
-            ConfigNode folder = new ConfigNode();
+            ConfigNode personnelfolder = new ConfigNode();
             
             foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
             {
-                folder.AddNode("File", kvp.Value.AsConfigNode());
+                personnelfolder.AddNode("File", kvp.Value.AsConfigNode());
             }
-
-            node.AddNode("PERSONNELFILES", folder);
+            node.AddNode("PERSONNELFILES", personnelfolder);
+            
+            ConfigNode appfolders = new ConfigNode();
+            foreach (KeyValuePair<string, PersonnelFile> kvp in applicantFolders)
+            {
+                HeadlinesUtil.Report(1,$"Saving applicant {kvp.Value.UniqueName()}");
+                appfolders.AddNode("File", kvp.Value.AsConfigNode());
+            }
+            node.AddNode("APPLICANTFILES", appfolders);
             
         }
 
@@ -66,6 +78,21 @@ namespace RPStoryteller
                 }
             }
             
+            folder = node.GetNode("APPLICANTFILES");
+            if (folder != null)
+            {
+                PersonnelFile temporaryFile;
+            
+                foreach (ConfigNode kerbalFile in folder.GetNodes())
+                {
+                    if (applicantFolders.ContainsKey(kerbalFile.GetValue("kerbalName")) == false)
+                    {
+                        temporaryFile = new PersonnelFile(kerbalFile);
+                        applicantFolders.Add(temporaryFile.UniqueName(), temporaryFile);
+                    }
+                }
+            }
+            
         }
         
         #endregion
@@ -84,6 +111,19 @@ namespace RPStoryteller
                     PersonnelFile newKerbal = new PersonnelFile(pcm);
                     newKerbal.Randomize();
                     personnelFolders.Add( pcm.name, newKerbal);
+                }
+            }
+            
+            foreach (ProtoCrewMember pcm in HighLogic.CurrentGame.CrewRoster.Applicants)
+            {
+                HeadlinesUtil.Report(1, $"Addin applicant {pcm.name}");
+                if (applicantFolders.ContainsKey(pcm.name) == false)
+                {
+                    HeadlinesUtil.Report(1,$"Adding applicant {pcm.name}");
+                    PersonnelFile newKerbal = new PersonnelFile(pcm);
+                    newKerbal.Randomize();
+                    applicantFolders.Add( pcm.name, newKerbal);
+                    HeadlinesUtil.Report(1,$"Added");
                 }
             }
         }
@@ -111,6 +151,56 @@ namespace RPStoryteller
             personnelFolders.Remove(personnelFile.UniqueName());
             personnelFile.Remove();
         }
+
+        /// <summary>
+        /// Remove all applicants from the pool
+        /// </summary>
+        public void ClearApplicants()
+        {
+            foreach (ProtoCrewMember apcm in HighLogic.CurrentGame.CrewRoster.Applicants)
+            {
+                if (applicantFolders.ContainsKey(apcm.name))
+                {
+                    applicantFolders.Remove(apcm.name);
+                }
+                HighLogic.CurrentGame.CrewRoster.Remove(apcm);
+            }
+            
+        }
+
+        /// <summary>
+        /// Generate an applicant and its file with a baseline around a program level.
+        /// </summary>
+        /// <param name="level">level of a program's reputation</param>
+        /// <returns></returns>
+        public PersonnelFile GenerateRandomApplicant(int level = 0)
+        {
+            ProtoCrewMember newpcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Applicant);
+            PersonnelFile newFile = GetFile(newpcm.name);
+            newFile.Randomize();
+            return newFile;
+        }
+
+        /// <summary>
+        /// Moves from applicants to personnel or create the file
+        /// </summary>
+        /// <param name="apcm">PCM from event</param>
+        /// <param name="n">some integer</param>
+        private void HiringEventHandler(ProtoCrewMember apcm, int n)
+        {
+            PersonnelFile personnelFile;
+            if (applicantFolders.ContainsKey(apcm.name))
+            {
+                personnelFile = GetFile(apcm.name);
+                applicantFolders.Remove(apcm.name);
+                personnelFolders.Add(personnelFile.UniqueName(), personnelFile);
+            }
+            else
+            {
+                // Ensures the file exists
+                GetFile(apcm.name);
+            }
+        }
         
         #endregion
 
@@ -130,8 +220,17 @@ namespace RPStoryteller
                 ProtoCrewMember temppcm = HighLogic.CurrentGame.CrewRoster[kerbalName];
                 if (temppcm != null)
                 {
-                    personnelFolders.Add(kerbalName, new PersonnelFile(temppcm));
-                    return personnelFolders[kerbalName];
+                    PersonnelFile pf = new PersonnelFile(temppcm);
+                    if (temppcm.type == ProtoCrewMember.KerbalType.Crew)
+                    {
+                        personnelFolders.Add(kerbalName, pf);
+                        return personnelFolders[kerbalName];
+                    }
+                    if (temppcm.type == ProtoCrewMember.KerbalType.Applicant)
+                    {
+                        applicantFolders.Add(kerbalName, pf);
+                        return applicantFolders[kerbalName];
+                    } 
                 }
             }
             return null;
@@ -282,12 +381,16 @@ namespace RPStoryteller
     {
         private static System.Random randomNG = new System.Random();
         
+        public static List<string>attributes = new List<string>() {"stubborn","genial","inspiring","charming","scrapper","bland"};
+        
         // Getting better through professional development
         public int trainingLevel = 0;
         
         // Affects the odds of leaving the program
-        [KSPField(isPersistant = true)]
-        private int discontent = 1;
+        [KSPField(isPersistant = true)] private int discontent = 1;
+        
+        // Personality
+        [KSPField(isPersistant = true)] public string personality = "";
 
         // Indicate that the current task was ordered by the player
         public bool coercedTask = false;
@@ -360,6 +463,7 @@ namespace RPStoryteller
             this.teamInfluence = int.Parse(node.GetValue("teamInfluence"));
             this.legacy = int.Parse(node.GetValue("legacy"));
             this.discontent = int.Parse(node.GetValue("discontent"));
+            personality = node.GetValue("personality");
             
             ConfigNode people = node.GetNode("people");
             
@@ -387,6 +491,7 @@ namespace RPStoryteller
             outputNode.AddValue("teamInfluence", this.teamInfluence);
             outputNode.AddValue("legacy", this.legacy);
             outputNode.AddValue("discontent", this.discontent);
+            outputNode.AddValue("personality", personality);
 
             ConfigNode people = new ConfigNode();
 
@@ -730,12 +835,34 @@ namespace RPStoryteller
         /// <summary>
         /// Shake things up so not all new crew members are the same.
         /// </summary>
-        public void Randomize()
+        public void Randomize(int level = 0)
         {
-            trainingLevel = randomNG.Next(0, 3);
+            // Add some wiggle room within a level
+            level += randomNG.Next(-1, 1);
+            level = Math.Min(5, level);
+            level = Math.Max(0, level);
+            
             discontent = randomNG.Next(0, 2);
+            int difference = level - Effectiveness();
+
+            if (difference > 0)
+            {
+                // Experience for free as we assume most have piloting license
+                KerbalRoster.SetExperienceLevel(pcm, 1);
+                difference -= 1;
+                trainingLevel = difference;
+            }
+            else
+            {
+                discontent = Math.Max(0, discontent + difference);
+            }
             
             // TODO Pick 0+ personality trait.
+            if (randomNG.NextDouble() < 0.5)
+            {
+                int attributeIndex = randomNG.Next(0, attributes.Count);
+                personality = attributes[attributeIndex];
+            }
         }
 
         #endregion

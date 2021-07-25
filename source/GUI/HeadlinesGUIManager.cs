@@ -21,6 +21,8 @@ namespace RPStoryteller.source.GUI
 
         private PeopleManager peopleManager;
         private List<string> crewRoster;
+        private List<string> applicantRoster;
+        
         //private List<string> tabLabels;
         private List<string> activityLabels;
 
@@ -291,12 +293,13 @@ namespace RPStoryteller.source.GUI
             if (crewRoster.Count == 0) return;
             
             GUILayout.BeginVertical();
+            GUILayout.Box("Active crew");
             _selectedCrew = GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3);
             if (_selectedCrew >= crewRoster.Count)
             {
                 _selectedCrew = 0;
             }
-            GUILayout.Space(20);
+            GUILayout.Space(10);
             
             DrawCrew();
             GUILayout.EndVertical();
@@ -306,7 +309,12 @@ namespace RPStoryteller.source.GUI
         {
             string crewName = crewRoster[_selectedCrew];
             PersonnelFile focusCrew = GetFileFromDisplay(crewName);
-            GUILayout.Box($"{peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))} {focusCrew.Specialty().ToLower()}");
+            string personality = "";
+            if (focusCrew.personality != "")
+            {
+                personality = $" ({focusCrew.personality})";
+            }
+            GUILayout.Box($"{peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))} {focusCrew.Specialty().ToLower()}{personality}");
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Net Score: {focusCrew.Effectiveness(deterministic:true)}");
             GUILayout.Label($"training: {focusCrew.trainingLevel}");
@@ -421,7 +429,19 @@ namespace RPStoryteller.source.GUI
 
         public void DrawRecruitmentPanel()
         {
+            GUILayout.BeginVertical();
             
+            GUILayout.Box("Applicant Pool");
+            /*
+            PersonnelFile af;
+            foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)
+            {
+                af = kvp.Value;
+                GUILayout.Label($"{af.DisplayName()}, {peopleManager.QualitativeEffectiveness(af.Effectiveness(deterministic:true))} {af.Specialty()} {af.personality}");
+            }
+            */
+            GUILayout.Space(10);
+            GUILayout.EndVertical();
         }
 
         public void DrawGMPanel()
@@ -470,11 +490,22 @@ namespace RPStoryteller.source.GUI
             {
                 crewRoster.Add(kvp.Value.DisplayName());
             }
+
+            applicantRoster = new List<string>();
+            foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)
+            {
+                applicantRoster.Add(kvp.Value.DisplayName());
+            }
         }
 
         public PersonnelFile GetFileFromDisplay(string displayName)
         {
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)
+            {
+                if (kvp.Value.DisplayName() == displayName) return kvp.Value;
+            }
+            
+            foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)
             {
                 if (kvp.Value.DisplayName() == displayName) return kvp.Value;
             }
