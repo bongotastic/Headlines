@@ -1389,6 +1389,9 @@ namespace RPStoryteller
                 case "mentor_peer":
                     KerbalMentorPeer(personnelFile, emitData);
                     break;
+                case "accident":
+                    KerbalAccident(personnelFile, emitData);
+                    break;
                 default:
                     HeadlinesUtil.Report(1, $"[Emission] Event {eventName} is not implemented yet.");
                     break;
