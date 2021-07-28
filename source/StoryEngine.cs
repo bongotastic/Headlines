@@ -38,6 +38,8 @@ namespace RPStoryteller
 
         public static StoryEngine Instance = null;
 
+        public static string[] renownLevels = new[] { "underdog", "renowned", "leader", "excellent", "legendary"};
+
         // Random number generator
         private static System.Random storytellerRand = new System.Random();
 
@@ -108,6 +110,7 @@ namespace RPStoryteller
             // Default HMM
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
+            InitializeHMM("position_search");
             
             InitializePeopleManager();
             SchedulerCacheNextTime();
@@ -118,6 +121,7 @@ namespace RPStoryteller
             GameEvents.OnCrewmemberSacked.Add(CrewSacked);
             GameEvents.OnCrewmemberHired.Add(CrewHired);
             GameEvents.onCrewKilled.Add(CrewKilled);
+            GameEvents.onKerbalAddComplete.Add(NewKerbalInRoster);
             GameEvents.Contract.onCompleted.Add(ContractCompleted);
             GameEvents.Contract.onCompleted.Add(ContractAccepted);
         }
@@ -134,6 +138,7 @@ namespace RPStoryteller
                 if (updateIndex == 9)
                 {
                     AssertRoleHMM();
+                    _peopleManager.RefreshPersonnelFolder();
                     _peopleManager.initialized = true;
                 }
                 updateIndex += 1;
@@ -234,6 +239,16 @@ namespace RPStoryteller
             return HeadlinesUtil.GetUT();
         }
 
+        public double GetFunds()
+        {
+            return Funding.Instance.Funds;
+        }
+
+        public void AdjustFunds(double deltaFund)
+        {
+            Funding.Instance.AddFunds(deltaFund, TransactionReasons.None);
+        }
+
         /// <summary>
         /// Highjacks all increase in reputation to ensure that they are capped at the program hype level.
         /// </summary>
@@ -322,10 +337,18 @@ namespace RPStoryteller
             this.programLastKnownScience = newScience;
         }
 
+        /// <summary>
+        /// Event handler for sacking a kerbal
+        /// </summary>
+        /// <param name="pcm"></param>
+        /// <param name="count"></param>
         public void CrewSacked(ProtoCrewMember pcm, int count)
         {
             // TODO being fired isn't the same as quitting for logging purpose.
-            KerbalResignation(_peopleManager.GetFile(pcm.name), new Emissions("quit"));
+            if (pcm.type == ProtoCrewMember.KerbalType.Crew)
+            {
+                KerbalResignation(_peopleManager.GetFile(pcm.name), new Emissions("quit"));
+            }
         }
 
         /// <summary>
@@ -335,9 +358,10 @@ namespace RPStoryteller
         /// <param name="count"></param>
         public void CrewHired(ProtoCrewMember pcm, int count)
         {
-            PersonnelFile newCrew = new PersonnelFile(pcm);
-            newCrew.Randomize();
-            _peopleManager.AddCrew(newCrew);
+            HeadlinesUtil.Report(1,$"Crew hired triggered for {pcm.name}", "XXX");
+            PersonnelFile newCrew = _peopleManager.GetFile(pcm.name);
+            _peopleManager.HireApplicant(newCrew);
+            InitializeCrewHMM(newCrew);
         }
 
         public void CrewKilled(EventReport data)
@@ -345,6 +369,19 @@ namespace RPStoryteller
             // TODO handle operational death differently than accidents
             PersonnelFile personnelFile = _peopleManager.GetFile(data.sender);
             KerbalResignation(personnelFile, new Emissions("quit"), trajedy: true);
+        }
+
+        /// <summary>
+        /// Whenever a kerbal enters the roster (all type), this is triggered and thus creates a file.
+        /// </summary>
+        /// <param name="pcm"></param>
+        public void NewKerbalInRoster(ProtoCrewMember pcm)
+        {
+            if (pcm.type == ProtoCrewMember.KerbalType.Applicant)
+            {
+                PersonnelFile pf = _peopleManager.GetFile(pcm.name);
+                HeadlinesUtil.Report(1, $"Adding {pf.UniqueName()} to as {pf.Specialty()}");
+            }
         }
 
         #endregion
@@ -356,16 +393,28 @@ namespace RPStoryteller
         /// </summary>
         private void InitializePeopleManager()
         {
+            HeadlinesUtil.Report(1, "Initializing PeopleManager");
+            
             _peopleManager = PeopleManager.Instance;
             _peopleManager.RefreshPersonnelFolder();
 
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
             {
-                // Productivity 
-                InitializeHMM("kerbal_" + kvp.Value.kerbalProductiveState, kerbalName: kvp.Value.UniqueName());
+                InitializeCrewHMM(kvp.Value);
+            }
+        }
 
-                // Task
-                InitializeHMM("role_" + kvp.Value.Specialty(), kerbalName: kvp.Value.UniqueName());
+        public void InitializeCrewHMM(PersonnelFile personnelFile)
+        {
+            string registeredStateName = personnelFile.UniqueName() + "@role_" + personnelFile.Specialty();
+            if (_liveProcesses.ContainsKey(registeredStateName) == false)
+            {
+                InitializeHMM("role_" + personnelFile.Specialty(), kerbalName:personnelFile.UniqueName());
+            }
+            registeredStateName = personnelFile.UniqueName() + "@kerbal_" + personnelFile.kerbalProductiveState;
+            if (_liveProcesses.ContainsKey(registeredStateName) == false)
+            {
+                InitializeHMM("kerbal_"+personnelFile.kerbalProductiveState, kerbalName:personnelFile.UniqueName());
             }
         }
 
@@ -1034,11 +1083,8 @@ namespace RPStoryteller
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
             {
                 HiddenState roleHMM = GetRoleHMM(kvp.Value);
-                HeadlinesUtil.Report(1,$"{kvp.Value.UniqueName()} has {roleHMM.templateStateName}");
-                HeadlinesUtil.Report(1,$"{roleHMM.templateStateName} has {kvp.Value.Specialty()}: {roleHMM.templateStateName.Contains(kvp.Value.Specialty())}");
                 if (roleHMM.templateStateName.Contains(kvp.Value.Specialty()) == false)
                 {
-                    HeadlinesUtil.Report(1,"And it is wrong.");
                     RemoveHMM(roleHMM.RegisteredName());
                     InitializeHMM("role_"+kvp.Value.Specialty(),kerbalName:kvp.Value.UniqueName());
                 }
@@ -1060,6 +1106,7 @@ namespace RPStoryteller
                 templateStateIdentity = registeredStateIdentity.Substring(splitter + 1);
                 kerbalName = registeredStateIdentity.Substring(0, splitter);
             }
+            HeadlinesUtil.Report(1, $"Initializing {templateStateIdentity}");
 
             HiddenState newState = new HiddenState(templateStateIdentity, kerbalName);
 
@@ -1315,6 +1362,12 @@ namespace RPStoryteller
                 case "reality_check":
                     RealityCheck();
                     break;
+                case "new_applicant":
+                    NewRandomApplicant();
+                    break;
+                case "withdraw_application":
+                    WithdrawRandomApplication();
+                    break;
                 default:
                     HeadlinesUtil.Report(1, $"[Emission] {eventName} is not implemented yet.");
                     break;
@@ -1517,6 +1570,34 @@ namespace RPStoryteller
 
         }
 
+        public void NewRandomApplicant()
+        {
+            PersonnelFile pf = _peopleManager.GenerateRandomApplicant(GetValuationLevel());
+            HeadlinesUtil.Report(2,$"New {pf.Specialty()} applicant: {pf.DisplayName()}");
+        }
+
+        public void WithdrawRandomApplication()
+        {
+            if (_peopleManager.applicantFolders.Count > 0)
+            {
+                PersonnelFile dropOut = (PersonnelFile) null;
+                int randomIndex = storytellerRand.Next(0, _peopleManager.applicantFolders.Count);
+                foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.applicantFolders)
+                {
+                    if (randomIndex == 0)
+                    {
+                        dropOut = kvp.Value;
+                        break;
+                    }
+
+                    randomIndex--;
+                }
+                
+                HeadlinesUtil.Report(2,$"{dropOut.DisplayName()} has withdrawn their application");
+                _peopleManager.Remove(dropOut);
+            }
+        }
+
         public void ContractCompleted(Contract contract)
         {
 
@@ -1536,25 +1617,26 @@ namespace RPStoryteller
 
         #region GUIDisplay
 
-        public string GUIReputation()
+        /// <summary>
+        /// String to represent the valuation qualitatively, and quantitatively.
+        /// </summary>
+        /// <returns></returns>
+        public string GUIValuation()
         {
-            float reputation = Reputation.CurrentRep + this.programHype;
-
-            string output;
-            if (reputation <= 100) output = "Underdog";
-            else if (reputation <= 200) output = "Renowned";
-            else if (reputation <= 400) output = "Leader";
-            else if (reputation <= 600) output = "Excellent";
-            else output = "Legendary";
-
+            double reputation = GetValuation();
+            string output = StoryEngine.renownLevels[GetValuationLevel()];
             return output + $" ({(int) Math.Floor(reputation)})";
         }
 
+        /// <summary>
+        /// String to represent the relative over-valuation
+        /// </summary>
+        /// <returns></returns>
         public string GUIOvervaluation()
         {
             float reputation = Reputation.CurrentRep;
 
-            if (reputation + this.programHype == 0f)
+            if (reputation + programHype == 0f)
             {
                 return "0%";
             }
@@ -1620,6 +1702,10 @@ namespace RPStoryteller
 
         #region InternalLogic
 
+        /// <summary>
+        /// Valuation is the sum of reputation and hype: this is what people can see.
+        /// </summary>
+        /// <returns></returns>
         public double GetValuation()
         {
             return this.programLastKnownReputation + this.programHype;
@@ -1638,9 +1724,54 @@ namespace RPStoryteller
             return programLastKnownReputation;
         }
 
+        public int GetValuationLevel()
+        {
+            double valuation = GetValuation();
+
+            if (valuation <= 50) return 0;
+            if (valuation <= 150) return 1;
+            if (valuation <= 350) return 2;
+            if (valuation <= 600) return 3;
+            return 4;
+
+        }
+
         public PeopleManager GetPeopleManager()
         {
             return _peopleManager;
+        }
+        
+        /// <summary>
+        ///  Begin a brand new search process.
+        /// </summary>
+        public void LaunchSearch(bool headhunt = false)
+        {
+            HeadlinesUtil.Report(1, "Launch a new search");
+            _peopleManager.ClearApplicants();
+
+            double cost = 2000 * (double)(GetValuationLevel() + 1);
+
+            int generationLevel = GetValuationLevel();
+            if (headhunt)
+            {
+                generationLevel += 2;
+                cost *= 5;
+            }
+            AdjustFunds(-1 * cost);
+            
+            generationLevel = Math.Min(5, generationLevel);
+            
+            int poolSize = 4 +
+                           (int) Math.Round((double) generationLevel * (2 * GetValuation() / programHighestValuation + 1)) +
+                           storytellerRand.Next(-1, 2);
+            while (poolSize > 0)
+            {
+                _peopleManager.GenerateRandomApplicant(generationLevel);
+                poolSize--;
+            }
+            
+            
+            
         }
 
         public void InvitePress(bool invite)

@@ -188,7 +188,7 @@ namespace RPStoryteller.source.GUI
 
             GUILayout.BeginHorizontal();
             GUILayout.Label($"   Reputation:");
-            GUILayout.Label($"{storyEngine.GUIReputation()}");
+            GUILayout.Label($"{storyEngine.GUIValuation()}");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Overvaluation:");
@@ -429,17 +429,63 @@ namespace RPStoryteller.source.GUI
 
         public void DrawRecruitmentPanel()
         {
-            GUILayout.BeginVertical();
+            peopleManager = PeopleManager.Instance;
             
-            GUILayout.Box("Applicant Pool");
-            /*
-            PersonnelFile af;
+            GUILayout.BeginVertical();
+
+            double searchCost = 2000 + 2000 * (double) storyEngine.GetValuationLevel();
+            if (storyEngine.GetFunds() > searchCost)
+            {
+                if (GUILayout.Button($"Open New Search (${searchCost})"))
+                {
+                    storyEngine.LaunchSearch(false);
+                }
+
+                searchCost *= 5;
+                if (storyEngine.GetFunds() > searchCost)
+                {
+                    if (GUILayout.Button($"HeadHunt (${searchCost})"))
+                    {
+                        storyEngine.LaunchSearch(true);
+                    }
+                }
+                else
+                {
+                    GUILayout.Label($"Hire headhunters for ${searchCost}");
+                }
+            }
+            else
+            {
+                GUILayout.Label($"Open a search for ${searchCost}");
+            }
+            
+            
+            GUILayout.Box($"Applicant Pool ({peopleManager.applicantFolders.Count})");
+
+            List<string> toDelete = new List<string>();
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)
             {
-                af = kvp.Value;
-                GUILayout.Label($"{af.DisplayName()}, {peopleManager.QualitativeEffectiveness(af.Effectiveness(deterministic:true))} {af.Specialty()} {af.personality}");
+                GUILayout.BeginHorizontal();
+                if (kvp.Key != kvp.Value.UniqueName())
+                {
+                    toDelete.Add(kvp.Key);
+                }
+                else
+                {
+                    GUILayout.Label($"{kvp.Value.DisplayName()}"); 
+                    GUILayout.Label($"{peopleManager.QualitativeEffectiveness(kvp.Value.Effectiveness(deterministic:true))} {kvp.Value.Specialty()}");
+                    GUILayout.Label($"{kvp.Value.personality}");
+                }
+
+                GUILayout.EndHorizontal();
+
             }
-            */
+
+            foreach (var oldKey in toDelete)
+            {
+                peopleManager.applicantFolders.Remove(oldKey);
+            }
+            
             GUILayout.Space(10);
             GUILayout.EndVertical();
         }

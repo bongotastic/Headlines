@@ -73,7 +73,7 @@ namespace RPStoryteller
                     if (personnelFolders.ContainsKey(kerbalFile.GetValue("kerbalName")) == false)
                     {
                         temporaryFile = new PersonnelFile(kerbalFile);
-                        personnelFolders.Add(temporaryFile.UniqueName(), temporaryFile);
+                        AddCrew(temporaryFile);
                     }
                 }
             }
@@ -104,26 +104,24 @@ namespace RPStoryteller
         /// </summary>
         public void RefreshPersonnelFolder()
         {
+            HeadlinesUtil.Report(1,"Refreshing crew into PeopleManager");
             foreach (ProtoCrewMember pcm in HighLogic.CurrentGame.CrewRoster.Crew)
             {
                 if (personnelFolders.ContainsKey(pcm.name) == false)
                 {
-                    PersonnelFile newKerbal = new PersonnelFile(pcm);
-                    newKerbal.Randomize();
-                    personnelFolders.Add( pcm.name, newKerbal);
+                    HeadlinesUtil.Report(1, $"Adding kerbal: {pcm.name}");
+                    // Create and file properly
+                    GetFile(pcm.name);
                 }
             }
             
-            foreach (ProtoCrewMember pcm in HighLogic.CurrentGame.CrewRoster.Applicants)
+            HeadlinesUtil.Report(1,"Refreshing applicants into PeopleManager");
+            foreach (ProtoCrewMember pcm in HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Applicant))
             {
-                HeadlinesUtil.Report(1, $"Addin applicant {pcm.name}");
                 if (applicantFolders.ContainsKey(pcm.name) == false)
                 {
-                    HeadlinesUtil.Report(1,$"Adding applicant {pcm.name}");
-                    PersonnelFile newKerbal = new PersonnelFile(pcm);
-                    newKerbal.Randomize();
-                    applicantFolders.Add( pcm.name, newKerbal);
-                    HeadlinesUtil.Report(1,$"Added");
+                    HeadlinesUtil.Report(1,$"New applicant {pcm.name}");
+                    GetFile(pcm.name);
                 }
             }
         }
@@ -137,6 +135,12 @@ namespace RPStoryteller
             personnelFolders.Add(newCrew.UniqueName(), newCrew);
         }
 
+        public void HireApplicant(PersonnelFile pf)
+        {
+            if (applicantFolders.ContainsKey(pf.UniqueName())) applicantFolders.Remove(pf.UniqueName());
+            AddCrew(pf);
+        }
+
         /// <summary>
         /// Delete the personnel file and remove the pcm from the game.
         /// </summary>
@@ -147,8 +151,16 @@ namespace RPStoryteller
             {
                 kvp.Value.NotifyOfRemoval(personnelFile.UniqueName());
             }
+
+            if (personnelFolders.ContainsKey(personnelFile.UniqueName()))
+            {
+                personnelFolders.Remove(personnelFile.UniqueName());
+            }
+            else
+            {
+                applicantFolders.Remove(personnelFile.UniqueName());
+            }
             
-            personnelFolders.Remove(personnelFile.UniqueName());
             personnelFile.Remove();
         }
 
@@ -157,15 +169,25 @@ namespace RPStoryteller
         /// </summary>
         public void ClearApplicants()
         {
+            List<ProtoCrewMember> toDelete = new List<ProtoCrewMember>();
             foreach (ProtoCrewMember apcm in HighLogic.CurrentGame.CrewRoster.Applicants)
             {
-                if (applicantFolders.ContainsKey(apcm.name))
-                {
-                    applicantFolders.Remove(apcm.name);
-                }
+                toDelete.Add(apcm);
+            }
+
+            List<string> test = applicantFolders.Keys.ToList();
+            
+            foreach (ProtoCrewMember apcm in toDelete)
+            {
+                HeadlinesUtil.Report(1, $"Deleting applicant {apcm.name}");
                 HighLogic.CurrentGame.CrewRoster.Remove(apcm);
             }
-            
+
+            foreach (string kerbalName in applicantFolders.Keys.ToList())
+            {
+                applicantFolders.Remove(kerbalName);
+            }
+            HeadlinesUtil.Report(1,$"Size of applicant pool: {applicantFolders.Count}");
         }
 
         /// <summary>
@@ -177,7 +199,7 @@ namespace RPStoryteller
         {
             ProtoCrewMember newpcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Applicant);
             PersonnelFile newFile = GetFile(newpcm.name);
-            newFile.Randomize();
+            newFile.Randomize(level);
             return newFile;
         }
 
@@ -193,7 +215,7 @@ namespace RPStoryteller
             {
                 personnelFile = GetFile(apcm.name);
                 applicantFolders.Remove(apcm.name);
-                personnelFolders.Add(personnelFile.UniqueName(), personnelFile);
+                AddCrew(personnelFile);
             }
             else
             {
@@ -214,27 +236,31 @@ namespace RPStoryteller
         public PersonnelFile GetFile(string kerbalName)
         {
             if (personnelFolders.ContainsKey(kerbalName)) return personnelFolders[kerbalName];
-            else
+            if (applicantFolders.ContainsKey(kerbalName)) return applicantFolders[kerbalName];
+ 
+            // Possible when loading a save file...
+            ProtoCrewMember temppcm = HighLogic.CurrentGame.CrewRoster[kerbalName];
+            if (temppcm == null) return (PersonnelFile) null;
+            
+            PersonnelFile pf = new PersonnelFile(temppcm);
+            pf.Randomize();
+            if (temppcm.type == ProtoCrewMember.KerbalType.Crew)
             {
-                // Possible when loading a save file...
-                ProtoCrewMember temppcm = HighLogic.CurrentGame.CrewRoster[kerbalName];
-                if (temppcm != null)
+                AddCrew(pf);
+                return personnelFolders[kerbalName];
+                } 
+            if (temppcm.type == ProtoCrewMember.KerbalType.Applicant)
+            {
+                if (!applicantFolders.ContainsKey(kerbalName))
                 {
-                    PersonnelFile pf = new PersonnelFile(temppcm);
-                    if (temppcm.type == ProtoCrewMember.KerbalType.Crew)
-                    {
-                        personnelFolders.Add(kerbalName, pf);
-                        return personnelFolders[kerbalName];
-                    }
-                    if (temppcm.type == ProtoCrewMember.KerbalType.Applicant)
-                    {
-                        applicantFolders.Add(kerbalName, pf);
-                        return applicantFolders[kerbalName];
-                    } 
+                    applicantFolders.Add(kerbalName, pf);
                 }
+                return applicantFolders[kerbalName];
             }
+ 
             return null;
         }
+
 
         /// <summary>
         /// Needed by the GUI to build a roster selector
@@ -295,8 +321,7 @@ namespace RPStoryteller
             List<string> excludeme = new List<string>() { exclude.UniqueName() };
             return GetRandomKerbal(excludeme, subset);
         }
-        
-        
+
         /// <summary>
         /// Used by soul-searching kerbals wondering if they are being dragged down by their peers.
         /// </summary>
