@@ -182,13 +182,15 @@ namespace RPStoryteller.source.GUI
         /// <param name="windowID"></param>
         public void DrawProgramDashboard(int windowID)
         {
+            storyEngine = StoryEngine.Instance;
+            
             GUILayout.BeginVertical();
             
             GUILayout.Box($"Program Dashboard (Staff: {storyEngine.GUIAverageProfile()})");
 
             GUILayout.BeginHorizontal();
             GUILayout.Label($"   Reputation:");
-            GUILayout.Label($"{storyEngine.GUIValuation()} ({storyEngine.GetReputation()}+{storyEngine.programHype})");
+            GUILayout.Label($"{storyEngine.GUIValuation()}");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Overvaluation:");

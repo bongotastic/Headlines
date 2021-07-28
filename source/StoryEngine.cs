@@ -305,7 +305,6 @@ namespace RPStoryteller
                 after = $"Final Rep: {programLastKnownReputation}, Net delta: {realDelta}, Hype: {programHype}.";
                 HeadlinesUtil.Report(1, after);
             }
-            HeadlinesUtil.Report(3,before + "\n" + after, "Reputation Update");
             UpdatePeakValuation();
         }
 
