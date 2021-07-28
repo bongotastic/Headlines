@@ -31,7 +31,7 @@ namespace RPStoryteller
     }
 
     [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
-        GameScenes.SPACECENTER)]
+        GameScenes.SPACECENTER | GameScenes.FLIGHT)]
     public class StoryEngine : ScenarioModule
     {
         #region Declarations
@@ -256,49 +256,57 @@ namespace RPStoryteller
         /// <param name="reason">Transactionreason item</param>
         private void ReputationChanged(float newReputation, TransactionReasons reason)
         {
-            float deltaReputation = newReputation - this.programLastKnownReputation;
-
             // Avoid processing recursively the adjustment
             if (reason == TransactionReasons.None)
             {
-                this.programLastKnownReputation = newReputation;
+                programLastKnownReputation = newReputation;
                 UpdatePeakValuation();
 
                 return;
             }
-
-            HeadlinesUtil.Report(1, $"New delta rep: {deltaReputation} whilst hype is {this.programHype}.");
+            
+            float deltaReputation = newReputation - this.programLastKnownReputation;
+            if (deltaReputation == 0) return;
+            
+            string before =
+                $"Rep: {programLastKnownReputation}, New delta rep: {deltaReputation}, Hype: {this.programHype}.";
+            string after = "";
+            HeadlinesUtil.Report(1, before);
             if (deltaReputation <= this.programHype)
             {
                 this.programHype -= deltaReputation;
                 this.programLastKnownReputation = newReputation;
+                after = $"Final Rep: {programLastKnownReputation}, Net delta: {deltaReputation}, Hype: {programHype}.";
             }
             else
             {
                 // Retroactively cap the reputation gain to the active hype
                 float realDelta = programHype;
-                if (wageredReputation >= 0)
+                if (mediaSpotlight)
                 {
                     realDelta = Math.Min(deltaReputation, programHype*2f);
-                    HeadlinesUtil.ScreenMessage(
-                        $"Thanks to the media invitation, you capture the public's imagination.");
+                    if (realDelta > programHype)
+                    {
+                        HeadlinesUtil.ScreenMessage(
+                            $"Thanks to the media invitation, you capture the public's imagination.");
+                    }
                 }
                 else
                 {
                     HeadlinesUtil.Report(1, $"Reputation was capped at {this.programHype} due to insufficient hype.");
                     HeadlinesUtil.ScreenMessage(
-                        $"Underrated! Your achievement's impact is limited.\n({(this.programHype / deltaReputation).ToString("P1")})");
-                    
+                        $"Underrated! Your achievement's impact is limited.\n({(100f*programHype / deltaReputation).ToString("P1")}%)");
                 }
                 
-                // Surplus reputation goes as additional hype
+                // Surplus reputation goes as new hype
                 programHype = deltaReputation - programHype;
-                Reputation.Instance.SetReputation(this.programLastKnownReputation + realDelta, TransactionReasons.None);
+                programLastKnownReputation += realDelta;
+                Reputation.Instance.SetReputation(programLastKnownReputation, TransactionReasons.None);
+                after = $"Final Rep: {programLastKnownReputation}, Net delta: {realDelta}, Hype: {programHype}.";
+                HeadlinesUtil.Report(1, after);
             }
-
+            HeadlinesUtil.Report(3,before + "\n" + after, "Reputation Update");
             UpdatePeakValuation();
-
-            HeadlinesUtil.Report(1, $"Program hype is now {this.programHype}.");
         }
 
         /// <summary>
@@ -1769,9 +1777,6 @@ namespace RPStoryteller
                 _peopleManager.GenerateRandomApplicant(generationLevel);
                 poolSize--;
             }
-            
-            
-            
         }
 
         public void InvitePress(bool invite)

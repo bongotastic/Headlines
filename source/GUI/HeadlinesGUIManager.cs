@@ -188,7 +188,7 @@ namespace RPStoryteller.source.GUI
 
             GUILayout.BeginHorizontal();
             GUILayout.Label($"   Reputation:");
-            GUILayout.Label($"{storyEngine.GUIValuation()}");
+            GUILayout.Label($"{storyEngine.GUIValuation()} ({storyEngine.GetReputation()}+{storyEngine.programHype})");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Overvaluation:");
