@@ -97,6 +97,9 @@ namespace RPStoryteller
         [KSPField(isPersistant = true)] public float totalScience = 0;
         [KSPField(isPersistant = true)] public string visitingScholarName = "";
 
+        // Inquiry
+        [KSPField(isPersistant = true)] public bool ongoingInquiry = false;
+        
         #endregion
 
         #region UnityStuff
@@ -385,6 +388,10 @@ namespace RPStoryteller
             // Make crew members a bit more discontent
             _peopleManager.OperationalDeathShock(personnelFile);
             
+            // inquiry
+            ongoingInquiry = true;
+            InitializeHMM("death_inquiry");
+            
             KerbalResignation(personnelFile, new Emissions("quit"), trajedy: true);
             
             
@@ -532,6 +539,12 @@ namespace RPStoryteller
 
             SkillCheckOutcome successLevel = SkillCheck(kerbalFile.Effectiveness(isMedia));
 
+            // In case of inquiry, immediate impact vanishes.
+            if (ongoingInquiry &
+                (successLevel == SkillCheckOutcome.SUCCESS & successLevel == SkillCheckOutcome.CRITICAL))
+            {
+                successLevel = SkillCheckOutcome.FAILURE;
+            }
 
             ImpactType impactType = ImpactType.TRANSIENT;
             switch (successLevel)
@@ -1647,6 +1660,29 @@ namespace RPStoryteller
             }
 
         }
+
+        #region Death
+
+        public void InquiryDamningReport(Emissions emitData)
+        {
+            HeadlinesUtil.Report(2, "Damning findings during inquiry");
+            if (storytellerRand.NextDouble() < 0.5 | programHype == 0) DecayReputation();
+            RealityCheck();
+        }
+        
+        public void InquirySpinFindings(Emissions emitData)
+        {
+            AdjustHype(1);
+        }
+        
+        public void InquiryConclude(Emissions emitData)
+        {
+            HeadlinesUtil.Report(2, "Inquiry concludes");
+            RemoveHMM("death_inquiry");
+            ongoingInquiry = false;
+        }
+
+        #endregion
 
         /// <summary>
         /// Add a random applicant at the program's reputation level

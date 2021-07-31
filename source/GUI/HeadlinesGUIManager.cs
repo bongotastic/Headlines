@@ -498,9 +498,11 @@ namespace RPStoryteller.source.GUI
             GUILayout.Space(10);
             
             GUILayout.Box("Walk-in applicants notifications");
+            GUILayout.BeginHorizontal();
             peopleManager.seekingPilot = GUILayout.Toggle(peopleManager.seekingPilot, "Pilots");
             peopleManager.seekingScientist = GUILayout.Toggle(peopleManager.seekingScientist, "Scientists");
             peopleManager.seekingEngineer = GUILayout.Toggle(peopleManager.seekingEngineer, "Engineers");
+            GUILayout.EndHorizontal();
             GUILayout.Space(10);
             
             GUILayout.EndVertical();
