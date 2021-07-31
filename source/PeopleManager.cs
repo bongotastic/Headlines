@@ -806,7 +806,7 @@ namespace RPStoryteller
         /// <returns></returns
         public bool SetFeuding(PersonnelFile candidate, bool unset = false)
         {
-            return SetRelationship(candidate, false, false);
+            return SetRelationship(candidate, false, unset);
         }
 
         /// <summary>
