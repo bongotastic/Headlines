@@ -6,6 +6,7 @@ using Expansions.Missions.Editor;
 using FinePrint;
 using HiddenMarkovProcess;
 using KerbalConstructionTime;
+using Renamer;
 using RPStoryteller.source;
 using RPStoryteller.source.Emissions;
 using UnityEngine;
@@ -30,8 +31,9 @@ namespace RPStoryteller
         FUMBLE, FAILURE, SUCCESS, CRITICAL
     }
 
-    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
-        GameScenes.SPACECENTER | GameScenes.FLIGHT)]
+    //[KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
+    //    GameScenes.SPACECENTER | GameScenes.FLIGHT )]
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] { GameScenes.EDITOR, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION })]
     public class StoryEngine : ScenarioModule
     {
         #region Declarations
@@ -93,6 +95,7 @@ namespace RPStoryteller
         [KSPField(isPersistant = true)] public float programLastKnownScience = 0;
         [KSPField(isPersistant = true)] public float visitingScienceTally = 0;
         [KSPField(isPersistant = true)] public float totalScience = 0;
+        [KSPField(isPersistant = true)] public string visitingScholarName = "";
 
         #endregion
 
@@ -272,7 +275,7 @@ namespace RPStoryteller
                 $"Rep: {programLastKnownReputation}, New delta rep: {deltaReputation}, Hype: {this.programHype}.";
             string after = "";
             HeadlinesUtil.Report(1, before);
-            if (deltaReputation <= this.programHype)
+            if (deltaReputation <= programHype)
             {
                 this.programHype -= deltaReputation;
                 this.programLastKnownReputation = newReputation;
@@ -294,8 +297,12 @@ namespace RPStoryteller
                 else
                 {
                     HeadlinesUtil.Report(1, $"Reputation was capped at {this.programHype} due to insufficient hype.");
-                    HeadlinesUtil.ScreenMessage(
-                        $"Underrated! Your achievement's impact is limited.\n({(100f*programHype / deltaReputation).ToString("P1")}%)");
+                    float percent =  programHype / deltaReputation;
+                    if (percent < 1f)
+                    {
+                        HeadlinesUtil.ScreenMessage(
+                            $"Underrated! Your achievement's impact is limited.\n({percent.ToString("P1")})");
+                    }
                 }
                 
                 // Surplus reputation goes as new hype
@@ -373,9 +380,14 @@ namespace RPStoryteller
 
         public void CrewKilled(EventReport data)
         {
-            // TODO handle operational death differently than accidents
             PersonnelFile personnelFile = _peopleManager.GetFile(data.sender);
+            
+            // Make crew members a bit more discontent
+            _peopleManager.OperationalDeathShock(personnelFile);
+            
             KerbalResignation(personnelFile, new Emissions("quit"), trajedy: true);
+            
+            
         }
 
         /// <summary>
@@ -855,7 +867,14 @@ namespace RPStoryteller
         {
             PersonnelFile candidate = _peopleManager.GetRandomKerbal(personnelFile, personnelFile.feuds);
             if (candidate == null) return;
-            else if (personnelFile.UnsetFeuding(candidate))
+
+            // Scrapper are less likely to reconcile
+            if (personnelFile.HasAttribute("scrapper"))
+            {
+                if (storytellerRand.NextDouble() < 0.66) return;
+            }
+            
+            if (personnelFile.UnsetFeuding(candidate))
             {
                 candidate.UnsetFeuding(personnelFile);
                 HeadlinesUtil.Report(3,
@@ -1030,7 +1049,9 @@ namespace RPStoryteller
         /// <param name="emitData"></param>
         public void KerbalScoutTalent(PersonnelFile personnelFile, Emissions emitData)
         {
-            // TODO implement Scout Talent
+            PersonnelFile newApplicant = _peopleManager.GenerateRandomApplicant(GetValuationLevel() + 3);
+            HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} discovered {newApplicant.DisplayName()}, {_peopleManager.QualitativeEffectiveness(newApplicant.Effectiveness())} {newApplicant.Specialty()}", "Scouting Report");
+            TimeWarp.SetRate(1,false);
         }
 
         /// <summary>
@@ -1041,21 +1062,32 @@ namespace RPStoryteller
         public void KerbalBringScholar(PersonnelFile personnelFile, Emissions emitData)
         {
             this.visitingScholar = true;
+            ProtoCrewMember.Gender gender = ProtoCrewMember.Gender.Female;
+            if (storytellerRand.NextDouble() < 0.5) gender = ProtoCrewMember.Gender.Male;
+            
+            visitingScholarName = CrewGenerator.GetRandomName(gender);
             HeadlinesUtil.Report(3,
-                $"A visiting scholar brought by {personnelFile.DisplayName()} get clearance to work at the R&D complex.",
+                $"{visitingScholar}, a visiting scholar brought by {personnelFile.DisplayName()} get clearance to work at the R&D complex.",
                 "Visiting scholar");
         }
 
+        /// <summary>
+        /// Occurs after a player tells a kerbal what to do. Determines whether the kerbal loses the coercedFlag and whether
+        /// it makes them unhappy.
+        /// </summary>
+        /// <param name="personnelFile">the actor</param>
         public void KerbalCoercedTask(PersonnelFile personnelFile)
         {
+            double stubbornFactor = personnelFile.HasAttribute("stubborn") ? 1.5 : 1;
+            
             string message = $"{personnelFile.DisplayName()} is told to {personnelFile.kerbalTask} ";
-            if (storytellerRand.NextDouble() < 0.5)
+            if (storytellerRand.NextDouble() < 0.5 * stubbornFactor)
             {
                 message += "one last time ";
                 personnelFile.coercedTask = false;
             }
 
-            if (storytellerRand.NextDouble() < 0.20)
+            if (storytellerRand.NextDouble() < 0.20 * stubbornFactor)
             {
                 message += "and isn't happy";
                 personnelFile.AdjustDiscontent(1);
@@ -1116,6 +1148,43 @@ namespace RPStoryteller
             HeadlinesUtil.Report(1, $"Initializing {templateStateIdentity}");
 
             HiddenState newState = new HiddenState(templateStateIdentity, kerbalName);
+            
+            // Personality
+            if (kerbalName != "")
+            {
+                PersonnelFile pf = _peopleManager.GetFile(kerbalName);
+                float tempVal = 0;
+                bool recompute = false;
+                
+                // This crew member is a social butterfly
+                if (pf.HasAttribute("genial"))
+                {
+                    tempVal = newState.GetEmissionProbability("synergy");
+                    if (tempVal != 0) newState.SpecifyEmission("synergy", tempVal*1.5f);
+                    
+                    tempVal = newState.GetEmissionProbability("reconcile");
+                    if (tempVal != 0) newState.SpecifyEmission("reconcile", tempVal*1.5f);
+                    
+                    tempVal = newState.GetEmissionProbability("feud");
+                    if (tempVal != 0) newState.SpecifyEmission("feud", tempVal*0.5f);
+
+                    recompute = true;
+                }
+
+                // This one is not
+                if (pf.HasAttribute("scrapper"))
+                {
+                    tempVal = newState.GetEmissionProbability("reconcile");
+                    if (tempVal != 0) newState.SpecifyEmission("reconcile", tempVal*0.75f);
+                    
+                    tempVal = newState.GetEmissionProbability("feud");
+                    if (tempVal != 0) newState.SpecifyEmission("feud", tempVal*1.5f);
+                    
+                    recompute = true;
+                }
+                
+                if (recompute) newState.Recompute();
+            }
 
             // Avoid duplications
             if (_liveProcesses.ContainsKey(newState.RegisteredName()) == false)
@@ -1577,10 +1646,17 @@ namespace RPStoryteller
 
         }
 
+        /// <summary>
+        /// Add a random applicant at the program's reputation level
+        /// </summary>
         public void NewRandomApplicant()
         {
             PersonnelFile pf = _peopleManager.GenerateRandomApplicant(GetValuationLevel());
             HeadlinesUtil.Report(2,$"New {pf.Specialty()} applicant: {pf.DisplayName()}");
+            if (_peopleManager.ShouldNotify(pf.Specialty()))
+            {
+                TimeWarp.SetRate(1,false);
+            }
         }
 
         public void WithdrawRandomApplication()
@@ -1851,6 +1927,7 @@ namespace RPStoryteller
         {
             KSCItem ksc = KCTGameStates.ActiveKSC;
             ksc.RDUpgrades[0] += deltaPoint;
+            KCTGameStates.PurchasedUpgrades[0] += deltaPoint;
             HeadlinesUtil.Report(1, $"Adjust R&D points by {deltaPoint}.");
         }
 
@@ -1862,6 +1939,7 @@ namespace RPStoryteller
         {
             KSCItem ksc = KCTGameStates.ActiveKSC;
             ksc.VABUpgrades[line] += deltaPoint;
+            KCTGameStates.PurchasedUpgrades[0] += deltaPoint;
             HeadlinesUtil.Report(1, $"Adjust VAB points by {deltaPoint}.");
         }
 
@@ -1889,7 +1967,7 @@ namespace RPStoryteller
                 kerbalFile.influence = 0;
             }
         }
-
+        
         #endregion
     }
 }

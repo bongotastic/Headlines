@@ -15,6 +15,8 @@ namespace RPStoryteller.source.GUI
         private static ApplicationLauncherButton stockButton;
 
         public bool _isDisplayed = false;
+        public bool _showAutoAcceptedContracts = false;
+        
         private string _activeTab = "program";
         private int _selectedCrew = 0;
         private int _currentActivity = 0;
@@ -189,19 +191,19 @@ namespace RPStoryteller.source.GUI
             GUILayout.Box($"Program Dashboard (Staff: {storyEngine.GUIAverageProfile()})");
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"   Reputation:");
+            GUILayout.Label($"Reputation:", GUILayout.Width(100));
             GUILayout.Label($"{storyEngine.GUIValuation()}");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Overvaluation:");
+            GUILayout.Label($"Overvaluation:", GUILayout.Width(100));
             GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine.programHype, MidpointRounding.ToEven)})");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"         Peak:");
+            GUILayout.Label($"Peak:", GUILayout.Width(100));
             GUILayout.Label($"{storyEngine.GUIRelativeToPeak()}");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"  Space Craze:");
+            GUILayout.Label($"Space Craze:", GUILayout.Width(100));
             GUILayout.Label($"{storyEngine.GUISpaceCraze()}");
             GUILayout.EndHorizontal();
             GUILayout.Space(20);
@@ -244,6 +246,9 @@ namespace RPStoryteller.source.GUI
                 }
                 if (myContract.ContractState == Contract.State.Active)
                 {
+                    // Skip autoaccepted contracts 
+                    if (myContract.AutoAccept & !_showAutoAcceptedContracts) continue;
+                    
                     if (myContract.ReputationCompletion > 0)
                     {
                         ratio = storyEngine.programHype / myContract.ReputationCompletion;
@@ -271,6 +276,8 @@ namespace RPStoryteller.source.GUI
                 }
                 
             }
+
+            _showAutoAcceptedContracts = GUILayout.Toggle(_showAutoAcceptedContracts, "Show all contracts");
 
             UnityEngine.GUI.contentColor = originalColor;
             GUILayout.Space(20);
@@ -489,6 +496,13 @@ namespace RPStoryteller.source.GUI
             }
             
             GUILayout.Space(10);
+            
+            GUILayout.Box("Walk-in applicants notifications");
+            peopleManager.seekingPilot = GUILayout.Toggle(peopleManager.seekingPilot, "Pilots");
+            peopleManager.seekingScientist = GUILayout.Toggle(peopleManager.seekingScientist, "Scientists");
+            peopleManager.seekingEngineer = GUILayout.Toggle(peopleManager.seekingEngineer, "Engineers");
+            GUILayout.Space(10);
+            
             GUILayout.EndVertical();
         }
 

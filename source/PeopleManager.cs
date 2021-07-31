@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using CommNet.Network;
+using KerbalConstructionTime;
 using RPStoryteller.source;
 using Smooth.Collections;
 using UniLinq;
@@ -10,7 +11,8 @@ namespace RPStoryteller
     /// <summary>
     /// This class manages the Kerbal interface of the Storyteller mod: a mix of HR and the PR department.
     /// </summary>
-    [KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
+    //[KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] { GameScenes.EDITOR, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION })]
     public class PeopleManager : ScenarioModule
     {
         private static System.Random randomNG = new System.Random();
@@ -25,6 +27,10 @@ namespace RPStoryteller
         // Prospective crew members
         public Dictionary<string, PersonnelFile> applicantFolders = new Dictionary<string, PersonnelFile>();
         
+        // Job Search
+        [KSPField(isPersistant = true)] public bool seekingPilot = false;
+        [KSPField(isPersistant = true)] public bool seekingScientist = false;
+        [KSPField(isPersistant = true)] public bool seekingEngineer = false;
 
         #region Kitchen Sink
 
@@ -92,7 +98,6 @@ namespace RPStoryteller
                     }
                 }
             }
-            
         }
         
         #endregion
@@ -322,6 +327,26 @@ namespace RPStoryteller
             return GetRandomKerbal(excludeme, subset);
         }
 
+        public void OperationalDeathShock(PersonnelFile deceased)
+        {
+            int shock;
+            // Everyone gets a discontent increment
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                // Scrappers are unfazed by other people's death
+                shock = kvp.Value.HasAttribute("scrapper") ? 0: 1;
+                
+                if (deceased.UniqueName() != kvp.Value.UniqueName())
+                {
+                    if (kvp.Value.IsCollaborator(deceased))
+                    {
+                        shock++;
+                    }
+                    kvp.Value.AdjustDiscontent(shock);
+                }
+            }
+        }
+        
         /// <summary>
         /// Used by soul-searching kerbals wondering if they are being dragged down by their peers.
         /// </summary>
@@ -361,6 +386,19 @@ namespace RPStoryteller
                 return "excellent";
             }
             else return "legendary";
+        }
+
+        /// <summary>
+        /// Determined is Warp shoudl be killed when a new applicant spawns
+        /// </summary>
+        /// <param name="applicantRole">Speciality</param>
+        /// <returns></returns>
+        public bool ShouldNotify(string applicantSpecialty)
+        {
+            if (seekingEngineer & applicantSpecialty == "Engineer") return true;
+            if (seekingPilot & applicantSpecialty == "Pilot") return true;
+            if (seekingScientist & applicantSpecialty == "Scientist") return true;
+            return false;
         }
         
         /// <summary>
@@ -560,6 +598,17 @@ namespace RPStoryteller
         {
             return pcm;
         }
+
+        /// <summary>
+        /// Asserts whether a crew member has a given attribute.
+        /// </summary>
+        /// <param name="attribute"></param>
+        /// <returns></returns>
+        public bool HasAttribute(string attribute)
+        {
+            if (attributes.Contains(attribute)) return true;
+            return false;
+        }
         
         /// <summary>
         /// Profile is a key metric in evaluating the impact of a kerbal. People value courage and extremes in stupidity.
@@ -583,7 +632,7 @@ namespace RPStoryteller
         public int Effectiveness(bool isMedia = false, bool deterministic = false)
         {
             int effectiveness = 0;
-            
+
             // Profile and experience with probability for fractional points
             double tempProfile = Profile();
             int wholePartProfile = (int) Math.Floor(tempProfile);
@@ -596,6 +645,13 @@ namespace RPStoryteller
             if (!(isMedia && Specialty() != "Pilot"))
             {
                 effectiveness += ExperienceProfileIncrements();
+            }
+            
+            // Charm
+            if (isMedia | Specialty() == "Pilot")
+            {
+                if (HasAttribute("charming")) effectiveness++;
+                if (HasAttribute("bland")) effectiveness--;
             }
 
             // training

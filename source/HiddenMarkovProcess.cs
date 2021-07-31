@@ -230,7 +230,7 @@ namespace HiddenMarkovProcess
         /// <summary>
         /// Ensures that the Hidden Model is ready for use.
         /// </summary>
-        private void Recompute()
+        public void Recompute()
         {
             RecomputeProbabilities(_transitions);
             RecomputeProbabilities(_emissions);
@@ -260,6 +260,18 @@ namespace HiddenMarkovProcess
             SpecifyProbability(_emissions, key, value);
             _dirty = true;
         }
+
+        /// <summary>
+        /// Returns the emission probability, or 0 when it is not in the list
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public float GetEmissionProbability(string key)
+        {
+            if (_emissions.ContainsKey(key)) return _emissions[key];
+            return 0;
+        }
+        
         
         /// <summary>
         /// Safe method to add or remove an element to the model. This method is NOT rescaling probabilities, this
