@@ -933,6 +933,8 @@ namespace RPStoryteller
             if (peer != null)
             {
                 int deltaSkill = personnelFile.trainingLevel - peer.trainingLevel;
+                if (personnelFile.HasAttribute("inspiring")) deltaSkill++;
+                
                 string message = "";
                 if (deltaSkill < 0) message = "Although unlikely, ";
 
