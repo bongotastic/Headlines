@@ -366,6 +366,7 @@ namespace RPStoryteller
             if (pcm.type == ProtoCrewMember.KerbalType.Crew)
             {
                 KerbalResignation(_peopleManager.GetFile(pcm.name), new Emissions("quit"));
+                KerbalResignation(_peopleManager.GetFile(pcm.name), new Emissions("quit"));
             }
         }
 
@@ -1071,7 +1072,7 @@ namespace RPStoryteller
         public void KerbalAccident(PersonnelFile personnelFile, Emissions emitData)
         {
             double stupidity = personnelFile.Stupidity() * 10;
-            stupidity = Math.Max(4, stupidity);
+            stupidity = Math.Min(4, stupidity);
 
             SkillCheckOutcome outcome = SkillCheck((int) stupidity);
             switch (outcome)

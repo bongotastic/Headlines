@@ -481,9 +481,9 @@ namespace RPStoryteller.source.GUI
                 }
                 else
                 {
-                    GUILayout.Label($"{kvp.Value.DisplayName()}", GUILayout.Width(120)); 
-                    GUILayout.Label($"{peopleManager.QualitativeEffectiveness(kvp.Value.Effectiveness(deterministic:true))} {kvp.Value.Specialty()}", GUILayout.Width(100));
-                    GUILayout.Label($"{kvp.Value.personality}", GUILayout.Width(50));
+                    GUILayout.Label($"{kvp.Value.DisplayName()}", GUILayout.Width(150)); 
+                    GUILayout.Label($"{peopleManager.QualitativeEffectiveness(kvp.Value.Effectiveness(deterministic:true))} {kvp.Value.Specialty()}", GUILayout.Width(120));
+                    GUILayout.Label($"{kvp.Value.personality}", GUILayout.Width(60));
                 }
 
                 GUILayout.EndHorizontal();
