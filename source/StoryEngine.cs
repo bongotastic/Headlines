@@ -128,6 +128,7 @@ namespace RPStoryteller
             GameEvents.OnCrewmemberHired.Add(CrewHired);
             GameEvents.onCrewKilled.Add(CrewKilled);
             GameEvents.onKerbalAddComplete.Add(NewKerbalInRoster);
+            GameEvents.onVesselSituationChange.Add(RegisterLaunch);
             GameEvents.Contract.onCompleted.Add(ContractCompleted);
             GameEvents.Contract.onCompleted.Add(ContractAccepted);
         }
@@ -407,6 +408,36 @@ namespace RPStoryteller
             {
                 PersonnelFile pf = _peopleManager.GetFile(pcm.name);
                 HeadlinesUtil.Report(1, $"Adding {pf.UniqueName()} to as {pf.Specialty()}");
+            }
+        }
+
+        /// <summary>
+        /// Check to see if a change begins with Pre-launch and is the active vessel.
+        /// </summary>
+        /// <param name="ev"></param>
+        public void RegisterLaunch(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> ev)
+        {
+            HeadlinesUtil.Report(1, $"Launch for {ev.host.GetName()} detected.");
+            if (ev.from == Vessel.Situations.PRELAUNCH && ev.host == FlightGlobals.ActiveVessel)
+            {
+                // get crew
+                List<ProtoCrewMember> inFlight = ev.host.GetVesselCrew();
+
+                float onboardHype = 0f;
+            
+                PersonnelFile pf;
+                foreach (ProtoCrewMember pcm in inFlight)
+                {
+                    pf = _peopleManager.GetFile(pcm.name);
+                    onboardHype += pf.Effectiveness();
+                }
+
+                if (onboardHype != 0)
+                {
+                    HeadlinesUtil.Report(1, $"Hype and rep increased by {onboardHype} due to the crew.");
+                    AdjustHype(onboardHype);
+                    Reputation.Instance.AddReputation(onboardHype, TransactionReasons.Vessels);
+                }
             }
         }
 
