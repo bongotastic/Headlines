@@ -35,6 +35,38 @@ namespace RPStoryteller.source.Emissions
         }
 
         /// <summary>
+        /// Uses the patterns from the config nodes to generate a story
+        /// </summary>
+        /// <param name="localValues"></param>
+        /// <returns></returns>
+        public string GenerateStory(Dictionary<string, string> localValues)
+        {
+            string story = "";
+            
+            ConfigNode template = GetRandomNodeOfType("event_text");
+            if (template == null) return story;
+
+            story = template.GetValue("text");
+            
+            // Cause
+            if (story.Contains("[cause]") & _node.HasNodeID("cause"))
+            {
+                story = story.Replace("[case]", GetRandomNodeOfType("cause").GetValue("text"));
+            }
+            
+            // iterate over localVariable
+            foreach (KeyValuePair<string, string> kvp in localValues)
+            {
+                if (story.Contains("[" + kvp.Key + "]"))
+                {
+                    story = story.Replace("[" + kvp.Key + "]", kvp.Value);
+                }
+            }
+
+            return story;
+        }
+
+        /// <summary>
         /// Connect to a ConfigNode.
         /// </summary>
         /// <param name="node"></param>

@@ -37,7 +37,7 @@ namespace RPStoryteller.source
         /// <param name="title"></param>
         public static void CreateMessage(string message, string title)
         {
-            KSPLog.print("[[" + message + "]]");
+            KSPLog.print("[[[" + message + "]]]");
             MessageSystem ms = MessageSystem.Instance;
             ms.AddMessage(new MessageSystem.Message(title, message,
                 MessageSystemButton.MessageButtonColor.GREEN, MessageSystemButton.ButtonIcons.MESSAGE));
@@ -49,6 +49,7 @@ namespace RPStoryteller.source
         /// <param name="message">Keep it short</param>
         public static void ScreenMessage(string message)
         {
+            KSPLog.print("[[" + message + "]]");
             var messageUI = new ScreenMessage(message, 4f, ScreenMessageStyle.UPPER_CENTER);
             ScreenMessages.PostScreenMessage(messageUI);
         }

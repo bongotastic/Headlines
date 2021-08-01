@@ -99,6 +99,10 @@ namespace RPStoryteller
 
         // Inquiry
         [KSPField(isPersistant = true)] public bool ongoingInquiry = false;
+        private string lastDeadCrew = "";
+        
+        // Launch detection
+        private double lastLaunch = 0;
         
         #endregion
 
@@ -117,7 +121,7 @@ namespace RPStoryteller
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
             InitializeHMM("position_search");
-            
+
             InitializePeopleManager();
             SchedulerCacheNextTime();
 
@@ -300,7 +304,6 @@ namespace RPStoryteller
                 }
                 else
                 {
-                    HeadlinesUtil.Report(1, $"Reputation was capped at {this.programHype} due to insufficient hype.");
                     float percent =  programHype / deltaReputation;
                     if (percent < 1f)
                     {
@@ -327,9 +330,6 @@ namespace RPStoryteller
         /// <param name="reason"></param>
         private void ScienceChanged(float newScience, TransactionReasons reason)
         {
-            HeadlinesUtil.Report(1, $"new science: {newScience}");
-            HeadlinesUtil.Report(1, $"total: {totalScience}");
-            HeadlinesUtil.Report(1, $"visiting: {visitingScienceTally}");
             // Kills recursion
             if (_scienceManipultation == true)
             {
@@ -377,7 +377,6 @@ namespace RPStoryteller
         /// <param name="count"></param>
         public void CrewHired(ProtoCrewMember pcm, int count)
         {
-            HeadlinesUtil.Report(1,$"Crew hired triggered for {pcm.name}", "XXX");
             PersonnelFile newCrew = _peopleManager.GetFile(pcm.name);
             _peopleManager.HireApplicant(newCrew);
             InitializeCrewHMM(newCrew);
@@ -385,6 +384,14 @@ namespace RPStoryteller
 
         public void CrewKilled(EventReport data)
         {
+            if (data.sender == lastDeadCrew)
+            {
+                HeadlinesUtil.Report(2,"Duplicate death registration, skipping");
+                return;
+            }
+
+            lastDeadCrew = data.sender;
+            HeadlinesUtil.Report(3, $"Death inquiry for {data.sender} launched.", "Public Inquiry");
             PersonnelFile personnelFile = _peopleManager.GetFile(data.sender);
             
             // Make crew members a bit more discontent
@@ -394,9 +401,14 @@ namespace RPStoryteller
             ongoingInquiry = true;
             InitializeHMM("death_inquiry");
             
-            KerbalResignation(personnelFile, new Emissions("quit"), trajedy: true);
-            
-            
+            // Remove influence
+            CancelInfluence(personnelFile, leaveKSC: true);
+
+            // HMMs
+            RemoveHMM(personnelFile);
+
+            // Make it happen
+            _peopleManager.Remove(personnelFile);
         }
 
         /// <summary>
@@ -418,9 +430,16 @@ namespace RPStoryteller
         /// <param name="ev"></param>
         public void RegisterLaunch(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> ev)
         {
-            HeadlinesUtil.Report(1, $"Launch for {ev.host.GetName()} detected.");
+            // Avoid duplicate launch processing.
+            if (Math.Abs(HeadlinesUtil.GetUT() - lastLaunch) < 120)
+            {
+                return;
+            }
+            
             if (ev.from == Vessel.Situations.PRELAUNCH && ev.host == FlightGlobals.ActiveVessel)
             {
+                lastLaunch = HeadlinesUtil.GetUT();
+                
                 // get crew
                 List<ProtoCrewMember> inFlight = ev.host.GetVesselCrew();
 
@@ -435,7 +454,7 @@ namespace RPStoryteller
 
                 if (onboardHype != 0)
                 {
-                    HeadlinesUtil.Report(1, $"Hype and rep increased by {onboardHype} due to the crew.");
+                    HeadlinesUtil.Report(3, $"Hype and rep increased by {onboardHype} due to the crew.", "Crew in Flight");
                     AdjustHype(onboardHype);
                     Reputation.Instance.AddReputation(onboardHype, TransactionReasons.Vessels);
                 }
@@ -452,7 +471,6 @@ namespace RPStoryteller
         private void InitializePeopleManager()
         {
             HeadlinesUtil.Report(1, "Initializing PeopleManager");
-            
             _peopleManager = PeopleManager.Instance;
             _peopleManager.RefreshPersonnelFolder();
 
@@ -521,8 +539,7 @@ namespace RPStoryteller
             // Delete role HMM
             HeadlinesUtil.Report(1, $"Old hmm: {GetRoleHMM(crewmember)}");
             RemoveHMM(GetRoleHMM(crewmember).RegisteredName());
-            HeadlinesUtil.Report(1, $"After deletion ({GetRoleHMM(crewmember)})");
-            
+
             // Create role HMM
             InitializeHMM("role_"+crewmember.Specialty(), kerbalName:crewmember.UniqueName());
             HeadlinesUtil.Report(1, $"Final: {GetRoleHMM(crewmember)}");
@@ -647,7 +664,7 @@ namespace RPStoryteller
 
             HeadlinesUtil.Report(2,
                 $"{kerbalFile.DisplayName()} {adjective}in the limelight. ({deltaHype})");
-            AdjustHype(deltaHype);
+            AdjustHype(deltaHype * 5f);
         }
 
         /// <summary>
@@ -1474,10 +1491,10 @@ namespace RPStoryteller
                     AdjustAttentionSpan(-1);
                     break;
                 case "hype_boost":
-                    AdjustHype(1f);
+                    AdjustHype(5f);
                     break;
                 case "hype_dampened":
-                    AdjustHype(-1f);
+                    AdjustHype(-5f);
                     break;
                 case "decay_reputation":
                     DecayReputation();
@@ -1606,7 +1623,7 @@ namespace RPStoryteller
         }
 
         /// <summary>
-        /// Adjust hype in either direction in increments of 5. Cannot go under 0 as there is no such thing
+        /// Adjust hype in either direction. Hype cannot go under 0 as there is no such thing
         /// as negative hype.
         /// </summary>
         /// <param name="increment">(float)the number of increment unit to apply.</param>

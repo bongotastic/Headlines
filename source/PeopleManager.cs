@@ -57,7 +57,6 @@ namespace RPStoryteller
             ConfigNode appfolders = new ConfigNode();
             foreach (KeyValuePair<string, PersonnelFile> kvp in applicantFolders)
             {
-                HeadlinesUtil.Report(1,$"Saving applicant {kvp.Value.UniqueName()}");
                 appfolders.AddNode("File", kvp.Value.AsConfigNode());
             }
             node.AddNode("APPLICANTFILES", appfolders);
@@ -109,23 +108,19 @@ namespace RPStoryteller
         /// </summary>
         public void RefreshPersonnelFolder()
         {
-            HeadlinesUtil.Report(1,"Refreshing crew into PeopleManager");
             foreach (ProtoCrewMember pcm in HighLogic.CurrentGame.CrewRoster.Crew)
             {
                 if (personnelFolders.ContainsKey(pcm.name) == false)
                 {
-                    HeadlinesUtil.Report(1, $"Adding kerbal: {pcm.name}");
                     // Create and file properly
                     GetFile(pcm.name);
                 }
             }
             
-            HeadlinesUtil.Report(1,"Refreshing applicants into PeopleManager");
             foreach (ProtoCrewMember pcm in HighLogic.CurrentGame.CrewRoster.Kerbals(ProtoCrewMember.KerbalType.Applicant))
             {
                 if (applicantFolders.ContainsKey(pcm.name) == false)
                 {
-                    HeadlinesUtil.Report(1,$"New applicant {pcm.name}");
                     GetFile(pcm.name);
                 }
             }
@@ -184,7 +179,6 @@ namespace RPStoryteller
             
             foreach (ProtoCrewMember apcm in toDelete)
             {
-                HeadlinesUtil.Report(1, $"Deleting applicant {apcm.name}");
                 HighLogic.CurrentGame.CrewRoster.Remove(apcm);
             }
 
@@ -192,7 +186,6 @@ namespace RPStoryteller
             {
                 applicantFolders.Remove(kerbalName);
             }
-            HeadlinesUtil.Report(1,$"Size of applicant pool: {applicantFolders.Count}");
         }
 
         /// <summary>
