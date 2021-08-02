@@ -206,6 +206,13 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"Space Craze:", GUILayout.Width(100));
             GUILayout.Label($"{storyEngine.GUISpaceCraze()}");
             GUILayout.EndHorizontal();
+            if (storyEngine.ongoingInquiry)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"Public inquiry:", GUILayout.Width(100));
+                GUILayout.Label($"{storyEngine.ongoingInquiry}");
+                GUILayout.EndHorizontal();
+            }
             GUILayout.Space(20);
             
             DrawContracts();

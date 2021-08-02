@@ -99,8 +99,8 @@ namespace RPStoryteller
 
         // Inquiry
         [KSPField(isPersistant = true)] public bool ongoingInquiry = false;
-        private string lastDeadCrew = "";
-        
+        private List<string> newDeath = new List<string>();
+
         // Launch detection
         private double lastLaunch = 0;
         
@@ -121,6 +121,7 @@ namespace RPStoryteller
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
             InitializeHMM("position_search");
+            //InitializeHMM("death_inquiry");
 
             InitializePeopleManager();
             SchedulerCacheNextTime();
@@ -153,6 +154,11 @@ namespace RPStoryteller
                     _peopleManager.initialized = true;
                 }
                 updateIndex += 1;
+            }
+
+            if (newDeath.Count != 0)
+            {
+                DeathRoutine();
             }
 
             // End of Media spotlight?
@@ -275,6 +281,13 @@ namespace RPStoryteller
 
                 return;
             }
+
+            // Don't grant reputation for losing a vessel
+            if (reason == TransactionReasons.VesselLoss)
+            {
+                Reputation.Instance.SetReputation(programLastKnownReputation, TransactionReasons.None);
+                return;
+            }
             
             float deltaReputation = newReputation - this.programLastKnownReputation;
             if (deltaReputation == 0) return;
@@ -384,31 +397,46 @@ namespace RPStoryteller
 
         public void CrewKilled(EventReport data)
         {
-            if (data.sender == lastDeadCrew)
+            if (!newDeath.Contains(data.sender))
             {
-                HeadlinesUtil.Report(2,"Duplicate death registration, skipping");
-                return;
+                newDeath.Add(data.sender);
             }
+        }
 
-            lastDeadCrew = data.sender;
-            HeadlinesUtil.Report(3, $"Death inquiry for {data.sender} launched.", "Public Inquiry");
-            PersonnelFile personnelFile = _peopleManager.GetFile(data.sender);
+        public void DeathRoutine()
+        {
+            List<string> alreadyProcessed = new List<string>();
             
-            // Make crew members a bit more discontent
-            _peopleManager.OperationalDeathShock(personnelFile);
-            
-            // inquiry
-            ongoingInquiry = true;
-            InitializeHMM("death_inquiry");
-            
-            // Remove influence
-            CancelInfluence(personnelFile, leaveKSC: true);
+            foreach (string crewName in newDeath)
+            {
+                if (alreadyProcessed.Contains(crewName))
+                {
+                    continue;
+                }
+                alreadyProcessed.Add(crewName);
+                
+                HeadlinesUtil.Report(3, $"Death inquiry for {crewName} launched.", "Public Inquiry");
 
-            // HMMs
-            RemoveHMM(personnelFile);
+                PersonnelFile personnelFile = _peopleManager.GetFile(crewName);
+            
+                // Make crew members a bit more discontent
+                _peopleManager.OperationalDeathShock(personnelFile);
+            
+                // inquiry
+                InitializeHMM("death_inquiry");
+                ongoingInquiry = true;
 
-            // Make it happen
-            _peopleManager.Remove(personnelFile);
+                    // Remove influence
+                    CancelInfluence(personnelFile, leaveKSC: true);
+
+                // HMMs
+                RemoveHMM(personnelFile);
+
+                // Make it happen
+                _peopleManager.Remove(personnelFile);
+            }
+            
+            newDeath.Clear();
         }
 
         /// <summary>
@@ -1508,6 +1536,15 @@ namespace RPStoryteller
                 case "withdraw_application":
                     WithdrawRandomApplication();
                     break;
+                case "damning_report":
+                    InquiryDamningReport();
+                    break;
+                case "spin_findings":
+                    InquirySpinFindings();
+                    break;
+                case "conclude_inquiry":
+                    InquiryConclude();
+                    break;
                 default:
                     HeadlinesUtil.Report(1, $"[Emission] {eventName} is not implemented yet.");
                     break;
@@ -1712,19 +1749,20 @@ namespace RPStoryteller
 
         #region Death
 
-        public void InquiryDamningReport(Emissions emitData)
+        public void InquiryDamningReport()
         {
             HeadlinesUtil.Report(2, "Damning findings during inquiry");
             if (storytellerRand.NextDouble() < 0.5 | programHype == 0) DecayReputation();
             RealityCheck();
         }
         
-        public void InquirySpinFindings(Emissions emitData)
+        public void InquirySpinFindings()
         {
+            HeadlinesUtil.Report(2, "Inquiry: you spin things favourably");
             AdjustHype(1);
         }
         
-        public void InquiryConclude(Emissions emitData)
+        public void InquiryConclude()
         {
             HeadlinesUtil.Report(2, "Inquiry concludes");
             RemoveHMM("death_inquiry");
