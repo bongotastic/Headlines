@@ -98,7 +98,12 @@ namespace RPStoryteller
                 }
             }
         }
-        
+
+        public void OnDestroy()
+        {
+            GameEvents.OnCrewmemberHired.Remove(HiringEventHandler);
+        }
+
         #endregion
         
         #region KSP
@@ -320,21 +325,23 @@ namespace RPStoryteller
             return GetRandomKerbal(excludeme, subset);
         }
 
-        public void OperationalDeathShock(PersonnelFile deceased)
+        public void OperationalDeathShock(string deceased)
         {
             int shock;
             // Everyone gets a discontent increment
             foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
             {
                 // Scrappers are unfazed by other people's death
-                shock = kvp.Value.HasAttribute("scrapper") ? 0: 1;
-                
-                if (deceased.UniqueName() != kvp.Value.UniqueName())
+                shock = 1;
+                if (kvp.Value.HasAttribute("scrapper")) shock = 0;
+
+                if (deceased != kvp.Value.UniqueName())
                 {
                     if (kvp.Value.IsCollaborator(deceased))
                     {
                         shock++;
                     }
+                    HeadlinesUtil.Report(2, $"{kvp.Value.DisplayName()} suffer {shock} shock.");
                     kvp.Value.AdjustDiscontent(shock);
                 }
             }
@@ -696,9 +703,9 @@ namespace RPStoryteller
             else return 4;
         }
 
-        public bool IsCollaborator(PersonnelFile candidate)
+        public bool IsCollaborator(string candidate)
         {
-            return collaborators.Contains(candidate.UniqueName());
+            return collaborators.Contains(candidate);
         }
 
         public bool IsInactive()

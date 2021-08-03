@@ -70,6 +70,10 @@ namespace RPStoryteller
 
         // Maximum earning in repuation in a single increase call.
         [KSPField(isPersistant = true)] public float programHype = 10;
+        
+        // To appeal to the optimizers
+        [KSPField(isPersistant = true)] public double headlinesScore = 0;
+        [KSPField(isPersistant = true)] public double lastScoreTimestamp = 0;
 
         // Pledged hype when inviting the public
         [KSPField(isPersistant = true)] public bool mediaSpotlight = false;
@@ -102,7 +106,7 @@ namespace RPStoryteller
         private List<string> newDeath = new List<string>();
 
         // Launch detection
-        private double lastLaunch = 0;
+        private List<Vessel> newLaunch = new List<Vessel>();
         
         #endregion
 
@@ -156,11 +160,13 @@ namespace RPStoryteller
                 updateIndex += 1;
             }
 
-            if (newDeath.Count != 0)
-            {
-                DeathRoutine();
-            }
+            // Unfortunate addition to the Update look to get around weirdness in Event Firing.
+            if (newDeath.Count != 0) DeathRoutine();
+            if (newLaunch.Count != 0) CrewedLaunchReputation();
 
+            // Another dumb hack
+            if (ongoingInquiry && !_liveProcesses.ContainsKey("death_inquiry")) InitializeHMM("death_inquiry");
+            
             // End of Media spotlight?
             EndMediaSpotlight();
             
@@ -247,6 +253,19 @@ namespace RPStoryteller
             }
         }
 
+        private void OnDestroy()
+        {
+            GameEvents.OnReputationChanged.Remove(ReputationChanged);
+            GameEvents.OnScienceChanged.Remove(ScienceChanged);
+            GameEvents.OnCrewmemberSacked.Remove(CrewSacked);
+            GameEvents.OnCrewmemberHired.Remove(CrewHired);
+            GameEvents.onCrewKilled.Remove(CrewKilled);
+            GameEvents.onKerbalAddComplete.Remove(NewKerbalInRoster);
+            GameEvents.onVesselSituationChange.Remove(RegisterLaunch);
+            GameEvents.Contract.onCompleted.Remove(ContractCompleted);
+            GameEvents.Contract.onCompleted.Remove(ContractAccepted);
+        }
+
         /// <summary>
         /// Avoid some weird quirk from KCT editor revert (taken from RP-0)
         /// </summary>
@@ -324,6 +343,10 @@ namespace RPStoryteller
                             $"Underrated! Your achievement's impact is limited.\n({percent.ToString("P1")})");
                     }
                 }
+                
+                // Integrate as reputation X time in year
+                headlinesScore += programLastKnownReputation * ((HeadlinesUtil.GetUT() - lastScoreTimestamp)/(31536000));
+                lastScoreTimestamp = HeadlinesUtil.GetUT();
                 
                 // Surplus reputation goes as new hype
                 programHype = deltaReputation - programHype;
@@ -418,16 +441,18 @@ namespace RPStoryteller
                 HeadlinesUtil.Report(3, $"Death inquiry for {crewName} launched.", "Public Inquiry");
 
                 PersonnelFile personnelFile = _peopleManager.GetFile(crewName);
+                if (personnelFile == null) HeadlinesUtil.Report(2,"null pfile");
             
                 // Make crew members a bit more discontent
-                _peopleManager.OperationalDeathShock(personnelFile);
+                _peopleManager.OperationalDeathShock(crewName);
             
                 // inquiry
                 InitializeHMM("death_inquiry");
                 ongoingInquiry = true;
 
-                    // Remove influence
-                    CancelInfluence(personnelFile, leaveKSC: true);
+                // Remove influence
+                HeadlinesUtil.Report(2, "Canceling influence");
+                CancelInfluence(personnelFile, leaveKSC: true);
 
                 // HMMs
                 RemoveHMM(personnelFile);
@@ -458,18 +483,18 @@ namespace RPStoryteller
         /// <param name="ev"></param>
         public void RegisterLaunch(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> ev)
         {
-            // Avoid duplicate launch processing.
-            if (Math.Abs(HeadlinesUtil.GetUT() - lastLaunch) < 120)
-            {
-                return;
-            }
-            
             if (ev.from == Vessel.Situations.PRELAUNCH && ev.host == FlightGlobals.ActiveVessel)
             {
-                lastLaunch = HeadlinesUtil.GetUT();
-                
+                newLaunch.Add(ev.host);
+            }
+        }
+
+        public void CrewedLaunchReputation()
+        {
+            foreach (Vessel vessel in newLaunch)
+            {
                 // get crew
-                List<ProtoCrewMember> inFlight = ev.host.GetVesselCrew();
+                List<ProtoCrewMember> inFlight = vessel.GetVesselCrew();
 
                 float onboardHype = 0f;
             
@@ -487,6 +512,8 @@ namespace RPStoryteller
                     Reputation.Instance.AddReputation(onboardHype, TransactionReasons.Vessels);
                 }
             }
+            
+            newLaunch.Clear();
         }
 
         #endregion
@@ -927,7 +954,7 @@ namespace RPStoryteller
                         "Reconciliation");
                 }
             }
-            else if (personnelFile.IsCollaborator(collaborator) == false)
+            else if (personnelFile.IsCollaborator(collaborator.UniqueName()) == false)
             {
                 if (personnelFile.SetCollaborator(collaborator))
                 {

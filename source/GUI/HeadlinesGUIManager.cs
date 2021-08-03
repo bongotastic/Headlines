@@ -62,6 +62,9 @@ namespace RPStoryteller.source.GUI
             try
             {
                 GameEvents.onGUIApplicationLauncherReady.Remove(OnGuiAppLauncherReady);
+                GameEvents.onGameSceneLoadRequested.Remove(OnSceneChange);
+                GameEvents.onGameSceneSwitchRequested.Remove(OnSceneChange);
+
                 if (stockButton != null)
                     ApplicationLauncher.Instance.RemoveModApplication(stockButton);
             }
@@ -83,10 +86,11 @@ namespace RPStoryteller.source.GUI
                     null,
                     null,
                     ApplicationLauncher.AppScenes.SPACECENTER | ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
-                    GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching28 ", false)
+                    GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching2 ", false)
                 );
                 //ApplicationLauncher.Instance.AddOnHideCallback(HideButton);
                 GameEvents.onGameSceneLoadRequested.Add(OnSceneChange);
+                GameEvents.onGameSceneSwitchRequested.Add(OnSceneChange);
             }
         }
         
@@ -94,6 +98,14 @@ namespace RPStoryteller.source.GUI
         {
             if (s == GameScenes.FLIGHT)
                 HideWindow();
+        }
+
+        private void OnSceneChange(GameEvents.FromToAction<GameScenes, GameScenes> ev)
+        {
+            if (ev.from == GameScenes.SPACECENTER)
+            {
+                HideWindow();
+            }
         }
 
         private void BuildActivityLabels(string role)
@@ -174,6 +186,11 @@ namespace RPStoryteller.source.GUI
                     DrawGMPanel();
                     break;
             }
+
+            if (GUILayout.Button("Close"))
+            {
+                HideWindow();
+            }
             
             UnityEngine.GUI.DragWindow();
         }
@@ -213,6 +230,10 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Label($"{storyEngine.ongoingInquiry}");
                 GUILayout.EndHorizontal();
             }
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Score:", GUILayout.Width(100));
+            GUILayout.Label($"{(int)storyEngine.headlinesScore} Rep * year");
+            GUILayout.EndHorizontal();
             GUILayout.Space(20);
             
             DrawContracts();
@@ -228,7 +249,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndHorizontal();
             if (storyEngine.visitingScholar)
             {
-                GUILayout.Label("Visiting scholar boost on next science gain.");
+                GUILayout.Label($"Visiting scholar {storyEngine.visitingScholarName} will help with next science haul.");
             }
             
             GUILayout.EndVertical();
@@ -283,10 +304,10 @@ namespace RPStoryteller.source.GUI
                 }
                 
             }
-
+            
+            UnityEngine.GUI.contentColor = originalColor;
             _showAutoAcceptedContracts = GUILayout.Toggle(_showAutoAcceptedContracts, "Show all contracts");
 
-            UnityEngine.GUI.contentColor = originalColor;
             GUILayout.Space(20);
             if (storyEngine.endSpotlight < HeadlinesUtil.GetUT())
             {
