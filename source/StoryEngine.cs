@@ -59,10 +59,9 @@ namespace RPStoryteller
         private double _nextUpdate = -1;
 
         // Master switch of the mod's tempo in second. Should be 36 days for a real run. 
-        //private double _assumedPeriod = 60;
         private double _assumedPeriod = 3600 * 24;
 
-        // Prevent infinite recusion
+        // Prevent infinite recursion
         private bool _scienceManipultation = false;
 
         // Multiplier to the _assumedPeriod when it comes to HMM triggering
@@ -108,6 +107,10 @@ namespace RPStoryteller
         // Launch detection
         private List<Vessel> newLaunch = new List<Vessel>();
         
+        // New Game flag
+        [KSPField(isPersistant = true)] public bool hasnotvisitedAstronautComplex = true;
+        public bool inAstronautComplex = false;
+         
         #endregion
 
         #region UnityStuff
@@ -138,6 +141,8 @@ namespace RPStoryteller
             GameEvents.onCrewKilled.Add(CrewKilled);
             GameEvents.onKerbalAddComplete.Add(NewKerbalInRoster);
             GameEvents.onVesselSituationChange.Add(RegisterLaunch);
+            GameEvents.onGUIAstronautComplexSpawn.Add(AstronautComplexSpawn);
+            GameEvents.onGUIAstronautComplexDespawn.Add(AstronautComplexDespawn);
             GameEvents.Contract.onCompleted.Add(ContractCompleted);
             GameEvents.Contract.onCompleted.Add(ContractAccepted);
         }
@@ -262,6 +267,8 @@ namespace RPStoryteller
             GameEvents.onCrewKilled.Remove(CrewKilled);
             GameEvents.onKerbalAddComplete.Remove(NewKerbalInRoster);
             GameEvents.onVesselSituationChange.Remove(RegisterLaunch);
+            GameEvents.onGUIAstronautComplexSpawn.Remove(AstronautComplexSpawn);
+            GameEvents.onGUIAstronautComplexDespawn.Remove(AstronautComplexDespawn);
             GameEvents.Contract.onCompleted.Remove(ContractCompleted);
             GameEvents.Contract.onCompleted.Remove(ContractAccepted);
         }
@@ -516,6 +523,22 @@ namespace RPStoryteller
             }
             
             newLaunch.Clear();
+        }
+
+        private void AstronautComplexSpawn()
+        {
+            inAstronautComplex = true;
+            if (hasnotvisitedAstronautComplex)
+            {
+                _peopleManager.RefreshPersonnelFolder();
+                hasnotvisitedAstronautComplex = false;
+            }
+        }
+
+        private void AstronautComplexDespawn()
+        {
+            inAstronautComplex = false;
+            _peopleManager.RefreshPersonnelFolder();
         }
 
         #endregion
@@ -1728,7 +1751,7 @@ namespace RPStoryteller
             this.programHype += increment;
             this.programHype = Math.Max(0f, this.programHype);
 
-            HeadlinesUtil.Report(1, $"Hype on the program changed by {increment * 5f} to now be {this.programHype}.");
+            HeadlinesUtil.Report(1, $"Hype on the program changed by {increment} to now be {this.programHype}.");
             if (increment > 0)
             {
                 HeadlinesUtil.ScreenMessage($"Space craze is heating up in the press.");

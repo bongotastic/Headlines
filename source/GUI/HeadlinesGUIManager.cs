@@ -473,7 +473,7 @@ namespace RPStoryteller.source.GUI
             double searchCost = 2000 + 2000 * (double) storyEngine.GetValuationLevel();
             if (storyEngine.GetFunds() > searchCost)
             {
-                if (GUILayout.Button($"Open New Search (${searchCost})"))
+                if (GUILayout.Button($"Open new search (${searchCost})"))
                 {
                     storyEngine.LaunchSearch(false);
                 }
@@ -481,14 +481,14 @@ namespace RPStoryteller.source.GUI
                 searchCost *= 5;
                 if (storyEngine.GetFunds() > searchCost)
                 {
-                    if (GUILayout.Button($"HeadHunt (${searchCost})"))
+                    if (GUILayout.Button($"Contract a headHunter (${searchCost})"))
                     {
                         storyEngine.LaunchSearch(true);
                     }
                 }
                 else
                 {
-                    GUILayout.Label($"Hire headhunters for ${searchCost}");
+                    GUILayout.Label($"Hiring a headhunter costs ${searchCost}");
                 }
             }
             else
@@ -499,6 +499,7 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.Box($"Applicant Pool ({peopleManager.applicantFolders.Count})");
 
+            int nApplicant = 0;
             List<string> toDelete = new List<string>();
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)
             {
@@ -509,9 +510,31 @@ namespace RPStoryteller.source.GUI
                 }
                 else
                 {
+                    nApplicant++;
                     GUILayout.Label($"{kvp.Value.DisplayName()}", GUILayout.Width(150)); 
                     GUILayout.Label($"{peopleManager.QualitativeEffectiveness(kvp.Value.Effectiveness(deterministic:true))} {kvp.Value.Specialty()}", GUILayout.Width(120));
                     GUILayout.Label($"{kvp.Value.personality}", GUILayout.Width(60));
+                }
+
+                if (nApplicant == 0)
+                {
+                    GUILayout.Space(10);
+                    if (storyEngine.hasnotvisitedAstronautComplex)
+                    {
+                        if (!storyEngine.inAstronautComplex)
+                        {
+                            GUILayout.Label("Toby, your HR staff, has misplaced his key to the astronaut complex. Please enter then exit the complex so that he may interview the applicants waiting in line.");
+                        }
+                        else
+                        {
+                            GUILayout.Label("You may leave the complex while Toby does his job.");
+                        }
+                
+                    }
+                    else
+                    {
+                        GUILayout.Label("There are no applicants on file. You will have to rely on chance walk-ins or spend money to find prospects.");
+                    }
                 }
 
                 GUILayout.EndHorizontal();
