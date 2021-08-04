@@ -86,7 +86,7 @@ namespace RPStoryteller.source.GUI
                     null,
                     null,
                     ApplicationLauncher.AppScenes.SPACECENTER | ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
-                    GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching2 ", false)
+                    GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching28mask2", false)
                 );
                 //ApplicationLauncher.Instance.AddOnHideCallback(HideButton);
                 GameEvents.onGameSceneLoadRequested.Add(OnSceneChange);
@@ -449,17 +449,17 @@ namespace RPStoryteller.source.GUI
             if (isFeud == true)
             {
                 UnityEngine.GUI.contentColor = Color.red;
-                GUILayout.Label("[FEUD]");
+                GUILayout.Label("[FEUD]", GUILayout.Width(50));
             }
             else
             {
                 UnityEngine.GUI.contentColor = Color.green;
-                GUILayout.Label("[COLL]");
+                GUILayout.Label("[COLL]", GUILayout.Width(50));
             }
             UnityEngine.GUI.contentColor = oldColor;
             
-            GUILayout.Label($"{crewMember.DisplayName()}");
-            GUILayout.Label($"{crewMember.Specialty()} ({peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))})");
+            GUILayout.Label($"{crewMember.DisplayName()}", GUILayout.Width(160));
+            GUILayout.Label($"{crewMember.Specialty()} ({peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))})", GUILayout.Width(120));
             
             GUILayout.EndHorizontal();
         }

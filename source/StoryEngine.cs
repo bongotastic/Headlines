@@ -282,6 +282,7 @@ namespace RPStoryteller
 
         public void AdjustFunds(double deltaFund)
         {
+            HeadlinesUtil.Report(1, $"Adjusting funds by {deltaFund}", "FUNDS");
             Funding.Instance.AddFunds(deltaFund, TransactionReasons.None);
         }
 
@@ -314,7 +315,7 @@ namespace RPStoryteller
             string before =
                 $"Rep: {programLastKnownReputation}, New delta rep: {deltaReputation}, Hype: {this.programHype}.";
             string after = "";
-            HeadlinesUtil.Report(1, before);
+            HeadlinesUtil.Report(1, before, "Reputation");
             if (deltaReputation <= programHype)
             {
                 this.programHype -= deltaReputation;
@@ -330,7 +331,7 @@ namespace RPStoryteller
                     realDelta = Math.Min(deltaReputation, programHype*2f);
                     if (realDelta > programHype)
                     {
-                        HeadlinesUtil.ScreenMessage(
+                        HeadlinesUtil.Report(2,
                             $"Thanks to the media invitation, you capture the public's imagination.");
                     }
                 }
@@ -339,7 +340,7 @@ namespace RPStoryteller
                     float percent =  programHype / deltaReputation;
                     if (percent < 1f)
                     {
-                        HeadlinesUtil.ScreenMessage(
+                        HeadlinesUtil.Report(2,
                             $"Underrated! Your achievement's impact is limited.\n({percent.ToString("P1")})");
                     }
                 }
@@ -353,7 +354,7 @@ namespace RPStoryteller
                 programLastKnownReputation += realDelta;
                 Reputation.Instance.SetReputation(programLastKnownReputation, TransactionReasons.None);
                 after = $"Final Rep: {programLastKnownReputation}, Net delta: {realDelta}, Hype: {programHype}.";
-                HeadlinesUtil.Report(1, after);
+                HeadlinesUtil.Report(1, after, "Reputation");
             }
             UpdatePeakValuation();
         }
@@ -372,10 +373,11 @@ namespace RPStoryteller
                 _scienceManipultation = false;
                 return;
             }
-
+            
             float deltaScience = (newScience - this.programLastKnownScience);
             if (deltaScience > 0) totalScience += deltaScience;
-
+            HeadlinesUtil.Report(1, $"Adding {deltaScience} science", "Science");
+            
             if (this.visitingScholar == true)
             {
                 deltaScience *= 0.2f;
@@ -385,6 +387,7 @@ namespace RPStoryteller
                     this.visitingScholar = false;
                     this._scienceManipultation = true;
                     ResearchAndDevelopment.Instance.CheatAddScience(deltaScience);
+                    HeadlinesUtil.Report(1, $"Visiting scholar bonus: {deltaScience}", "Science");
                 }
             }
 
@@ -401,7 +404,6 @@ namespace RPStoryteller
             // TODO being fired isn't the same as quitting for logging purpose.
             if (pcm.type == ProtoCrewMember.KerbalType.Crew)
             {
-                KerbalResignation(_peopleManager.GetFile(pcm.name), new Emissions("quit"));
                 KerbalResignation(_peopleManager.GetFile(pcm.name), new Emissions("quit"));
             }
         }
@@ -603,10 +605,11 @@ namespace RPStoryteller
         /// <summary>
         /// Determines the outcome of a check based on a mashup of Pendragon and VOID.
         /// </summary>
+        /// <remarks>Deprecated, will die if the GURPS model makes more sense.</remarks>
         /// <param name="skillLevel">0+ arbitrary unit</param>
         /// <param name="difficulty">0+ arbitrary unit</param>
         /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
-        public static SkillCheckOutcome SkillCheck(int skillLevel, int difficulty = 0)
+        public static SkillCheckOutcome SkillCheckOutcomeCypher(int skillLevel, int difficulty = 0)
         {
             int upperlimit = 3 * skillLevel;
             int lowerlimit = 3 * difficulty;
@@ -621,6 +624,29 @@ namespace RPStoryteller
             if (die == upperlimit || (upperlimit >= 20 && die >= 20)) outcome = SkillCheckOutcome.CRITICAL;
             else if (die >= lowerlimit && die < upperlimit) outcome = SkillCheckOutcome.SUCCESS;
 
+            return outcome;
+        }
+        
+        /// <summary>
+        /// Determines the outcome of a check based on GURPS/Cyper mashup. Lowers chances of critical success
+        /// and fumbles as the straigh CYPHER system isn't design for a high volume of checks.
+        /// </summary>
+        /// <param name="skillLevel">0+ arbitrary unit</param>
+        /// <param name="difficulty">0+ arbitrary unit</param>
+        /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
+        public static SkillCheckOutcome SkillCheck(int skillLevel, int difficulty = 0)
+        {
+            int upperlimit = 3 * skillLevel;
+            int lowerlimit = 3 * difficulty;
+
+            SkillCheckOutcome outcome = SkillCheckOutcome.FAILURE;
+
+            int die = storytellerRand.Next(1, 7) + storytellerRand.Next(1, 7) + storytellerRand.Next(1, 7);
+            
+            if ((die <= upperlimit & die > lowerlimit) | (upperlimit <= 4 & die <= 4)) outcome = SkillCheckOutcome.SUCCESS; 
+            else if (die <= 4 | upperlimit - die >= 10 ) outcome = SkillCheckOutcome.CRITICAL;
+            else if (die >= 17 | die - lowerlimit >= 10 ) outcome = SkillCheckOutcome.FUMBLE;
+            
             return outcome;
         }
 
@@ -645,7 +671,7 @@ namespace RPStoryteller
 
             // In case of inquiry, immediate impact vanishes.
             if (ongoingInquiry &
-                (successLevel == SkillCheckOutcome.SUCCESS & successLevel == SkillCheckOutcome.CRITICAL))
+                (successLevel == SkillCheckOutcome.SUCCESS | successLevel == SkillCheckOutcome.CRITICAL))
             {
                 successLevel = SkillCheckOutcome.FAILURE;
             }
@@ -1330,6 +1356,7 @@ namespace RPStoryteller
         /// <param name="registeredStateIdentity">The identifier for this HMM</param>
         private void RemoveHMM(string registeredStateIdentity)
         {
+            HeadlinesUtil.Report(1, $"Removing HMM {registeredStateIdentity}", "HMM");
             if (_hmmScheduler.ContainsKey(registeredStateIdentity)) _hmmScheduler.Remove(registeredStateIdentity);
             if (_liveProcesses.ContainsKey(registeredStateIdentity)) _liveProcesses.Remove(registeredStateIdentity);
         }
@@ -1340,6 +1367,7 @@ namespace RPStoryteller
         /// <param name="personnelFile">the file of a crew member</param>
         private void RemoveHMM(PersonnelFile personnelFile)
         {
+            HeadlinesUtil.Report(1, $"Removing HMM for {personnelFile.UniqueName()}", "HMM");
             List<string> choppingBlock = new List<string>();
             foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
             {
@@ -1449,6 +1477,7 @@ namespace RPStoryteller
         {
             double deltaTime = GeneratePeriod(_liveProcesses[registeredStateIdentity].period);
             _hmmScheduler[registeredStateIdentity] = HeadlinesUtil.GetUT() + deltaTime;
+            HeadlinesUtil.Report(1, $"Rescheduling HMM {registeredStateIdentity} to +{deltaTime}", "HMM");
 
             // Punt injury inactivation into the future
             if (registeredStateIdentity.Contains("kerbal_injured"))
@@ -1483,6 +1512,7 @@ namespace RPStoryteller
 
                 // HMM emission call
                 emittedEvent = _liveProcesses[registeredStateName].Emission();
+                HeadlinesUtil.Report(1, $"HMM {registeredStateName} fires {emittedEvent}", "HMM");
 
                 if (emittedEvent != "")
                 {
@@ -1508,6 +1538,7 @@ namespace RPStoryteller
 
                 // HMM transition determination
                 nextTransitionState = _liveProcesses[registeredStateName].Transition();
+                HeadlinesUtil.Report(1, $"HMM {registeredStateName} transitions to {nextTransitionState}", "HMM");
 
                 if (nextTransitionState != _liveProcesses[registeredStateName].TemplateStateName())
                 {
@@ -1694,7 +1725,7 @@ namespace RPStoryteller
         public void AdjustHype(float increment)
         {
             // Simplistic model ignoring reasonable targets
-            this.programHype += increment * 5f;
+            this.programHype += increment;
             this.programHype = Math.Max(0f, this.programHype);
 
             HeadlinesUtil.Report(1, $"Hype on the program changed by {increment * 5f} to now be {this.programHype}.");
@@ -1778,20 +1809,20 @@ namespace RPStoryteller
 
         public void InquiryDamningReport()
         {
-            HeadlinesUtil.Report(2, "Damning findings during inquiry");
+            HeadlinesUtil.Report(3, "Damning findings during inquiry", "Public inquiry");
             if (storytellerRand.NextDouble() < 0.5 | programHype == 0) DecayReputation();
             RealityCheck();
         }
         
         public void InquirySpinFindings()
         {
-            HeadlinesUtil.Report(2, "Inquiry: you spin things favourably");
+            HeadlinesUtil.Report(3, "Inquiry: you spin things favourably", "Public inquiry");
             AdjustHype(1);
         }
         
         public void InquiryConclude()
         {
-            HeadlinesUtil.Report(2, "Inquiry concludes");
+            HeadlinesUtil.Report(3, "Inquiry concludes", "Public inquiry");
             RemoveHMM("death_inquiry");
             ongoingInquiry = false;
         }
