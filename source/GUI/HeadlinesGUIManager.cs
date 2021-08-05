@@ -31,7 +31,6 @@ namespace RPStoryteller.source.GUI
         // location of the Window
         public Rect position;
 
-
         #region Unity stuff
         
         protected void Awake()
@@ -49,12 +48,8 @@ namespace RPStoryteller.source.GUI
         
         public void Start()
         {
-            //UpdateToolbarStock();
-            
             storyEngine = StoryEngine.Instance;
-
-            position = new Rect(100f, 100f, 300f, 200f);
-
+            position = new Rect(100f, 100f, 400f, 200f);
         }
 
         protected void OnDestroy()
@@ -149,6 +144,10 @@ namespace RPStoryteller.source.GUI
             _activeTab = activeTab;
         }
         
+        /// <summary>
+        /// Top-level UI for Headlines
+        /// </summary>
+        /// <param name="windowID"></param>
         public void DrawWindow(int windowID)
         {
             // Tab area
@@ -318,11 +317,11 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Box($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine.endSpotlight - HeadlinesUtil.GetUT(), true, true)}");
             }
             GUILayout.Space(10);
-            
-
-            // pledge Clock (if applicable) and total tally 
         }
 
+        /// <summary>
+        /// Top-level UI for the Crew panel of the main UI
+        /// </summary>
         public void DrawPersonelPanel()
         {
             RefreshRoster();
@@ -331,26 +330,33 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.BeginVertical();
             GUILayout.Box("Active crew");
+            
             _selectedCrew = GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3);
             if (_selectedCrew >= crewRoster.Count)
             {
                 _selectedCrew = 0;
             }
-            GUILayout.Space(10);
             
+            GUILayout.Space(10);
             DrawCrew();
             GUILayout.EndVertical();
         }
         
+        /// <summary>
+        /// Draw the crew UI assuming that _selectedCrew is set to the index of a a crew. Assumes that crewRoster is built.
+        /// </summary>
+        /// //todo should be refactored into components
         public void DrawCrew()
         {
             string crewName = crewRoster[_selectedCrew];
-            PersonnelFile focusCrew = GetFileFromDisplay(crewName);
+            PersonnelFile focusCrew = peopleManager.GetFile(crewName);
+            
             string personality = "";
             if (focusCrew.personality != "")
             {
                 personality = $" ({focusCrew.personality})";
             }
+            
             GUILayout.Box($"{peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))} {focusCrew.Specialty().ToLower()}{personality}");
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Net Score: {focusCrew.Effectiveness(deterministic:true)}");
@@ -440,10 +446,13 @@ namespace RPStoryteller.source.GUI
 
         }
 
+        /// <summary>
+        /// This section of the Crew UI displays one entry of the interpersonal relationships involving the selected crewMember 
+        /// </summary>
+        /// <param name="crewMember">Name of the "other" crew member</param>
+        /// <param name="isFeud"></param>
         public void DrawRelationship(PersonnelFile crewMember, bool isFeud = false)
         {
-            
-            
             GUILayout.BeginHorizontal();
             Color oldColor = UnityEngine.GUI.contentColor;
             if (isFeud == true)
@@ -596,6 +605,9 @@ namespace RPStoryteller.source.GUI
         #region Logic
         
 
+        /// <summary>
+        /// Pulls the data from PeopleManager and stores names to be used for drawing buttons and passing to DrawCrew.
+        /// </summary>
         public void RefreshRoster()
         {
             peopleManager = storyEngine.GetPeopleManager();
@@ -603,16 +615,22 @@ namespace RPStoryteller.source.GUI
             crewRoster = new List<string>();
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)
             {
-                crewRoster.Add(kvp.Value.DisplayName());
+                crewRoster.Add(kvp.Value.UniqueName());
             }
 
             applicantRoster = new List<string>();
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)
             {
-                applicantRoster.Add(kvp.Value.DisplayName());
+                applicantRoster.Add(kvp.Value.UniqueName());
             }
         }
 
+        /// <summary>
+        /// I believe that this awkward duck belongs to the PeopleManager Class Refactor.
+        /// </summary>
+        /// todo Refactor to shift to PeopleManager.
+        /// <param name="displayName"></param>
+        /// <returns></returns>
         public PersonnelFile GetFileFromDisplay(string displayName)
         {
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)

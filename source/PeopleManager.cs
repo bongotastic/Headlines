@@ -150,7 +150,7 @@ namespace RPStoryteller
         /// Delete the personnel file and remove the pcm from the game.
         /// </summary>
         /// <param name="personnelFile"></param>
-        public void Remove(PersonnelFile personnelFile)
+        public void RemoveKerbal(PersonnelFile personnelFile)
         {
             foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
             {

@@ -134,17 +134,17 @@ namespace RPStoryteller
             SchedulerCacheNextTime();
 
             // Event Catching
-            GameEvents.OnReputationChanged.Add(ReputationChanged);
-            GameEvents.OnScienceChanged.Add(ScienceChanged);
-            GameEvents.OnCrewmemberSacked.Add(CrewSacked);
-            GameEvents.OnCrewmemberHired.Add(CrewHired);
-            GameEvents.onCrewKilled.Add(CrewKilled);
-            GameEvents.onKerbalAddComplete.Add(NewKerbalInRoster);
-            GameEvents.onVesselSituationChange.Add(RegisterLaunch);
-            GameEvents.onGUIAstronautComplexSpawn.Add(AstronautComplexSpawn);
-            GameEvents.onGUIAstronautComplexDespawn.Add(AstronautComplexDespawn);
-            GameEvents.Contract.onCompleted.Add(ContractCompleted);
-            GameEvents.Contract.onCompleted.Add(ContractAccepted);
+            GameEvents.OnReputationChanged.Add(EventReputationChanged);
+            GameEvents.OnScienceChanged.Add(EventScienceChanged);
+            GameEvents.OnCrewmemberSacked.Add(EventCrewSacked);
+            GameEvents.OnCrewmemberHired.Add(EventCrewHired);
+            GameEvents.onCrewKilled.Add(EventCrewKilled);
+            GameEvents.onKerbalAddComplete.Add(EventNewKerbalInRoster);
+            GameEvents.onVesselSituationChange.Add(EventRegisterLaunch);
+            GameEvents.onGUIAstronautComplexSpawn.Add(EventAstronautComplexSpawn);
+            GameEvents.onGUIAstronautComplexDespawn.Add(EventAstronautComplexDespawn);
+            GameEvents.Contract.onCompleted.Add(EventContractCompleted);
+            GameEvents.Contract.onCompleted.Add(EventContractAccepted);
         }
 
         /// <summary>
@@ -260,17 +260,17 @@ namespace RPStoryteller
 
         private void OnDestroy()
         {
-            GameEvents.OnReputationChanged.Remove(ReputationChanged);
-            GameEvents.OnScienceChanged.Remove(ScienceChanged);
-            GameEvents.OnCrewmemberSacked.Remove(CrewSacked);
-            GameEvents.OnCrewmemberHired.Remove(CrewHired);
-            GameEvents.onCrewKilled.Remove(CrewKilled);
-            GameEvents.onKerbalAddComplete.Remove(NewKerbalInRoster);
-            GameEvents.onVesselSituationChange.Remove(RegisterLaunch);
-            GameEvents.onGUIAstronautComplexSpawn.Remove(AstronautComplexSpawn);
-            GameEvents.onGUIAstronautComplexDespawn.Remove(AstronautComplexDespawn);
-            GameEvents.Contract.onCompleted.Remove(ContractCompleted);
-            GameEvents.Contract.onCompleted.Remove(ContractAccepted);
+            GameEvents.OnReputationChanged.Remove(EventReputationChanged);
+            GameEvents.OnScienceChanged.Remove(EventScienceChanged);
+            GameEvents.OnCrewmemberSacked.Remove(EventCrewSacked);
+            GameEvents.OnCrewmemberHired.Remove(EventCrewHired);
+            GameEvents.onCrewKilled.Remove(EventCrewKilled);
+            GameEvents.onKerbalAddComplete.Remove(EventNewKerbalInRoster);
+            GameEvents.onVesselSituationChange.Remove(EventRegisterLaunch);
+            GameEvents.onGUIAstronautComplexSpawn.Remove(EventAstronautComplexSpawn);
+            GameEvents.onGUIAstronautComplexDespawn.Remove(EventAstronautComplexDespawn);
+            GameEvents.Contract.onCompleted.Remove(EventContractCompleted);
+            GameEvents.Contract.onCompleted.Remove(EventContractAccepted);
         }
 
         /// <summary>
@@ -298,7 +298,7 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="newReputation">The new, unmodified reputation</param>
         /// <param name="reason">Transactionreason item</param>
-        private void ReputationChanged(float newReputation, TransactionReasons reason)
+        private void EventReputationChanged(float newReputation, TransactionReasons reason)
         {
             // Avoid processing recursively the adjustment
             if (reason == TransactionReasons.None)
@@ -372,29 +372,33 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="newScience"></param>
         /// <param name="reason"></param>
-        private void ScienceChanged(float newScience, TransactionReasons reason)
+        private void EventScienceChanged(float newScience, TransactionReasons reason)
         {
             // Kills recursion
-            if (_scienceManipultation == true)
+            if (_scienceManipultation)
             {
                 _scienceManipultation = false;
                 return;
             }
             
-            float deltaScience = (newScience - this.programLastKnownScience);
+            float deltaScience = (newScience - programLastKnownScience);
             if (deltaScience > 0) totalScience += deltaScience;
             HeadlinesUtil.Report(1, $"Adding {deltaScience} science", "Science");
             
-            if (this.visitingScholar == true)
+            if (visitingScholar)
             {
                 deltaScience *= 0.2f;
                 if (deltaScience >= 0)
                 {
-                    this.visitingScienceTally += deltaScience;
-                    this.visitingScholar = false;
-                    this._scienceManipultation = true;
+                    visitingScienceTally += deltaScience;
+                    if (storytellerRand.NextDouble() < 0.5)
+                    {
+                        visitingScholar = false;
+                    }
+                    
+                    _scienceManipultation = true;
                     ResearchAndDevelopment.Instance.CheatAddScience(deltaScience);
-                    HeadlinesUtil.Report(1, $"Visiting scholar bonus: {deltaScience}", "Science");
+                    HeadlinesUtil.Report(3, $"Visiting scholar bonus: {deltaScience}", "Science");
                 }
             }
 
@@ -406,7 +410,7 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="pcm"></param>
         /// <param name="count"></param>
-        public void CrewSacked(ProtoCrewMember pcm, int count)
+        public void EventCrewSacked(ProtoCrewMember pcm, int count)
         {
             // TODO being fired isn't the same as quitting for logging purpose.
             if (pcm.type == ProtoCrewMember.KerbalType.Crew)
@@ -420,14 +424,14 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="pcm"></param>
         /// <param name="count"></param>
-        public void CrewHired(ProtoCrewMember pcm, int count)
+        public void EventCrewHired(ProtoCrewMember pcm, int count)
         {
             PersonnelFile newCrew = _peopleManager.GetFile(pcm.name);
             _peopleManager.HireApplicant(newCrew);
             InitializeCrewHMM(newCrew);
         }
 
-        public void CrewKilled(EventReport data)
+        public void EventCrewKilled(EventReport data)
         {
             if (!newDeath.Contains(data.sender))
             {
@@ -435,6 +439,9 @@ namespace RPStoryteller
             }
         }
 
+        /// <summary>
+        /// Delayed event handler that is likely no longer necessary and can just as well be moved back to CrewKilled
+        /// </summary>
         public void DeathRoutine()
         {
             List<string> alreadyProcessed = new List<string>();
@@ -467,7 +474,7 @@ namespace RPStoryteller
                 RemoveHMM(personnelFile);
 
                 // Make it happen
-                _peopleManager.Remove(personnelFile);
+                _peopleManager.RemoveKerbal(personnelFile);
             }
             
             newDeath.Clear();
@@ -477,7 +484,7 @@ namespace RPStoryteller
         /// Whenever a kerbal enters the roster (all type), this is triggered and thus creates a file.
         /// </summary>
         /// <param name="pcm"></param>
-        public void NewKerbalInRoster(ProtoCrewMember pcm)
+        public void EventNewKerbalInRoster(ProtoCrewMember pcm)
         {
             if (pcm.type == ProtoCrewMember.KerbalType.Applicant)
             {
@@ -490,7 +497,7 @@ namespace RPStoryteller
         /// Check to see if a change begins with Pre-launch and is the active vessel.
         /// </summary>
         /// <param name="ev"></param>
-        public void RegisterLaunch(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> ev)
+        public void EventRegisterLaunch(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> ev)
         {
             if (ev.from == Vessel.Situations.PRELAUNCH && ev.host == FlightGlobals.ActiveVessel)
             {
@@ -498,6 +505,9 @@ namespace RPStoryteller
             }
         }
 
+        /// <summary>
+        /// Reputation and hype gained by launching a kerbal. 
+        /// </summary>
         public void CrewedLaunchReputation()
         {
             foreach (Vessel vessel in newLaunch)
@@ -525,17 +535,22 @@ namespace RPStoryteller
             newLaunch.Clear();
         }
 
-        private void AstronautComplexSpawn()
+        /// <summary>
+        /// Flag to determine what to display on the Recruitment UI tab when there is no applicants to show.
+        /// </summary>
+        private void EventAstronautComplexSpawn()
         {
             inAstronautComplex = true;
             if (hasnotvisitedAstronautComplex)
             {
-                _peopleManager.RefreshPersonnelFolder();
                 hasnotvisitedAstronautComplex = false;
             }
         }
 
-        private void AstronautComplexDespawn()
+        /// <summary>
+        /// Needed to generate the files when a new career starts.
+        /// </summary>
+        private void EventAstronautComplexDespawn()
         {
             inAstronautComplex = false;
             _peopleManager.RefreshPersonnelFolder();
@@ -557,20 +572,6 @@ namespace RPStoryteller
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
             {
                 InitializeCrewHMM(kvp.Value);
-            }
-        }
-
-        public void InitializeCrewHMM(PersonnelFile personnelFile)
-        {
-            string registeredStateName = personnelFile.UniqueName() + "@role_" + personnelFile.Specialty();
-            if (_liveProcesses.ContainsKey(registeredStateName) == false)
-            {
-                InitializeHMM("role_" + personnelFile.Specialty(), kerbalName:personnelFile.UniqueName());
-            }
-            registeredStateName = personnelFile.UniqueName() + "@kerbal_" + personnelFile.kerbalProductiveState;
-            if (_liveProcesses.ContainsKey(registeredStateName) == false)
-            {
-                InitializeHMM("kerbal_"+personnelFile.kerbalProductiveState, kerbalName:personnelFile.UniqueName());
             }
         }
 
@@ -623,54 +624,6 @@ namespace RPStoryteller
             // Create role HMM
             InitializeHMM("role_"+crewmember.Specialty(), kerbalName:crewmember.UniqueName());
             HeadlinesUtil.Report(1, $"Final: {GetRoleHMM(crewmember)}");
-        }
-
-        /// <summary>
-        /// Determines the outcome of a check based on a mashup of Pendragon and VOID.
-        /// </summary>
-        /// <remarks>Deprecated, will die if the GURPS model makes more sense.</remarks>
-        /// <param name="skillLevel">0+ arbitrary unit</param>
-        /// <param name="difficulty">0+ arbitrary unit</param>
-        /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
-        public static SkillCheckOutcome SkillCheckOutcomeCypher(int skillLevel, int difficulty = 0)
-        {
-            int upperlimit = 3 * skillLevel;
-            int lowerlimit = 3 * difficulty;
-
-            SkillCheckOutcome outcome = SkillCheckOutcome.FAILURE;
-
-            int die = storytellerRand.Next(1, 20);
-
-            if (upperlimit > 20) die += (upperlimit - 20);
-            else if (die == 20) outcome = SkillCheckOutcome.FUMBLE;
-
-            if (die == upperlimit || (upperlimit >= 20 && die >= 20)) outcome = SkillCheckOutcome.CRITICAL;
-            else if (die >= lowerlimit && die < upperlimit) outcome = SkillCheckOutcome.SUCCESS;
-
-            return outcome;
-        }
-        
-        /// <summary>
-        /// Determines the outcome of a check based on GURPS/Cyper mashup. Lowers chances of critical success
-        /// and fumbles as the straigh CYPHER system isn't design for a high volume of checks.
-        /// </summary>
-        /// <param name="skillLevel">0+ arbitrary unit</param>
-        /// <param name="difficulty">0+ arbitrary unit</param>
-        /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
-        public static SkillCheckOutcome SkillCheck(int skillLevel, int difficulty = 0)
-        {
-            int upperlimit = 3 * skillLevel;
-            int lowerlimit = 3 * difficulty;
-
-            SkillCheckOutcome outcome = SkillCheckOutcome.FAILURE;
-
-            int die = storytellerRand.Next(1, 7) + storytellerRand.Next(1, 7) + storytellerRand.Next(1, 7);
-            
-            if ((die <= upperlimit & die > lowerlimit) | (upperlimit <= 4 & die <= 4)) outcome = SkillCheckOutcome.SUCCESS; 
-            else if (die <= 4 | upperlimit - die >= 10 ) outcome = SkillCheckOutcome.CRITICAL;
-            else if (die >= 17 | die - lowerlimit >= 10 ) outcome = SkillCheckOutcome.FUMBLE;
-            
-            return outcome;
         }
 
         /// <summary>
@@ -1077,7 +1030,7 @@ namespace RPStoryteller
             RemoveHMM(personnelFile);
 
             // Make it happen
-            _peopleManager.Remove(personnelFile);
+            _peopleManager.RemoveKerbal(personnelFile);
         }
 
         /// <summary>
@@ -1372,6 +1325,24 @@ namespace RPStoryteller
             }
 
         }
+        
+        /// <summary>
+        /// Launch both role and productivity HMM for a kerbal, if they don't exist.
+        /// </summary>
+        /// <param name="personnelFile"></param>
+        public void InitializeCrewHMM(PersonnelFile personnelFile)
+        {
+            string registeredStateName = personnelFile.UniqueName() + "@role_" + personnelFile.Specialty();
+            if (_liveProcesses.ContainsKey(registeredStateName) == false)
+            {
+                InitializeHMM("role_" + personnelFile.Specialty(), kerbalName:personnelFile.UniqueName());
+            }
+            registeredStateName = personnelFile.UniqueName() + "@kerbal_" + personnelFile.kerbalProductiveState;
+            if (_liveProcesses.ContainsKey(registeredStateName) == false)
+            {
+                InitializeHMM("kerbal_"+personnelFile.kerbalProductiveState, kerbalName:personnelFile.UniqueName());
+            }
+        }
 
         /// <summary>
         /// Safely disable a HMM.
@@ -1579,7 +1550,7 @@ namespace RPStoryteller
 
         #endregion
 
-        #region Events
+        #region Headlines Events
 
         /// <summary>
         /// Primary handler for the emission of events.
@@ -1865,6 +1836,11 @@ namespace RPStoryteller
             }
         }
 
+        /// <summary>
+        /// Random select then delete of an applicant.
+        /// </summary>
+        /// <remarks>This probably should be split into two: select random applicant, delete applicant.</remarks>
+        /// todo Split the two procedure into two methods.
         public void WithdrawRandomApplication()
         {
             if (_peopleManager.applicantFolders.Count > 0)
@@ -1883,23 +1859,18 @@ namespace RPStoryteller
                 }
                 
                 HeadlinesUtil.Report(2,$"{dropOut.DisplayName()} has withdrawn their application");
-                _peopleManager.Remove(dropOut);
+                _peopleManager.RemoveKerbal(dropOut);
             }
         }
 
-        public void ContractCompleted(Contract contract)
+        public void EventContractCompleted(Contract contract)
         {
 
         }
 
-        public void ContractAccepted(Contract contract)
+        public void EventContractAccepted(Contract contract)
         {
 
-        }
-
-        public void ContractPledged(Contract contract, double nDays = 3)
-        {
-            //pledgedContracts.Add(contract.Title, HeadlinesUtil.GetUT() + (nDays * 3600 * 24));
         }
 
         #endregion
@@ -1958,8 +1929,11 @@ namespace RPStoryteller
             {
                 programHighestValuation = (float) valuation;
             }
+            
+            // in case of a really bad mishap
+            valuation = Math.Max(0f, valuation);
 
-            return $"{Math.Round(100 * (GetValuation() / this.programHighestValuation))}%";
+            return $"{Math.Round(100 * (valuation / this.programHighestValuation))}%";
         }
 
         public double GUIVisitingSciencePercent()
@@ -1991,6 +1965,54 @@ namespace RPStoryteller
 
         #region InternalLogic
 
+        /// <summary>
+        /// Determines the outcome of a check based on a mashup of Pendragon and VOID.
+        /// </summary>
+        /// <remarks>Deprecated, will die if the GURPS model makes more sense.</remarks>
+        /// <param name="skillLevel">0+ arbitrary unit</param>
+        /// <param name="difficulty">0+ arbitrary unit</param>
+        /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
+        public static SkillCheckOutcome SkillCheckOutcomeCypher(int skillLevel, int difficulty = 0)
+        {
+            int upperlimit = 3 * skillLevel;
+            int lowerlimit = 3 * difficulty;
+
+            SkillCheckOutcome outcome = SkillCheckOutcome.FAILURE;
+
+            int die = storytellerRand.Next(1, 20);
+
+            if (upperlimit > 20) die += (upperlimit - 20);
+            else if (die == 20) outcome = SkillCheckOutcome.FUMBLE;
+
+            if (die == upperlimit || (upperlimit >= 20 && die >= 20)) outcome = SkillCheckOutcome.CRITICAL;
+            else if (die >= lowerlimit && die < upperlimit) outcome = SkillCheckOutcome.SUCCESS;
+
+            return outcome;
+        }
+        
+        /// <summary>
+        /// Determines the outcome of a check based on GURPS/Cyper mashup. Lowers chances of critical success
+        /// and fumbles as the straigh CYPHER system isn't design for a high volume of checks.
+        /// </summary>
+        /// <param name="skillLevel">0+ arbitrary unit</param>
+        /// <param name="difficulty">0+ arbitrary unit</param>
+        /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
+        public static SkillCheckOutcome SkillCheck(int skillLevel, int difficulty = 0)
+        {
+            int upperlimit = 3 * skillLevel;
+            int lowerlimit = 3 * difficulty;
+
+            SkillCheckOutcome outcome = SkillCheckOutcome.FAILURE;
+
+            int die = storytellerRand.Next(1, 7) + storytellerRand.Next(1, 7) + storytellerRand.Next(1, 7);
+            
+            if ((die <= upperlimit & die > lowerlimit) | (upperlimit <= 4 & die <= 4)) outcome = SkillCheckOutcome.SUCCESS; 
+            else if (die <= 4 | upperlimit - die >= 10 ) outcome = SkillCheckOutcome.CRITICAL;
+            else if (die >= 17 | die - lowerlimit >= 10 ) outcome = SkillCheckOutcome.FUMBLE;
+            
+            return outcome;
+        }
+        
         /// <summary>
         /// Valuation is the sum of reputation and hype: this is what people can see.
         /// </summary>
