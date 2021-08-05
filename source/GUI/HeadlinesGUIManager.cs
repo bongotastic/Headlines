@@ -525,31 +525,31 @@ namespace RPStoryteller.source.GUI
                     GUILayout.Label($"{kvp.Value.personality}", GUILayout.Width(60));
                 }
 
-                if (nApplicant == 0)
-                {
-                    GUILayout.Space(10);
-                    if (storyEngine.hasnotvisitedAstronautComplex)
-                    {
-                        if (!storyEngine.inAstronautComplex)
-                        {
-                            GUILayout.Label("Toby, your HR staff, has misplaced his key to the astronaut complex. Please enter then exit the complex so that he may interview the applicants waiting in line.");
-                        }
-                        else
-                        {
-                            GUILayout.Label("You may leave the complex while Toby does his job.");
-                        }
-                
-                    }
-                    else
-                    {
-                        GUILayout.Label("There are no applicants on file. You will have to rely on chance walk-ins or spend money to find prospects.");
-                    }
-                }
-
                 GUILayout.EndHorizontal();
 
             }
 
+            if (nApplicant == 0)
+            {
+                GUILayout.Space(10);
+                if (storyEngine.hasnotvisitedAstronautComplex)
+                {
+                    if (!storyEngine.inAstronautComplex)
+                    {
+                        GUILayout.Label("Toby, your HR staff, has misplaced his key to the astronaut complex. Please enter then exit the complex so that he may interview the applicants waiting in line.");
+                    }
+                    else
+                    {
+                        GUILayout.Label("You may leave the complex while Toby does his job.");
+                    }
+                
+                }
+                else
+                {
+                    GUILayout.Label("There are no applicants on file. You will have to rely on chance walk-ins or spend money to find prospects.");
+                }
+            }
+            
             foreach (var oldKey in toDelete)
             {
                 peopleManager.applicantFolders.Remove(oldKey);

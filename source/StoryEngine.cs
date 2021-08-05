@@ -736,12 +736,13 @@ namespace RPStoryteller
             if (impactType == ImpactType.PASSIVE) return;
 
             // Define the magnitude of the change.
-            // TODO Get from RP1 the total number of points in R&D
             int pointsRandD = GetRnDPoints();
 
             // 2% of R&D or 1 point
             int deltaRandD = (int) Math.Ceiling((double) pointsRandD * 0.02);
             if (deltaRandD == 0) return;
+
+            int notification_level = 2;
 
             string message = "";
             if (legacyMode == true)
@@ -765,10 +766,13 @@ namespace RPStoryteller
                     case ImpactType.NEGATIVE:
                         deltaRandD *= -1;
                         message = $"{kerbalFile.DisplayName()} sows confusion in the R&D complex.";
+                        kerbalFile.influence += deltaRandD;
+                        notification_level = 3;
                         break;
                     case ImpactType.LASTING:
                         kerbalFile.teamInfluence += deltaRandD;
                         message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
+                        notification_level = 3;
                         break;
                     case ImpactType.TRANSIENT:
                         kerbalFile.influence += deltaRandD;
@@ -781,9 +785,8 @@ namespace RPStoryteller
             }
 
             AdjustRnD(deltaRandD);
-
-            HeadlinesUtil.Report(2, message);
-            HeadlinesUtil.Report(1, $"{message} ({deltaRandD})");
+            
+            HeadlinesUtil.Report(notification_level, $"{message} ({deltaRandD})");
         }
 
         /// <summary>
@@ -804,6 +807,8 @@ namespace RPStoryteller
             // 2% of R&D or 1 point
             int deltaVAB = (int) Math.Ceiling((double) pointsVAB * 0.02);
             if (deltaVAB == 0) return;
+            
+            int notification_level = 2;
 
             HeadlinesUtil.Report(1, $"Adjustment by {deltaVAB}");
 
@@ -829,10 +834,13 @@ namespace RPStoryteller
                     case ImpactType.NEGATIVE:
                         deltaVAB *= -1;
                         message = $"{kerbalFile.DisplayName()} sows confusion in the VAB.";
+                        notification_level = 3;
+                        kerbalFile.influence += deltaVAB;
                         break;
                     case ImpactType.LASTING:
                         kerbalFile.teamInfluence += deltaVAB;
                         message = $"{kerbalFile.DisplayName()}'s team is taking it to the next level.";
+                        notification_level = 3;
                         break;
                     case ImpactType.TRANSIENT:
                         kerbalFile.influence += deltaVAB;
@@ -847,7 +855,7 @@ namespace RPStoryteller
             AdjustVAB(deltaVAB);
 
             HeadlinesUtil.Report(2, message);
-            HeadlinesUtil.Report(1, $"{message} ({deltaVAB})");
+            HeadlinesUtil.Report(notification_level, $"{message} ({deltaVAB})");
         }
 
         /// <summary>
@@ -881,25 +889,31 @@ namespace RPStoryteller
         {
             CancelInfluence(personnelFile);
 
+            int difficulty = personnelFile.Effectiveness();
+            if (personnelFile.coercedTask) difficulty += 2;
+            
+            // A leave is always good for the soul.
+            personnelFile.AdjustDiscontent(-1);
+
             SkillCheckOutcome outcome = SkillCheck(5, personnelFile.Effectiveness());
 
             if (outcome == SkillCheckOutcome.SUCCESS)
             {
                 personnelFile.trainingLevel += 1;
                 KerbalRegisterSuccess(personnelFile);
-                HeadlinesUtil.Report(2, $"{personnelFile.DisplayName()} matures.");
+                HeadlinesUtil.Report(3, $"{personnelFile.DisplayName()} matures.", $"Study leave: {personnelFile.UniqueName()}");
             }
             else if (outcome == SkillCheckOutcome.CRITICAL)
             {
                 personnelFile.trainingLevel += 2;
                 KerbalRegisterSuccess(personnelFile, true);
-                HeadlinesUtil.Report(2, $"{personnelFile.DisplayName()} has a breakthrough.");
+                HeadlinesUtil.Report(3, $"{personnelFile.DisplayName()} has a breakthrough.", $"Study leave: {personnelFile.UniqueName()}");
             }
             else if (outcome == SkillCheckOutcome.FUMBLE)
             {
                 personnelFile.trainingLevel -= 1;
                 personnelFile.AdjustDiscontent(1);
-                HeadlinesUtil.Report(2, $"{personnelFile.DisplayName()} goes down a misguided rabbit hole.");
+                HeadlinesUtil.Report(3, $"{personnelFile.DisplayName()} goes down a misguided rabbit hole during their study leave.", $"Study leave: {personnelFile.UniqueName()}");
             }
 
         }
@@ -1565,10 +1579,10 @@ namespace RPStoryteller
             switch (eventName)
             {
                 case "attention_span_long":
-                    AdjustAttentionSpan(1);
+                    AdjustSpaceCraze(1);
                     break;
                 case "attention_span_short":
-                    AdjustAttentionSpan(-1);
+                    AdjustSpaceCraze(-1);
                     break;
                 case "hype_boost":
                     AdjustHype(5f);
@@ -1686,7 +1700,7 @@ namespace RPStoryteller
         /// affect the next iteration. 
         /// </summary>
         /// <param name="increment">either -1 or 1</param>
-        public void AdjustAttentionSpan(double increment)
+        public void AdjustSpaceCraze(double increment)
         {
             double power = 1.618;
             if (increment < 0)
@@ -1695,6 +1709,7 @@ namespace RPStoryteller
             }
 
             attentionSpanFactor *= power;
+            programHype *= (float)power;
 
             // Clamp this factor within reasonable boundaries
             attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // min is 0.47
