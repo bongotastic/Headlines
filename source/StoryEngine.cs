@@ -1699,6 +1699,7 @@ namespace RPStoryteller
         /// for the purpose. This attention span doesn't not affect the current state we're in, but *may*
         /// affect the next iteration. 
         /// </summary>
+        /// <remarks>Likely should be split into distinct effects.</remarks>
         /// <param name="increment">either -1 or 1</param>
         public void AdjustSpaceCraze(double increment)
         {
