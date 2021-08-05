@@ -1,4 +1,5 @@
 ﻿using KSP.UI.Screens;
+using RPStoryteller.source.Emissions;
 
 
 namespace RPStoryteller.source
@@ -27,6 +28,29 @@ namespace RPStoryteller.source
                     break;
             }
             
+        }
+
+        public static void Report(NewsStory newStory, HeadlineScope notificationThreshold = HeadlineScope.FEATURE)
+        {
+            switch (newStory.scope)
+            {
+                case HeadlineScope.DEBUG:
+                    KSPLog.print($"[{newStory.headline}] " + newStory.story);
+                    break;
+                case HeadlineScope.SCREEN:
+                    KSPLog.print($"[{newStory.headline}] " + newStory.story);
+                    ScreenMessage(newStory.story);
+                    break;
+                case HeadlineScope.NEWSLETTER:
+                case HeadlineScope.FEATURE:
+                case HeadlineScope.FRONTPAGE:
+                    KSPLog.print($"[{newStory.scope}] {newStory.headline}");
+                    if (notificationThreshold >= newStory.scope)
+                    {
+                        CreateMessage(newStory.story, newStory.headline);
+                    }
+                    break;
+            }
         }
     
         /// <summary>
