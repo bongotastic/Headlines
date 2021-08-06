@@ -40,6 +40,21 @@ namespace RPStoryteller.source.Emissions
             story = Story;
         }
 
+        /// <summary>
+        /// Create a story from an emissions instance.
+        /// </summary>
+        /// <param name="emission"></param>
+        /// <param name="Headline">the headline</param>
+        /// <param name="generateStory">Trigger generate story without waiting for localVariables to be input</param>
+        public NewsStory(Emissions emission, string Headline = "", bool generateStory = false)
+        {
+            scope = emission.scope;
+            timestamp = HeadlinesUtil.GetUT();
+            headline = Headline;
+            
+            if (generateStory) AddToStory(emission.GenerateStory());
+        }
+
         public void Load(ConfigNode node)
         {
             ConfigNode.LoadObjectFromConfig(this, node);

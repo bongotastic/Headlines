@@ -592,6 +592,10 @@ namespace RPStoryteller.source.GUI
             {
                 storyEngine.RealityCheck();
             }
+            if (GUILayout.Button("New Applicant"))
+            {
+                storyEngine.NewRandomApplicant();
+            }
             GUILayout.Space(10);
             GUILayout.Box("HMM");
             foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
