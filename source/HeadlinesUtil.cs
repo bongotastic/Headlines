@@ -14,6 +14,9 @@ namespace RPStoryteller.source
         /// <param name="title">Piece of categorical information</param>
         public static void Report(int significance, string message, string title="Headlines")
         {
+            NewsStory ns = new NewsStory((HeadlineScope) significance - 1, Headline: title, Story: message);
+            Report(ns, HeadlineScope.FEATURE);
+            /*
             switch (significance)
             {
                 case 1:
@@ -27,7 +30,7 @@ namespace RPStoryteller.source
                     KSPLog.print($"[{title}] " + message);
                     break;
             }
-            
+            */
         }
 
         public static void Report(NewsStory newStory, HeadlineScope notificationThreshold = HeadlineScope.FEATURE)

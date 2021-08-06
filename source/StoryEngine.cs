@@ -2024,7 +2024,7 @@ namespace RPStoryteller
             
             if ((die <= upperlimit & die > lowerlimit) | (upperlimit <= 4 & die <= 4)) outcome = SkillCheckOutcome.SUCCESS; 
             else if (die <= 4 | upperlimit - die >= 10 ) outcome = SkillCheckOutcome.CRITICAL;
-            else if (die >= 17 | die - lowerlimit >= 10 ) outcome = SkillCheckOutcome.FUMBLE;
+            else if (die >= 17 ) outcome = SkillCheckOutcome.FUMBLE;
             
             return outcome;
         }
