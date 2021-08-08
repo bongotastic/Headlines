@@ -55,6 +55,48 @@ namespace RPStoryteller.source.Emissions
             if (generateStory) AddToStory(emission.GenerateStory());
         }
 
+        public NewsStory(ConfigNode node)
+        {
+            FromConfigNode(node);
+        }
+
+        public ConfigNode AsConfigNode()
+        {
+            ConfigNode output = new ConfigNode();
+            
+            output.AddValue("timestamp", timestamp);
+            output.AddValue("scope", (int)scope);
+            output.AddValue("headline", headline);
+            output.AddValue("story", story);
+
+            ConfigNode act = new ConfigNode("actors");
+            foreach (string actor in actors)
+            {
+                act.AddValue(actor, "actor");
+            }
+
+            output.AddNode(act);
+
+            return output;
+        }
+
+        public void FromConfigNode(ConfigNode node)
+        {
+            timestamp = double.Parse(node.GetValue("timestamp"));
+            scope = (HeadlineScope) int.Parse(node.GetValue("scope"));
+            headline = node.GetValue("headline");
+            story = node.GetValue("story");
+
+            ConfigNode act = node.GetNode("actors");
+            if (act != null)
+            {
+                foreach (ConfigNode.Value actor in act.values)
+                {
+                    actors.Add(actor.ToString());
+                }
+            }
+        }
+        
         public void Load(ConfigNode node)
         {
             ConfigNode.LoadObjectFromConfig(this, node);

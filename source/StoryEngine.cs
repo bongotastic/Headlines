@@ -220,6 +220,15 @@ namespace RPStoryteller
             }
 
             node.AddNode(hmmSet);
+
+            ConfigNode headlineFeed = new ConfigNode("HEADLINESFEED");
+
+            foreach (NewsStory ns in headlines)
+            {
+                headlineFeed.AddNode("headline", ns.AsConfigNode());
+            }
+            
+            node.AddNode(headlineFeed);
         }
 
         public override void OnLoad(ConfigNode node)
@@ -259,6 +268,15 @@ namespace RPStoryteller
                     {
                         InitializeHMM(modelName, transientTime, kerbalName);
                     }
+                }
+            }
+            
+            ConfigNode hlNode = node.GetNode("HEADLINESFEED");
+            if (hlNode != null)
+            {
+                foreach (ConfigNode headline in hlNode.GetNodes())
+                {
+                    headlines.Enqueue(new NewsStory(headline));
                 }
             }
         }
