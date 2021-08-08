@@ -38,16 +38,16 @@ namespace RPStoryteller.source
             switch (newStory.scope)
             {
                 case HeadlineScope.DEBUG:
-                    KSPLog.print($"[{newStory.headline}] " + newStory.story);
+                    KSPLog.print($"[Headlines] " + newStory.story);
                     break;
                 case HeadlineScope.SCREEN:
-                    KSPLog.print($"[{newStory.headline}] " + newStory.story);
+                    KSPLog.print($"[Headlines] " + newStory.story);
                     ScreenMessage(newStory.story);
                     break;
                 case HeadlineScope.NEWSLETTER:
                 case HeadlineScope.FEATURE:
                 case HeadlineScope.FRONTPAGE:
-                    KSPLog.print($"[{newStory.scope}] {newStory.headline}");
+                    KSPLog.print($"[Headlines][{newStory.scope}] {newStory.headline}");
                     if (notificationThreshold >= newStory.scope)
                     {
                         CreateMessage(newStory.story, newStory.headline);

@@ -113,6 +113,7 @@ namespace RPStoryteller
         
         // Logging
         [KSPField(isPersistant = true)] public HeadlineScope notificationThreshold = HeadlineScope.FEATURE;
+        [KSPField(isPersistant = true)] public HeadlineScope feedThreshold = HeadlineScope.FEATURE;
         [KSPField(isPersistant = true)] public bool logDebug = true;
         public Queue<NewsStory> headlines = new Queue<NewsStory>();
          
@@ -274,8 +275,10 @@ namespace RPStoryteller
             ConfigNode hlNode = node.GetNode("HEADLINESFEED");
             if (hlNode != null)
             {
-                foreach (ConfigNode headline in hlNode.GetNodes())
+                Debug("In FEED node","Load");
+                foreach (ConfigNode headline in hlNode.GetNodes("headline"))
                 {
+                    Debug($"Reading {headline.GetValue("headline")}");
                     headlines.Enqueue(new NewsStory(headline));
                 }
             }

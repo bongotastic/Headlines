@@ -27,8 +27,7 @@ namespace RPStoryteller.source.Emissions
         public double timestamp = 0;
         
         // Implicated actors
-        [KSPField]
-        public List<string> actors;
+        public List<string> actors = new List<string>();
 
         #region Kitchen sink
 
@@ -62,17 +61,14 @@ namespace RPStoryteller.source.Emissions
 
         public ConfigNode AsConfigNode()
         {
-            HeadlinesUtil.Report(1,$"{this.ToString()}");
             ConfigNode output = new ConfigNode();
             
             output.AddValue("timestamp", timestamp);
             output.AddValue("scope", (int)scope);
-            HeadlinesUtil.Report(1,$"{output.ToString()}");
             output.AddValue("headline", headline);
             output.AddValue("story", story);
-            HeadlinesUtil.Report(1,$"{output.ToString()}");
 
-            ConfigNode act = new ConfigNode("actors");
+            ConfigNode act = new ConfigNode();
             bool addAct = false;
             foreach (string actor in actors)
             {
@@ -84,7 +80,7 @@ namespace RPStoryteller.source.Emissions
             if (addAct)
             {
                 HeadlinesUtil.Report(1,$"Add actor node");
-                output.AddNode(act);
+                output.AddNode("actors", act);
             }
 
             return output;

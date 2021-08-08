@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Contracts;
 using HiddenMarkovProcess;
 using KSP.UI.Screens;
+using RPStoryteller.source.Emissions;
 using UnityEngine;
 
 
@@ -30,6 +32,10 @@ namespace RPStoryteller.source.GUI
 
         // location of the Window
         public Rect position;
+
+        public Vector2 scrollview = new Vector2(0,0);
+
+        private bool feedChatter = true;
 
         #region Unity stuff
         
@@ -156,6 +162,10 @@ namespace RPStoryteller.source.GUI
             {
                 SwitchTab("program");
             }
+            else if (GUILayout.Button("Feed"))
+            {
+                SwitchTab("feed");
+            }
             else if (GUILayout.Button("Personnel"))
             {
                 SwitchTab("personnel");
@@ -180,6 +190,9 @@ namespace RPStoryteller.source.GUI
                     break;
                 case "recruitment":
                     DrawRecruitmentPanel();
+                    break;
+                case "feed":
+                    DrawFeed();
                     break;
                 case "gm":
                     DrawGMPanel();
@@ -603,6 +616,39 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value-clock, true, false)} - {kvp.Key}");
             }
             GUILayout.EndVertical();
+        }
+
+        public void DrawFeed()
+        {
+            GUILayout.Space(20);
+
+            scrollview = GUILayout.BeginScrollView(scrollview, GUILayout.Width(400), GUILayout.Height(300));
+            foreach (NewsStory ns in storyEngine.headlines.Reverse())
+            {
+                if (ns.scope == HeadlineScope.SCREEN && !feedChatter) continue;
+                DrawHeadline(ns);
+                GUILayout.Space(5);
+            }
+            GUILayout.EndScrollView();
+            GUILayout.Space(20);
+
+            feedChatter = GUILayout.Toggle(feedChatter, "Office chatter");
+        }
+
+        private void DrawHeadline(NewsStory ns)
+        {
+            if (ns.headline == "")
+            {
+                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.story}",GUILayout.Width(375));
+            }
+            else
+            {
+                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.headline}");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("", GUILayout.Width(10));
+                GUILayout.TextArea(ns.story, GUILayout.Width(365));
+                GUILayout.EndHorizontal();
+            }
         }
         #endregion
 
