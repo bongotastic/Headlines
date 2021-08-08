@@ -62,20 +62,30 @@ namespace RPStoryteller.source.Emissions
 
         public ConfigNode AsConfigNode()
         {
+            HeadlinesUtil.Report(1,$"{this.ToString()}");
             ConfigNode output = new ConfigNode();
             
             output.AddValue("timestamp", timestamp);
             output.AddValue("scope", (int)scope);
+            HeadlinesUtil.Report(1,$"{output.ToString()}");
             output.AddValue("headline", headline);
             output.AddValue("story", story);
+            HeadlinesUtil.Report(1,$"{output.ToString()}");
 
             ConfigNode act = new ConfigNode("actors");
+            bool addAct = false;
             foreach (string actor in actors)
             {
+                HeadlinesUtil.Report(1,$"actor: {actor}");
                 act.AddValue(actor, "actor");
+                addAct = true;
             }
 
-            output.AddNode(act);
+            if (addAct)
+            {
+                HeadlinesUtil.Report(1,$"Add actor node");
+                output.AddNode(act);
+            }
 
             return output;
         }
