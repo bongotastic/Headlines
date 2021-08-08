@@ -974,14 +974,14 @@ namespace RPStoryteller
         public void KerbalSynergy(PersonnelFile personnelFile, Emissions emitData)
         {
             NewsStory ns = new NewsStory(emitData, "New collaboration");
-            emitData.Add("name", personnelFile.DisplayName());
+            ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             
             PersonnelFile collaborator = _peopleManager.GetRandomKerbal(personnelFile);
             if (collaborator == null)
             {
                 return;
             }
-            emitData.Add("other", collaborator.DisplayName());
+            ns.SpecifyOtherCrew(collaborator.DisplayName(), emitData);
             
             if (personnelFile.IsFeuding(collaborator))
             {
@@ -1014,8 +1014,8 @@ namespace RPStoryteller
                 candidate.SetFeuding(personnelFile);
 
                 NewsStory ns = new NewsStory(emitData, "Feud at KSC");
-                emitData.Add("actor_name", personnelFile.DisplayName());
-                emitData.Add("other_crew", candidate.DisplayName());
+                ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
+                ns.SpecifyOtherCrew(candidate.DisplayName(), emitData);
                 ns.AddToStory(emitData.GenerateStory());
                 FileHeadline(ns);
             }
@@ -1037,8 +1037,8 @@ namespace RPStoryteller
                 candidate.UnsetFeuding(personnelFile);
                 
                 NewsStory ns = new NewsStory(emitData, "Reconciliation");
-                emitData.Add("actor_name", personnelFile.DisplayName());
-                emitData.Add("other_crew", candidate.DisplayName());
+                ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
+                ns.SpecifyOtherCrew(candidate.DisplayName(), emitData);
                 ns.AddToStory(emitData.GenerateStory());
                 FileHeadline(ns);
             }
@@ -1055,7 +1055,7 @@ namespace RPStoryteller
             if (!trajedy)
             {
                 NewsStory ns = new NewsStory(emitData);
-                emitData.Add("actor_name", personnelFile.DisplayName());
+                ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
                 ns.headline = "Resignation";
                 ns.AddToStory(emitData.GenerateStory());
                 FileHeadline(ns);
@@ -1064,7 +1064,7 @@ namespace RPStoryteller
             {
                 emitData = new Emissions("dumb_accident");
                 NewsStory ns = new NewsStory(emitData);
-                emitData.Add("actor_name", personnelFile.DisplayName());
+                ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
                 ns.headline = "Trajedy";
                 ns.AddToStory(emitData.GenerateStory());
                 FileHeadline(ns);
@@ -1089,7 +1089,7 @@ namespace RPStoryteller
         public void KerbalMentorPeer(PersonnelFile personnelFile, Emissions emitData)
         {
             NewsStory ns = new NewsStory(emitData, Headline:"Mentorship");
-            emitData.Add("actor_name", personnelFile.DisplayName());
+            ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             
             List<string> excludeList = new List<string>() {personnelFile.UniqueName()};
             foreach (string feudingbuddy in personnelFile.feuds)
@@ -1101,7 +1101,7 @@ namespace RPStoryteller
 
             if (peer != null)
             {
-                emitData.Add("other_crew", peer.DisplayName());
+                ns.SpecifyOtherCrew(peer.DisplayName(), emitData);
                 ns.AddToStory(emitData.GenerateStory());
                 
                 int deltaSkill = personnelFile.trainingLevel - peer.trainingLevel;
@@ -1162,7 +1162,7 @@ namespace RPStoryteller
             }
 
             ns = new NewsStory(emitData);
-            emitData.Add("actor_name", personnelFile.DisplayName());
+            ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
 
             SkillCheckOutcome outcome = SkillCheck(personnelFile.Effectiveness());
 
@@ -1206,7 +1206,7 @@ namespace RPStoryteller
             stupidity = Math.Min(4, stupidity);
 
             NewsStory ns = new NewsStory(emitData, Headline:$"{personnelFile.DisplayName()} injured");
-            emitData.Add("actor_name", personnelFile.DisplayName());
+            ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             
             SkillCheckOutcome outcome = SkillCheck((int) stupidity);
             switch (outcome)
@@ -1232,7 +1232,7 @@ namespace RPStoryteller
             PersonnelFile newApplicant = _peopleManager.GenerateRandomApplicant(GetValuationLevel() + 2);
 
             NewsStory ns = new NewsStory(emitData);
-            emitData.Add("actor_name", personnelFile.DisplayName());
+            ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             emitData.Add("recruit_name", newApplicant.DisplayName());
             ns.AddToStory(emitData.GenerateStory());
             ns.AddToStory($"{newApplicant.DisplayName()} is a  {_peopleManager.QualitativeEffectiveness(newApplicant.Effectiveness())} {newApplicant.Specialty()}.");
@@ -1262,7 +1262,7 @@ namespace RPStoryteller
             visitingScholarName = CrewGenerator.GetRandomName(gender);
 
             NewsStory ns = new NewsStory(emitData);
-            emitData.Add("actor_name", personnelFile.DisplayName());
+            ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             emitData.Add("visiting_name", visitingScholarName);
             ns.AddToStory(emitData.GenerateStory());
             FileHeadline(ns);

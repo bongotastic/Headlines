@@ -121,6 +121,26 @@ namespace RPStoryteller.source.Emissions
             if (!actors.Contains(actor)) actors.Add(actor);
         }
 
+        public void SpecifyMainActor(string actorName, Emissions emission = null)
+        {
+            AttachActor(actorName);
+
+            if (emission != null)
+            {
+                emission.Add("actor_name", actorName);
+            }
+        }
+
+        public void SpecifyOtherCrew(string crewName, Emissions emission = null)
+        {
+            AttachActor(crewName);
+
+            if (emission != null)
+            {
+                emission.Add("other_crew", crewName);
+            }
+        }
+
         /// <summary>
         /// Check for membership of a given kerbal to actor set
         /// </summary>
