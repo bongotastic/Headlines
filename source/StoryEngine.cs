@@ -994,9 +994,12 @@ namespace RPStoryteller
             if (personnelFile.SetFeuding(candidate))
             {
                 candidate.SetFeuding(personnelFile);
-                HeadlinesUtil.Report(3,
-                    $"{personnelFile.DisplayName()} and {candidate.DisplayName()} are engaged in a destructive feud.",
-                    "Feud in the KSC");
+
+                NewsStory ns = new NewsStory(emitData, "Feud at KSC");
+                emitData.Add("actor_name", personnelFile.DisplayName());
+                emitData.Add("other_crew", candidate.DisplayName());
+                ns.AddToStory(emitData.GenerateStory());
+                FileHeadline(ns);
             }
         }
 
@@ -1014,9 +1017,12 @@ namespace RPStoryteller
             if (personnelFile.UnsetFeuding(candidate))
             {
                 candidate.UnsetFeuding(personnelFile);
-                HeadlinesUtil.Report(3,
-                    $"{personnelFile.DisplayName()} and {candidate.DisplayName()} have found a way to make peace, somehow.",
-                    "Reconciliation");
+                
+                NewsStory ns = new NewsStory(emitData, "Reconciliation");
+                emitData.Add("actor_name", personnelFile.DisplayName());
+                emitData.Add("other_crew", candidate.DisplayName());
+                ns.AddToStory(emitData.GenerateStory());
+                FileHeadline(ns);
             }
         }
 
@@ -1030,17 +1036,22 @@ namespace RPStoryteller
             // Message
             if (!trajedy)
             {
-                HeadlinesUtil.Report(3,
-                    $"{personnelFile.DisplayName()} has resigned to spend more time with their family.",
-                    $"{personnelFile.DisplayName()} resigns!");
+                NewsStory ns = new NewsStory(emitData);
+                emitData.Add("actor_name", personnelFile.DisplayName());
+                ns.headline = "Resignation";
+                ns.AddToStory(emitData.GenerateStory());
+                FileHeadline(ns);
             }
             else
             {
-                HeadlinesUtil.Report(3, $"{personnelFile.DisplayName()} has died of a dumb accident.",
-                    $"{personnelFile.DisplayName()} trajedy!");
+                emitData = new Emissions("dumb_accident");
+                NewsStory ns = new NewsStory(emitData);
+                emitData.Add("actor_name", personnelFile.DisplayName());
+                ns.headline = "Trajedy";
+                ns.AddToStory(emitData.GenerateStory());
+                FileHeadline(ns);
             }
-
-
+            
             // Remove influence
             CancelInfluence(personnelFile, leaveKSC: true);
 
@@ -1059,6 +1070,9 @@ namespace RPStoryteller
         /// <param name="emitData">the event</param>
         public void KerbalMentorPeer(PersonnelFile personnelFile, Emissions emitData)
         {
+            NewsStory ns = new NewsStory(emitData, Headline:"Mentorship");
+            emitData.Add("actor_name", personnelFile.DisplayName());
+            
             List<string> excludeList = new List<string>() {personnelFile.UniqueName()};
             foreach (string feudingbuddy in personnelFile.feuds)
             {
@@ -1069,6 +1083,9 @@ namespace RPStoryteller
 
             if (peer != null)
             {
+                emitData.Add("other_crew", peer.DisplayName());
+                ns.AddToStory(emitData.GenerateStory());
+                
                 int deltaSkill = personnelFile.trainingLevel - peer.trainingLevel;
                 if (personnelFile.HasAttribute("inspiring")) deltaSkill++;
                 
@@ -1100,7 +1117,8 @@ namespace RPStoryteller
                         return;
                 }
 
-                HeadlinesUtil.Report(3, message, "Mentorship");
+                ns.AddToStory(message);
+                FileHeadline(ns);
             }
         }
 
@@ -1115,20 +1133,22 @@ namespace RPStoryteller
         /// <param name="emitData">the event</param>
         public void KerbalFundRaise(PersonnelFile personnelFile, Emissions emitData)
         {
-            if (fundraisingBlackout == true)
+            NewsStory ns;
+            if (fundraisingBlackout)
             {
-                HeadlinesUtil.Report(3,
-                    "Relationship mended with potential capital campaign donors. Fundraising is possible again.",
-                    "Fundraising again");
+                ns = new NewsStory(HeadlineScope.NEWSLETTER, "Fundraising possible again",
+                    "Relationship mended with potential capital campaign donors. Fundraising is possible again.");
+                FileHeadline(ns);
                 fundraisingBlackout = false;
                 return;
             }
 
+            ns = new NewsStory(emitData);
+            emitData.Add("actor_name", personnelFile.DisplayName());
+
             SkillCheckOutcome outcome = SkillCheck(personnelFile.Effectiveness());
 
             double funds = 0;
-
-            string message = $"{personnelFile.DisplayName()} ";
 
             switch (outcome)
             {
@@ -1142,15 +1162,16 @@ namespace RPStoryteller
                     break;
                 case SkillCheckOutcome.FUMBLE:
                     fundraisingBlackout = true;
-                    message += "commits a blunder and offends potential donors. The program enters damage control.";
+                    ns.AddToStory("Unfortunately, commits a blunder and forces the program into damage control.");
                     break;
             }
 
             if (funds > 0)
             {
-                message += $"raises ${(int) (funds / 1000)}K from a private foundation.";
+                ns.AddToStory($"They finalize a gift agreement for ${(int) (funds / 1000)}K.");
+                FileHeadline(ns);
+                
                 Funding.Instance.AddFunds(funds, TransactionReasons.Any);
-                HeadlinesUtil.Report(3, message, "Fundraising success");
                 this.fundraisingTally += funds;
             }
 
@@ -1166,6 +1187,9 @@ namespace RPStoryteller
             double stupidity = personnelFile.Stupidity() * 10;
             stupidity = Math.Min(4, stupidity);
 
+            NewsStory ns = new NewsStory(emitData, Headline:$"{personnelFile.DisplayName()} injured");
+            emitData.Add("actor_name", personnelFile.DisplayName());
+            
             SkillCheckOutcome outcome = SkillCheck((int) stupidity);
             switch (outcome)
             {
@@ -1173,9 +1197,8 @@ namespace RPStoryteller
                     KerbalResignation(personnelFile, emitData, trajedy: true);
                     break;
                 case SkillCheckOutcome.SUCCESS:
-                    HeadlinesUtil.Report(3,
-                        $"{personnelFile.DisplayName()} is injured in a dumb accident. They will be off productive work for a few weeks.",
-                        $"{personnelFile.DisplayName()} injured.");
+                    ns.AddToStory(emitData.GenerateStory());
+                    FileHeadline(ns);
                     TransitionHMM(KerbalStateOf(personnelFile), "kerbal_injured");
                     break;
             }
@@ -1188,9 +1211,23 @@ namespace RPStoryteller
         /// <param name="emitData"></param>
         public void KerbalScoutTalent(PersonnelFile personnelFile, Emissions emitData)
         {
-            PersonnelFile newApplicant = _peopleManager.GenerateRandomApplicant(GetValuationLevel() + 3);
-            HeadlinesUtil.Report(3,$"{personnelFile.DisplayName()} discovered {newApplicant.DisplayName()}, {_peopleManager.QualitativeEffectiveness(newApplicant.Effectiveness())} {newApplicant.Specialty()}", "Scouting Report");
-            TimeWarp.SetRate(1,false);
+            PersonnelFile newApplicant = _peopleManager.GenerateRandomApplicant(GetValuationLevel() + 2);
+
+            NewsStory ns = new NewsStory(emitData);
+            emitData.Add("actor_name", personnelFile.DisplayName());
+            emitData.Add("recruit_name", newApplicant.DisplayName());
+            ns.AddToStory(emitData.GenerateStory());
+            ns.AddToStory($"{newApplicant.DisplayName()} is a  {_peopleManager.QualitativeEffectiveness(newApplicant.Effectiveness())} {newApplicant.Specialty()}.");
+            if (newApplicant.personality != "")
+            {
+                ns.AddToStory($"They are reported to be somewhat {newApplicant.personality}.");
+            }
+            FileHeadline(ns);
+            
+            if (_peopleManager.EndWarp(newApplicant))
+            {
+                TimeWarp.SetRate(1,false);
+            }
         }
 
         /// <summary>
@@ -1205,9 +1242,12 @@ namespace RPStoryteller
             if (storytellerRand.NextDouble() < 0.5) gender = ProtoCrewMember.Gender.Male;
             
             visitingScholarName = CrewGenerator.GetRandomName(gender);
-            HeadlinesUtil.Report(3,
-                $"{visitingScholar}, a visiting scholar brought by {personnelFile.DisplayName()} get clearance to work at the R&D complex.",
-                "Visiting scholar");
+
+            NewsStory ns = new NewsStory(emitData);
+            emitData.Add("actor_name", personnelFile.DisplayName());
+            emitData.Add("visiting_name", visitingScholarName);
+            ns.AddToStory(emitData.GenerateStory());
+            FileHeadline(ns);
         }
 
         /// <summary>
@@ -1232,7 +1272,9 @@ namespace RPStoryteller
                 personnelFile.AdjustDiscontent(1);
             }
 
-            PrintScreen( message + ".");
+            NewsStory ns = new NewsStory(HeadlineScope.SCREEN, Story: message + ".");
+            FileHeadline(ns);
+            
             EmitEvent(personnelFile.kerbalTask, personnelFile);
         }
 

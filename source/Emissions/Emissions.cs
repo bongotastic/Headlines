@@ -53,7 +53,7 @@ namespace RPStoryteller.source.Emissions
             // Cause
             if (story.Contains("[cause]") & _node.HasNodeID("cause"))
             {
-                story = story.Replace("[case]", Strip(GetRandomNodeOfType("cause").GetValue("text")));
+                story = story.Replace("[cause]", Strip(GetRandomNodeOfType("cause").GetValue("text")));
             }
             
             // iterate over localVariable

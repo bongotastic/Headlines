@@ -441,6 +441,17 @@ namespace RPStoryteller
             return output;
         }
 
+        public bool EndWarp(PersonnelFile applicant)
+        {
+            if (applicant.Specialty() == "Pilot" && !seekingPilot) return false;
+            if (applicant.Specialty() == "Engineer" && !seekingEngineer) return false;
+            if (applicant.Specialty() == "Scientist" && !seekingScientist) return false;
+            
+            // Insert minimal effectiveness logic here
+
+            return true;
+        }
+
 
         #endregion
     }
