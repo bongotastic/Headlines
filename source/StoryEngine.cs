@@ -743,8 +743,14 @@ namespace RPStoryteller
                 adjective = "innefectively ";
                 deltaHype = 1f;
             }
-            
-            FileHeadline(new NewsStory(HeadlineScope.NEWSLETTER, "Media appearance", $"{kerbalFile.DisplayName()} {adjective}in the limelight. ({deltaHype})"));
+
+            Emissions em = new Emissions("media_blitz");
+            NewsStory ns = new NewsStory(em);
+            ns.headline = "Media appearance";
+            ns.SpecifyMainActor(kerbalFile.DisplayName(), em);
+            ns.AddToStory(em.GenerateStory());
+            ns.AddToStory($"They are {adjective}in the public eye. Hype gain is {deltaHype}.");
+            FileHeadline(ns);
             AdjustHype(deltaHype );
         }
 
