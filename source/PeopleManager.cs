@@ -630,7 +630,7 @@ namespace RPStoryteller
         /// Profile is a key metric in evaluating the impact of a kerbal. People value courage and extremes in stupidity.
         /// </summary>
         /// <returns>Zero-bound value</returns>
-        public double Profile()
+        public double Charisma()
         {
             double outputProfile = 2 * (pcm.courage + (2 * Math.Abs(0.5 - pcm.stupidity)));
 
@@ -650,12 +650,20 @@ namespace RPStoryteller
             int effectiveness = 0;
 
             // Profile and experience with probability for fractional points
-            double tempProfile = Profile();
+            double tempProfile = Charisma();
             int wholePartProfile = (int) Math.Floor(tempProfile);
             effectiveness += wholePartProfile;
 
             // Treat partial profile point as probabilities
-            if (!deterministic && randomNG.NextDouble() <= tempProfile - (double) wholePartProfile) effectiveness += 1;
+            double partialProfile = tempProfile - (double) wholePartProfile;
+            if (!deterministic && randomNG.NextDouble() <= partialProfile)
+            {
+                effectiveness += 1;
+            }
+            else
+            {
+                effectiveness += (int)Math.Round(partialProfile,MidpointRounding.AwayFromZero);
+            }
             
             // experience Level (untrained if media for non-pilot
             if (!(isMedia && Specialty() != "Pilot"))

@@ -931,19 +931,19 @@ namespace RPStoryteller
             {
                 personnelFile.trainingLevel += 1;
                 KerbalRegisterSuccess(personnelFile);
-                ns.AddToStory($"{personnelFile.DisplayName()} matures.");
+                ns.AddToStory($" {personnelFile.DisplayName()} matures.");
             }
             else if (outcome == SkillCheckOutcome.CRITICAL)
             {
                 personnelFile.trainingLevel += 2;
                 KerbalRegisterSuccess(personnelFile, true);
-                ns.AddToStory($"{personnelFile.DisplayName()} has a breakthrough.");
+                ns.AddToStory($" {personnelFile.DisplayName()} has a breakthrough.");
             }
             else if (outcome == SkillCheckOutcome.FUMBLE)
             {
                 personnelFile.trainingLevel -= 1;
                 personnelFile.AdjustDiscontent(1);
-                ns.AddToStory($"{personnelFile.DisplayName()} goes down a misguided rabbit hole during their study leave.");
+                ns.AddToStory($" {personnelFile.DisplayName()} goes down a misguided rabbit hole during their study leave.");
             }
             FileHeadline(ns);
         }
@@ -1173,6 +1173,7 @@ namespace RPStoryteller
             }
 
             ns = new NewsStory(emitData);
+            ns.headline = "Capital funding raised";
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
 
             SkillCheckOutcome outcome = SkillCheck(personnelFile.Effectiveness());
@@ -1634,6 +1635,7 @@ namespace RPStoryteller
             }
 
             SchedulerCacheNextTime();
+            CullNewsFeed();
         }
 
 
@@ -2109,6 +2111,27 @@ namespace RPStoryteller
         #endregion
 
         #region InternalLogic
+
+        /// <summary>
+        /// Not very readable method to cull the feed when larger than maxStories. It deletes all SCREEN items over 3 months,
+        /// NEWSLETTER items over 6 month, FEATURES over 9 month, and HEADLINES over 1 year.
+        /// </summary>
+        private void CullNewsFeed()
+        {
+            int maxStories = 100;
+            double month = 3600 * 24 * 30;
+            double now = HeadlinesUtil.GetUT();
+            
+            if (headlines.Count > maxStories)
+            {
+                headlines = new Queue<NewsStory>(headlines.Where(x => x.timestamp < now - ((int)x.scope * 3 * month)));
+                Debug($"News Feed culled to {headlines.Count} elements","News Feed");
+            }
+            else
+            {
+                Debug($"News Feed at {headlines.Count} elements","News Feed");
+            }
+        }
 
         /// <summary>
         /// Determines the outcome of a check based on a mashup of Pendragon and VOID.

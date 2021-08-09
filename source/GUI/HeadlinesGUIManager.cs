@@ -34,14 +34,16 @@ namespace RPStoryteller.source.GUI
         // location of the Window
         public Rect position;
 
-        public Vector2 scrollview = new Vector2(0,0);
+        private Vector2 scrollFeedView = new Vector2(0,0);
+        private Vector2 scrollHMMView = new Vector2(0,0);
+        
 
         //private bool feedChatter = true;
         private int feedThreshold = 1;
         private string feedFilterLabel = "";
 
         private static string[] feedFilter = new[] { "All", "Chatter", "Feature stories", "Headlines"};
-        private static string[] tabs = new[] { "Program", "Feed", "Personnel", "Recruitment","GM"};
+        private static string[] tabs = new[] { "Program", "Feed", "Personnel", "Recruit","GM"};
 
         #region Unity stuff
         
@@ -133,13 +135,14 @@ namespace RPStoryteller.source.GUI
         private void HideWindow()
         {
             _isDisplayed = false;
+            stockButton.SetFalse();
         }
 
         public void OnGUI()
         {
             if (_isDisplayed)
             {
-                position = GUILayout.Window(GetInstanceID(), position, DrawWindow, "Headlines");
+                position = GUILayout.Window(GetInstanceID(), position, DrawWindow, "Headlines 0.2.x");
             }
         }
         
@@ -255,7 +258,7 @@ namespace RPStoryteller.source.GUI
             }
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Area under reputation's curve:", GUILayout.Width(200));
-            GUILayout.Label($"{(int)storyEngine.headlinesScore} Rep * year");
+            GUILayout.Label($"{Math.Round(storyEngine.headlinesScore,2)} Rep * year");
             GUILayout.EndHorizontal();
             GUILayout.Space(20);
             
@@ -264,18 +267,18 @@ namespace RPStoryteller.source.GUI
 
             GUILayout.Box("Impact");
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}");
+            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(200));
             GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}");
+            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(200));
             GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}");
             GUILayout.EndHorizontal();
             if (storyEngine.visitingScholar)
             {
                 GUILayout.Label($"Visiting scholar {storyEngine.visitingScholarName} will help with next science haul.");
             }
-            
+            GUILayout.Space(20);
             GUILayout.EndVertical();
         }
 
@@ -363,7 +366,7 @@ namespace RPStoryteller.source.GUI
                     }
                 }
             }
-            GUILayout.Space(10);
+            GUILayout.Space(20);
         }
 
         /// <summary>
@@ -406,12 +409,12 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.Box($"{peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))} {focusCrew.Specialty().ToLower()}{personality}");
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Net Score: {focusCrew.Effectiveness(deterministic:true)}");
+            GUILayout.Label($"Profile: {focusCrew.Effectiveness(deterministic:true)}");
             GUILayout.Label($"training: {focusCrew.trainingLevel}");
             GUILayout.Label($"Discontent: {focusCrew.GetDiscontent()}");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Profile: {Math.Round(focusCrew.Profile(),2)}");
+            GUILayout.Label($"Charisma: {Math.Round(focusCrew.Charisma(),2)}");
             GUILayout.Label($"Stupidity: {Math.Round(focusCrew.Stupidity(), 2)}");
             GUILayout.Label($"Courage: {Math.Round(focusCrew.Courage(),2)}");
             GUILayout.EndHorizontal();
@@ -645,10 +648,12 @@ namespace RPStoryteller.source.GUI
             }
             GUILayout.Space(10);
             GUILayout.Box("HMM");
+            scrollHMMView = GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(250));
             foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
             {
                 GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value-clock, true, false)} - {kvp.Key}");
             }
+            GUILayout.EndScrollView();
             GUILayout.EndVertical();
         }
 
@@ -656,7 +661,11 @@ namespace RPStoryteller.source.GUI
         {
             FeedThreshold(GUILayout.SelectionGrid(feedThreshold, feedFilter, 4, GUILayout.Width(400)));
 
-            scrollview = GUILayout.BeginScrollView(scrollview, GUILayout.Width(400), GUILayout.Height(450));
+            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(450));
+            if (storyEngine.headlines.Count == 0)
+            {
+                GUILayout.Label("This is soon to become a busy feed. Enjoy the silence while it lasts.");
+            }
             foreach (NewsStory ns in storyEngine.headlines.Reverse())
             {
                 if ((int)ns.scope < feedThreshold + 1) continue;
