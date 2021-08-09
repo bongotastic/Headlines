@@ -339,14 +339,14 @@ namespace RPStoryteller.source.GUI
         {
             GUILayout.Box("Media relation");
             
-            if (storyEngine.endSpotlight < HeadlinesUtil.GetUT())
+            if (storyEngine.endSpotlight < HeadlinesUtil.GetUT() && storyEngine.programHype >= Math.Max(1, Reputation.CurrentRep * 0.05))
             {
                 storyEngine.InvitePress(GUILayout.Button("Invite Press"));
             }
             else
             {
                 GUILayout.Box($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine.endSpotlight - HeadlinesUtil.GetUT(), true, true)}");
-                if (storyEngine.wageredReputation >= Reputation.CurrentRep)
+                if (storyEngine.wageredReputation <= Reputation.CurrentRep)
                 {
                     if (GUILayout.Button("Call successful media debrief"))
                     {
