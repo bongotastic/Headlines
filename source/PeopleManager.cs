@@ -18,8 +18,9 @@ namespace RPStoryteller
         private static System.Random randomNG = new System.Random();
 
         public static PeopleManager Instance = null;
-
         public bool initialized = false;
+
+        [KSPField(isPersistant = true)] public int generationLevel = 3;
 
         // Binds KSP crew and Starstruck data
         public Dictionary<string, PersonnelFile> personnelFolders = new Dictionary<string, PersonnelFile>();
@@ -246,7 +247,11 @@ namespace RPStoryteller
             if (temppcm == null) return (PersonnelFile) null;
             
             PersonnelFile pf = new PersonnelFile(temppcm);
-            pf.Randomize();
+            pf.Randomize(generationLevel);
+            
+            // Ensures a 3, 2, 1 for the first three kerbals ever generated.
+            generationLevel = Math.Max(0, generationLevel - 1);
+            
             if (temppcm.type == ProtoCrewMember.KerbalType.Crew)
             {
                 AddCrew(pf);
@@ -434,6 +439,17 @@ namespace RPStoryteller
             }
 
             return output;
+        }
+
+        public bool EndWarp(PersonnelFile applicant)
+        {
+            if (applicant.Specialty() == "Pilot" && !seekingPilot) return false;
+            if (applicant.Specialty() == "Engineer" && !seekingEngineer) return false;
+            if (applicant.Specialty() == "Scientist" && !seekingScientist) return false;
+            
+            // Insert minimal effectiveness logic here
+
+            return true;
         }
 
 

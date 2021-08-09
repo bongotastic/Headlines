@@ -10,9 +10,11 @@ namespace RPStoryteller.source.Emissions
         private static System.Random _random = new System.Random();
         
         public string nodeName;
-        public int significance; 
+        public HeadlineScope scope;
         
         private ConfigNode _node;
+
+        private Dictionary<string, string> localVariable = new Dictionary<string, string>();
 
         /// <summary>
         /// Fetch an load an emission node from the object database. 
@@ -39,23 +41,23 @@ namespace RPStoryteller.source.Emissions
         /// </summary>
         /// <param name="localValues"></param>
         /// <returns></returns>
-        public string GenerateStory(Dictionary<string, string> localValues)
+        public string GenerateStory()
         {
             string story = "";
             
             ConfigNode template = GetRandomNodeOfType("event_text");
             if (template == null) return story;
 
-            story = template.GetValue("text");
+            story = Strip(template.GetValue("text"));
             
             // Cause
-            if (story.Contains("[cause]") & _node.HasNodeID("cause"))
+            if (story.Contains("[cause]"))
             {
-                story = story.Replace("[case]", GetRandomNodeOfType("cause").GetValue("text"));
+                story = story.Replace("[cause]", Strip(RandomCause()));
             }
             
             // iterate over localVariable
-            foreach (KeyValuePair<string, string> kvp in localValues)
+            foreach (KeyValuePair<string, string> kvp in localVariable)
             {
                 if (story.Contains("[" + kvp.Key + "]"))
                 {
@@ -73,7 +75,7 @@ namespace RPStoryteller.source.Emissions
         private void FromConfigNode(ConfigNode node)
         {
             _node = node;
-            this.significance = int.Parse(_node.GetValue("significance"));
+            this.scope = (HeadlineScope)int.Parse(_node.GetValue("significance"));
         }
 
         /// <summary>
@@ -89,6 +91,21 @@ namespace RPStoryteller.source.Emissions
             }
 
             return "";
+        }
+
+        /// <summary>
+        /// Removes quotation marks from the config file
+        /// </summary>
+        /// <param name="entry"></param>
+        /// <returns></returns>
+        private static string Strip(string entry)
+        {
+            if (entry.StartsWith("\""))
+            {
+                return entry.Substring(1, entry.Length - 2);
+            }
+
+            return entry;
         }
 
         /// <summary>
@@ -136,6 +153,11 @@ namespace RPStoryteller.source.Emissions
             }
 
             return false;
+        }
+
+        public void Add(string key, string value)
+        {
+            localVariable.Add(key, value);
         }
     }
 }
