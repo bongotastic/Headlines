@@ -234,10 +234,23 @@ namespace RPStoryteller
 
         public override void OnLoad(ConfigNode node)
         {
+            Debug("Loading Storyteller");
             base.OnLoad(node);
 
             _liveProcesses.Clear();
             _hmmScheduler.Clear();
+            
+            Debug("Attempting to read feed", "FEED");
+            ConfigNode hlNode = node.GetNode("HEADLINESFEED");
+            if (hlNode != null)
+            {
+                Debug("In FEED node","FEED");
+                foreach (ConfigNode headline in hlNode.GetNodes("headline"))
+                {
+                    Debug($"Reading {headline.GetValue("headline")}","FEED");
+                    headlines.Enqueue(new NewsStory(headline));
+                }
+            }
 
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
             if (hmNode != null)
@@ -269,17 +282,6 @@ namespace RPStoryteller
                     {
                         InitializeHMM(modelName, transientTime, kerbalName);
                     }
-                }
-            }
-            
-            ConfigNode hlNode = node.GetNode("HEADLINESFEED");
-            if (hlNode != null)
-            {
-                Debug("In FEED node","Load");
-                foreach (ConfigNode headline in hlNode.GetNodes("headline"))
-                {
-                    Debug($"Reading {headline.GetValue("headline")}");
-                    headlines.Enqueue(new NewsStory(headline));
                 }
             }
         }

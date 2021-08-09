@@ -92,6 +92,7 @@ namespace RPStoryteller.source.Emissions
             scope = (HeadlineScope) int.Parse(node.GetValue("scope"));
             headline = node.GetValue("headline");
             story = node.GetValue("story");
+            HeadlinesUtil.Report(1, this.ToString());
 
             ConfigNode act = node.GetNode("actors");
             if (act != null)

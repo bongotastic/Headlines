@@ -20,6 +20,7 @@ namespace RPStoryteller.source.GUI
         public bool _showAutoAcceptedContracts = false;
         
         private string _activeTab = "program";
+        private int _activeTabIndex = 0;
         private int _selectedCrew = 0;
         private int _currentActivity = 0;
 
@@ -35,7 +36,12 @@ namespace RPStoryteller.source.GUI
 
         public Vector2 scrollview = new Vector2(0,0);
 
-        private bool feedChatter = true;
+        //private bool feedChatter = true;
+        private int feedThreshold = 1;
+        private string feedFilterLabel = "";
+
+        private static string[] feedFilter = new[] { "All", "Chatter", "Feature stories", "Headlines"};
+        private static string[] tabs = new[] { "Program", "Feed", "Personnel", "Recruitment","GM"};
 
         #region Unity stuff
         
@@ -156,6 +162,9 @@ namespace RPStoryteller.source.GUI
         /// <param name="windowID"></param>
         public void DrawWindow(int windowID)
         {
+            _activeTabIndex = GUILayout.SelectionGrid(_activeTabIndex, tabs, 5, GUILayout.Width(400));
+            
+            /*
             // Tab area
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Program"))
@@ -179,30 +188,35 @@ namespace RPStoryteller.source.GUI
                 SwitchTab("gm");
             }
             GUILayout.EndHorizontal();
+            */
 
-            switch (_activeTab)
+            switch (_activeTabIndex)
             {
-                case "program":
+                case 0:
                     DrawProgramDashboard(windowID);
                     break;
-                case "personnel":
+                case 2:
                     DrawPersonelPanel();
                     break;
-                case "recruitment":
+                case 3:
                     DrawRecruitmentPanel();
                     break;
-                case "feed":
+                case 1:
                     DrawFeed();
                     break;
-                case "gm":
+                case 4:
                     DrawGMPanel();
                     break;
             }
 
+            GUILayout.FlexibleSpace();
+            
             if (GUILayout.Button("Close"))
             {
                 HideWindow();
             }
+            
+            
             
             UnityEngine.GUI.DragWindow();
         }
@@ -221,19 +235,16 @@ namespace RPStoryteller.source.GUI
 
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Reputation:", GUILayout.Width(100));
-            GUILayout.Label($"{storyEngine.GUIValuation()}");
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
+            GUILayout.Label($"{storyEngine.GUIValuation()}", GUILayout.Width(100));
             GUILayout.Label($"Overvaluation:", GUILayout.Width(100));
-            GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine.programHype, MidpointRounding.ToEven)})");
+            GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine.programHype, MidpointRounding.ToEven)})", GUILayout.Width(100));
             GUILayout.EndHorizontal();
+
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Peak:", GUILayout.Width(100));
-            GUILayout.Label($"{storyEngine.GUIRelativeToPeak()}");
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
+            GUILayout.Label($"{storyEngine.GUIRelativeToPeak()}", GUILayout.Width(100));
             GUILayout.Label($"Space Craze:", GUILayout.Width(100));
-            GUILayout.Label($"{storyEngine.GUISpaceCraze()}");
+            GUILayout.Label($"{storyEngine.GUISpaceCraze()}", GUILayout.Width(100));
             GUILayout.EndHorizontal();
             if (storyEngine.ongoingInquiry)
             {
@@ -243,12 +254,13 @@ namespace RPStoryteller.source.GUI
                 GUILayout.EndHorizontal();
             }
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Score:", GUILayout.Width(100));
+            GUILayout.Label($"Area under reputation's curve:", GUILayout.Width(200));
             GUILayout.Label($"{(int)storyEngine.headlinesScore} Rep * year");
             GUILayout.EndHorizontal();
             GUILayout.Space(20);
             
             DrawContracts();
+            DrawPressGallery();
 
             GUILayout.Box("Impact");
             GUILayout.BeginHorizontal();
@@ -321,6 +333,12 @@ namespace RPStoryteller.source.GUI
             _showAutoAcceptedContracts = GUILayout.Toggle(_showAutoAcceptedContracts, "Show all contracts");
 
             GUILayout.Space(20);
+        }
+
+        public void DrawPressGallery()
+        {
+            GUILayout.Box("Media relation");
+            
             if (storyEngine.endSpotlight < HeadlinesUtil.GetUT())
             {
                 storyEngine.InvitePress(GUILayout.Button("Invite Press"));
@@ -328,6 +346,22 @@ namespace RPStoryteller.source.GUI
             else
             {
                 GUILayout.Box($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine.endSpotlight - HeadlinesUtil.GetUT(), true, true)}");
+                if (storyEngine.wageredReputation >= Reputation.CurrentRep)
+                {
+                    if (GUILayout.Button("Call successful media debrief"))
+                    {
+                        storyEngine.endSpotlight = HeadlinesUtil.GetUT() - 1;
+                        storyEngine.EndMediaSpotlight();
+                    }
+                }
+                else
+                {
+                    if (GUILayout.Button("Dismiss the press gallery in shame"))
+                    {
+                        storyEngine.endSpotlight = HeadlinesUtil.GetUT() - 1;
+                        storyEngine.EndMediaSpotlight();
+                    }
+                }
             }
             GUILayout.Space(10);
         }
@@ -620,33 +654,31 @@ namespace RPStoryteller.source.GUI
 
         public void DrawFeed()
         {
-            GUILayout.Space(20);
+            FeedThreshold(GUILayout.SelectionGrid(feedThreshold, feedFilter, 4, GUILayout.Width(400)));
 
-            scrollview = GUILayout.BeginScrollView(scrollview, GUILayout.Width(400), GUILayout.Height(300));
+            scrollview = GUILayout.BeginScrollView(scrollview, GUILayout.Width(400), GUILayout.Height(450));
             foreach (NewsStory ns in storyEngine.headlines.Reverse())
             {
-                if (ns.scope == HeadlineScope.SCREEN && !feedChatter) continue;
+                if ((int)ns.scope < feedThreshold + 1) continue;
                 DrawHeadline(ns);
                 GUILayout.Space(5);
             }
             GUILayout.EndScrollView();
             GUILayout.Space(20);
-
-            feedChatter = GUILayout.Toggle(feedChatter, "Office chatter");
         }
 
         private void DrawHeadline(NewsStory ns)
         {
             if (ns.headline == "")
             {
-                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.story}",GUILayout.Width(375));
+                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.story}",GUILayout.Width(370));
             }
             else
             {
                 GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.headline}");
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("", GUILayout.Width(10));
-                GUILayout.TextArea(ns.story, GUILayout.Width(365));
+                GUILayout.TextArea(ns.story, GUILayout.Width(360));
                 GUILayout.EndHorizontal();
             }
         }
@@ -699,7 +731,33 @@ namespace RPStoryteller.source.GUI
         #endregion
 
         #region UIcontrols
-        
+
+        private void FeedThreshold(int level)
+        {
+            feedThreshold = level;
+            //storyEngine.feedThreshold = (HeadlineScope) (level + 1);
+            feedFilterLabel = feedFilter[level];
+            //SetFeedFilterLabel(feedThreshold);
+        }
+
+        private void SetFeedFilterLabel(int level)
+        {
+            switch (level)
+            {
+                case 1:
+                    feedFilterLabel = "Everything";
+                    break;
+                case 2:
+                    feedFilterLabel = "Newsletter";
+                    break;
+                case 3:
+                    feedFilterLabel = "Feature stories";
+                    break;
+                case 4:
+                    feedFilterLabel = "Headlines";
+                    break;
+            }
+        }
 
         #endregion
     }
