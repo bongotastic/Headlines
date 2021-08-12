@@ -135,7 +135,6 @@ namespace RPStoryteller.source.GUI
         private void HideWindow()
         {
             _isDisplayed = false;
-            stockButton.SetFalse();
         }
 
         public void OnGUI()
@@ -166,32 +165,6 @@ namespace RPStoryteller.source.GUI
         public void DrawWindow(int windowID)
         {
             _activeTabIndex = GUILayout.SelectionGrid(_activeTabIndex, tabs, 5, GUILayout.Width(400));
-            
-            /*
-            // Tab area
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Program"))
-            {
-                SwitchTab("program");
-            }
-            else if (GUILayout.Button("Feed"))
-            {
-                SwitchTab("feed");
-            }
-            else if (GUILayout.Button("Personnel"))
-            {
-                SwitchTab("personnel");
-            }
-            else if (GUILayout.Button("Recruitment"))
-            {
-                SwitchTab("recruitment");
-            }
-            else if (GUILayout.Button("GM"))
-            {
-                SwitchTab("gm");
-            }
-            GUILayout.EndHorizontal();
-            */
 
             switch (_activeTabIndex)
             {
@@ -216,7 +189,8 @@ namespace RPStoryteller.source.GUI
             
             if (GUILayout.Button("Close"))
             {
-                HideWindow();
+                //HideWindow();
+                stockButton.SetFalse();
             }
             
             
@@ -224,6 +198,8 @@ namespace RPStoryteller.source.GUI
             UnityEngine.GUI.DragWindow();
         }
 
+        #region Program Panel
+        
         /// <summary>
         /// Display program information and (eventually) the pledging mechanism 
         /// </summary>
@@ -233,7 +209,15 @@ namespace RPStoryteller.source.GUI
             storyEngine = StoryEngine.Instance;
             
             GUILayout.BeginVertical();
-            
+            DrawProgramStats();
+            DrawContracts();
+            DrawPressGallery();
+            DrawImpact();
+            GUILayout.EndVertical();
+        }
+
+        private void DrawProgramStats()
+        {
             GUILayout.Box($"Program Dashboard (Staff: {storyEngine.GUIAverageProfile()})");
 
             GUILayout.BeginHorizontal();
@@ -261,25 +245,6 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"{Math.Round(storyEngine.headlinesScore,2)} Rep * year");
             GUILayout.EndHorizontal();
             GUILayout.Space(20);
-            
-            DrawContracts();
-            DrawPressGallery();
-
-            GUILayout.Box("Impact");
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(200));
-            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%");
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(200));
-            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}");
-            GUILayout.EndHorizontal();
-            if (storyEngine.visitingScholar)
-            {
-                GUILayout.Label($"Visiting scholar {storyEngine.visitingScholarName} will help with next science haul.");
-            }
-            GUILayout.Space(20);
-            GUILayout.EndVertical();
         }
 
         /// <summary>
@@ -342,13 +307,20 @@ namespace RPStoryteller.source.GUI
         {
             GUILayout.Box("Media relation");
             
-            if (storyEngine.endSpotlight < HeadlinesUtil.GetUT() && storyEngine.programHype >= Math.Max(1, Reputation.CurrentRep * 0.05))
+            if (!storyEngine.mediaSpotlight) 
             {
-                storyEngine.InvitePress(GUILayout.Button("Invite Press"));
+                if (storyEngine.programHype >= Math.Max(1, Reputation.CurrentRep * 0.05))
+                {
+                    storyEngine.InvitePress(GUILayout.Button("Invite Press"));
+                }
+                else
+                {
+                    GUILayout.Label($"Right now, even if lunch is provided, no outlet cares enough to come.\nPress will come only if your hype is at least {(int)Math.Max(1, Math.Ceiling(Reputation.CurrentRep * 0.05))}.");
+                }
             }
             else
             {
-                GUILayout.Box($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine.endSpotlight - HeadlinesUtil.GetUT(), true, true)}");
+                GUILayout.Label($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine.endSpotlight - HeadlinesUtil.GetUT(), true, true)}");
                 if (storyEngine.wageredReputation <= Reputation.CurrentRep)
                 {
                     if (GUILayout.Button("Call successful media debrief"))
@@ -359,7 +331,8 @@ namespace RPStoryteller.source.GUI
                 }
                 else
                 {
-                    if (GUILayout.Button("Dismiss the press gallery in shame"))
+                    GUILayout.Label($"Awaiting {storyEngine.wageredReputation - Reputation.CurrentRep} additional reputation points to be satisfied.", GUILayout.Width(380));
+                    if (GUILayout.Button("Dismiss the press gallery"))
                     {
                         storyEngine.endSpotlight = HeadlinesUtil.GetUT() - 1;
                         storyEngine.EndMediaSpotlight();
@@ -369,6 +342,26 @@ namespace RPStoryteller.source.GUI
             GUILayout.Space(20);
         }
 
+        public void DrawImpact()
+        {
+            GUILayout.Box("Impact");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(200));
+            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%");
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(200));
+            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}");
+            GUILayout.EndHorizontal();
+            if (storyEngine.visitingScholarEndTimes.Count != 0)
+            {
+                GUILayout.Label($"There are {storyEngine.visitingScholarEndTimes.Count} visiting scholars in residence providing a science bonus of {Math.Round(storyEngine.VisitingScienceBonus())*100f}% on new science data.");
+            }
+            GUILayout.Space(20);
+        }
+        
+        #endregion
+        
         /// <summary>
         /// Top-level UI for the Crew panel of the main UI
         /// </summary>
@@ -415,8 +408,11 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Charisma: {Math.Round(focusCrew.Charisma(),2)}");
-            GUILayout.Label($"Stupidity: {Math.Round(focusCrew.Stupidity(), 2)}");
-            GUILayout.Label($"Courage: {Math.Round(focusCrew.Courage(),2)}");
+            GUILayout.Label($"Peers: {focusCrew.collaborators.Count-focusCrew.feuds.Count}");
+            int mood = 0;
+            if (focusCrew.kerbalProductiveState == "inspired") mood = 1;
+            if (focusCrew.kerbalProductiveState == "slump") mood = -1;
+            GUILayout.Label($"Mood: {mood}");
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
             
@@ -486,13 +482,11 @@ namespace RPStoryteller.source.GUI
             _currentActivity = GUILayout.SelectionGrid(_currentActivity, activityLabels.ToArray(), 2);
             if (_currentActivity != activityLabels.IndexOf(focusCrew.kerbalTask))
             {
-                focusCrew.OrderTask(activityLabels[_currentActivity]);
+                storyEngine.KerbalOrderTask(focusCrew, activityLabels[_currentActivity]);
             }
 
-            if (focusCrew.coercedTask)
-            {
-                focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
-            }
+            focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
+
 
         }
 
@@ -648,7 +642,7 @@ namespace RPStoryteller.source.GUI
             }
             GUILayout.Space(10);
             GUILayout.Box("HMM");
-            scrollHMMView = GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(250));
+            scrollHMMView = GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(300));
             foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
             {
                 GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value-clock, true, false)} - {kvp.Key}");

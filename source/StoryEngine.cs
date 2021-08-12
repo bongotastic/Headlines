@@ -94,6 +94,7 @@ namespace RPStoryteller
         [KSPField(isPersistant = true)] public double fundraisingTally = 0;
 
         // Visiting scholars
+        public List<double> visitingScholarEndTimes = new List<double>();
         [KSPField(isPersistant = true)] public bool visitingScholar = false;
         [KSPField(isPersistant = true)] public float programLastKnownScience = 0;
         [KSPField(isPersistant = true)] public float visitingScienceTally = 0;
@@ -195,6 +196,8 @@ namespace RPStoryteller
         /// <param name="node">Unity passes this one.</param>
         public override void OnSave(ConfigNode node)
         {
+            _peopleManager.RefreshPersonnelFolder();
+            
             base.OnSave(node);
 
             // Record all of the time triggers for Hidden models
@@ -230,6 +233,15 @@ namespace RPStoryteller
             }
             
             node.AddNode(headlineFeed);
+
+            ConfigNode visitingEndTimes = new ConfigNode("VISITINGSCHOLAR");
+
+            foreach (double time in visitingScholarEndTimes)
+            {
+                visitingEndTimes.AddValue("time", time);
+            }
+
+            node.AddNode(visitingEndTimes);
         }
 
         public override void OnLoad(ConfigNode node)
@@ -284,6 +296,17 @@ namespace RPStoryteller
                     }
                 }
             }
+            
+            ConfigNode vsNode = node.GetNode("HIDDENMODELS");
+            if (vsNode != null)
+            {
+                foreach (ConfigNode.Value cfV in vsNode.values)
+                {
+                    visitingScholarEndTimes.Add(double.Parse(cfV.value));
+                }
+            }
+            visitingScholarEndTimes.Sort();
+            
         }
 
         private void OnDestroy()
@@ -413,17 +436,13 @@ namespace RPStoryteller
             if (deltaScience > 0) totalScience += deltaScience;
             Debug( $"Adding {deltaScience} science", "Science");
             
-            if (visitingScholar)
+            if (visitingScholarEndTimes.Count != 0)
             {
-                deltaScience *= 0.2f;
+                deltaScience *= VisitingScienceBonus();
                 if (deltaScience >= 0)
                 {
                     visitingScienceTally += deltaScience;
-                    if (storytellerRand.NextDouble() < 0.5)
-                    {
-                        visitingScholar = false;
-                    }
-                    
+
                     _scienceManipultation = true;
                     ResearchAndDevelopment.Instance.CheatAddScience(deltaScience);
                     HeadlinesUtil.Report(3, $"Visiting scholar bonus: {deltaScience}", "Science");
@@ -440,10 +459,16 @@ namespace RPStoryteller
         /// <param name="count"></param>
         public void EventCrewSacked(ProtoCrewMember pcm, int count)
         {
-            // TODO being fired isn't the same as quitting for logging purpose.
+            Debug($"{pcm.name} sacked", "HR");
             if (pcm.type == ProtoCrewMember.KerbalType.Crew)
             {
                 KerbalResignation(_peopleManager.GetFile(pcm.name), new Emissions("quit"));
+            }
+            else if (pcm.type == ProtoCrewMember.KerbalType.Applicant &
+                     _peopleManager.personnelFolders.ContainsKey(pcm.name))
+            {
+                // Recently sacked crewmember
+                KerbalSacked(_peopleManager.GetFile(pcm.name));
             }
         }
 
@@ -566,8 +591,12 @@ namespace RPStoryteller
         /// <summary>
         /// Flag to determine what to display on the Recruitment UI tab when there is no applicants to show.
         /// </summary>
+        /// <remarks>New Refresh routines may be negating the need for hasnotvisited...</remarks>
         private void EventAstronautComplexSpawn()
         {
+            // Clean up the KSP stuff that happened meanwhile
+            _peopleManager.RefreshPersonnelFolder();
+            
             inAstronautComplex = true;
             if (hasnotvisitedAstronautComplex)
             {
@@ -731,16 +760,16 @@ namespace RPStoryteller
                     break;
             }
 
-            string adjective = "";
+            string adjective = " effective ";
             int effectiveness = kerbalFile.Effectiveness();
             float deltaHype = effectiveness * multiplier;
             if (deltaHype < 0f)
             {
-                adjective = "negatively ";
+                adjective = " poorly representing the program ";
             }
             else if (deltaHype < 1f)
             {
-                adjective = "innefectively ";
+                adjective = ", however, innefectively ";
                 deltaHype = 1f;
             }
 
@@ -749,7 +778,7 @@ namespace RPStoryteller
             ns.headline = "Media appearance";
             ns.SpecifyMainActor(kerbalFile.DisplayName(), em);
             ns.AddToStory(em.GenerateStory());
-            ns.AddToStory($"They are {adjective}in the public eye. Hype gain is {deltaHype}.");
+            ns.AddToStory($"They are{adjective}in the public eye. Hype gain is {deltaHype}.");
             FileHeadline(ns);
             AdjustHype(deltaHype );
         }
@@ -1062,6 +1091,7 @@ namespace RPStoryteller
         /// <param name="emitData"></param>
         public void KerbalResignation(PersonnelFile personnelFile, Emissions emitData, bool trajedy = false)
         {
+            Debug($"Kerbal resignation for {personnelFile.DisplayName()}");
             // Message
             if (!trajedy)
             {
@@ -1089,6 +1119,18 @@ namespace RPStoryteller
 
             // Make it happen
             _peopleManager.RemoveKerbal(personnelFile);
+        }
+
+        public void KerbalSacked(PersonnelFile personnelFile)
+        {
+            // Remove influence
+            CancelInfluence(personnelFile, leaveKSC: true);
+
+            // HMMs
+            RemoveHMM(personnelFile);
+
+            // Make it happen
+            _peopleManager.ReturnToApplicantPool(personnelFile);
         }
 
         /// <summary>
@@ -1267,6 +1309,10 @@ namespace RPStoryteller
         /// <param name="emitData"></param>
         public void KerbalBringScholar(PersonnelFile personnelFile, Emissions emitData)
         {
+            // New visiting scholar for 3-6 months
+            double expiryDate = HeadlinesUtil.GetUT() + storytellerRand.Next(3, 7) * (3600 * 24 * 30);
+            visitingScholarEndTimes.Add(expiryDate);
+            
             this.visitingScholar = true;
             ProtoCrewMember.Gender gender = ProtoCrewMember.Gender.Female;
             if (storytellerRand.NextDouble() < 0.5) gender = ProtoCrewMember.Gender.Male;
@@ -1277,9 +1323,20 @@ namespace RPStoryteller
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             emitData.Add("visiting_name", visitingScholarName);
             ns.AddToStory(emitData.GenerateStory());
+            ns.AddToStory($" {visitingScholarName} is expected to be in-residence until {KSPUtil.PrintDate(expiryDate,false, false)}.");
             FileHeadline(ns);
         }
 
+        /// <summary>
+        /// Called buy the UI to force a task change.
+        /// </summary>
+        /// <param name="personnelFile"></param>
+        /// <param name="newTask"></param>
+        public void KerbalOrderTask(PersonnelFile personnelFile, string newTask)
+        {
+            CancelInfluence(personnelFile);
+            personnelFile.OrderTask(newTask);
+        }
         /// <summary>
         /// Occurs after a player tells a kerbal what to do. Determines whether the kerbal loses the coercedFlag and whether
         /// it makes them unhappy.
@@ -1403,7 +1460,7 @@ namespace RPStoryteller
                 _liveProcesses.Add(newState.RegisteredName(), newState);
             }
 
-            timestamp = timestamp != 0 ? timestamp : HeadlinesUtil.GetUT() + GeneratePeriod(newState.period);
+            timestamp = timestamp != 0 ? timestamp : HeadlinesUtil.GetUT() + GeneratePeriod(newState.period, newState.RegisteredName().Contains("_decay"));
 
             if (_hmmScheduler.ContainsKey(newState.RegisteredName()) == false)
             {
@@ -1513,8 +1570,13 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="meanValue">The base value specified in the config node of a HMM</param>
         /// <returns></returns>
-        private double GeneratePeriod(double meanValue)
+        private double GeneratePeriod(double meanValue, bool decay = false)
         {
+            double modifier = 1;
+            if (decay)
+            {
+                modifier = attentionSpanFactor;
+            }
             double stdDev = meanValue / 3;
             double u1 = 1.0 - storytellerRand.NextDouble();
             double u2 = 1.0 - storytellerRand.NextDouble();
@@ -1522,7 +1584,7 @@ namespace RPStoryteller
                                    Math.Sin(2.0 * Math.PI * u2);
             double returnedVal = meanValue + stdDev * randStdNormal;
             double floorVal = meanValue / 20;
-            double outValue = Math.Max(returnedVal * attentionSpanFactor, floorVal);
+            double outValue = Math.Max(returnedVal * modifier, floorVal);
 
             // Convert to seconds based on hardcoded period
             return outValue * _assumedPeriod;
@@ -1559,7 +1621,8 @@ namespace RPStoryteller
         /// <param name="baseTime">Depending on the state itself.</param>
         public void ReScheduleHMM(string registeredStateIdentity, double baseTime)
         {
-            double deltaTime = GeneratePeriod(_liveProcesses[registeredStateIdentity].period);
+            double deltaTime = GeneratePeriod(_liveProcesses[registeredStateIdentity].period, registeredStateIdentity.Contains("_decay"));
+           
             _hmmScheduler[registeredStateIdentity] = HeadlinesUtil.GetUT() + deltaTime;
             Debug( $"Rescheduling HMM {registeredStateIdentity} to +{deltaTime}", "HMM");
 
@@ -1701,7 +1764,8 @@ namespace RPStoryteller
         /// <param name="personnelFile">An instance of the personnel file for the correct kerbal</param>
         public void EmitEvent(string eventName, PersonnelFile personnelFile)
         {
-
+            bool shouldCancelInfluence = true;
+            
             Emissions emitData = new Emissions(eventName);
 
             if (emitData.OngoingTask() == true)
@@ -1716,19 +1780,22 @@ namespace RPStoryteller
             switch (eventName)
             {
                 case "impact":
+                    shouldCancelInfluence = false;
                     KerbalImpact(personnelFile, emitData);
                     break;
                 case "legacy_impact":
+                    shouldCancelInfluence = false;
                     KerbalImpact(personnelFile, emitData, true);
                     break;
                 case "accelerate_research":
+                    shouldCancelInfluence = false;
                     KerbalAccelerate(personnelFile, emitData);
                     break;
                 case "accelerate_assembly":
+                    shouldCancelInfluence = false;
                     KerbalAccelerate(personnelFile, emitData);
                     break;
                 case "media_blitz":
-                    CancelInfluence(personnelFile);
                     KerbalMediaBlitz(personnelFile, emitData);
                     break;
                 case "study_leave":
@@ -1740,14 +1807,18 @@ namespace RPStoryteller
                     break;
                 case "quit":
                     KerbalConsiderResignation(personnelFile, emitData);
+                    shouldCancelInfluence = false;
                     break;
                 case "synergy":
+                    shouldCancelInfluence = false;
                     KerbalSynergy(personnelFile, emitData);
                     break;
                 case "feud":
+                    shouldCancelInfluence = false;
                     KerbalFeud(personnelFile, emitData);
                     break;
                 case "reconcile":
+                    shouldCancelInfluence = false;
                     KerbalReconcile(personnelFile, emitData);
                     break;
                 case "fundraise":
@@ -1760,6 +1831,7 @@ namespace RPStoryteller
                     KerbalBringScholar(personnelFile, emitData);
                     break;
                 case "mentor_peer":
+                    shouldCancelInfluence = false;
                     KerbalMentorPeer(personnelFile, emitData);
                     break;
                 case "accident":
@@ -1769,6 +1841,8 @@ namespace RPStoryteller
                     Debug( $"[Emission] Event {eventName} is not implemented yet.");
                     break;
             }
+            
+            if (shouldCancelInfluence) CancelInfluence(personnelFile);
         }
 
         /// <summary>
@@ -2292,6 +2366,28 @@ namespace RPStoryteller
 
                 mediaSpotlight = false;
             }
+        }
+
+        /// <summary>
+        /// Convergence to 35% bonus with 10 visitors, more likely high end is 22% with 3.
+        /// </summary>
+        /// <returns></returns>
+        public float VisitingScienceBonus()
+        {
+            if (visitingScholarEndTimes.Count != 0)
+            {
+                while (visitingScholarEndTimes[0] < HeadlinesUtil.GetUT())
+                {
+                    visitingScholarEndTimes.Remove(visitingScholarEndTimes[0]);
+                }
+            }
+            
+            float output = 0;
+            for (int i = 0; i < visitingScholarEndTimes.Count; i++)
+            {
+                output += 0.12f * (1f/(1f+i));
+            }
+            return output;
         }
         #endregion
 
