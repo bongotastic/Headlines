@@ -76,9 +76,11 @@
     <Compile Include="source\ContractManager.cs" />
     <Compile Include="source\Emissions\Emissions.cs" />
     <Compile Include="source\Emissions\NewsStory.cs" />
+    <Compile Include="source\Framework\ConfigNodeStorage.cs" />
     <Compile Include="source\GUI\HeadlinesGUIManager.cs" />
     <Compile Include="source\HiddenMarkovProcess.cs" />
     <Compile Include="source\PeopleManager.cs" />
+    <Compile Include="source\Settings.cs" />
     <Compile Include="source\StoryEngine.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>

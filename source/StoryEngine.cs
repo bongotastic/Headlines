@@ -600,6 +600,7 @@ namespace RPStoryteller
             inAstronautComplex = true;
             if (hasnotvisitedAstronautComplex)
             {
+                LaunchSearch();
                 hasnotvisitedAstronautComplex = false;
             }
         }
@@ -2297,7 +2298,7 @@ namespace RPStoryteller
         /// <summary>
         ///  Begin a brand new search process.
         /// </summary>
-        public void LaunchSearch(bool headhunt = false)
+        public void LaunchSearch(bool headhunt = false, bool nocost = false)
         {
             Debug( "Launch a new search");
             _peopleManager.ClearApplicants();
@@ -2310,7 +2311,11 @@ namespace RPStoryteller
                 generationLevel += 2;
                 cost *= 5;
             }
-            AdjustFunds(-1 * cost);
+
+            if (!nocost)
+            {
+                AdjustFunds(-1 * cost);
+            }
             
             generationLevel = Math.Min(5, generationLevel);
             
