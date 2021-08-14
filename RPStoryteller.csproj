@@ -95,6 +95,7 @@
     <Content Include="Notes\Roadmap.txt" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="documentation\wiki" />
     <Folder Include="GameData\Headlines\artwork\icons" />
     <Folder Include="GameData\Headlines\Plugins" />
   </ItemGroup>
