@@ -141,7 +141,7 @@ namespace RPStoryteller.source.GUI
         {
             if (_isDisplayed)
             {
-                position = GUILayout.Window(GetInstanceID(), position, DrawWindow, "Headlines 0.2.x");
+                position = GUILayout.Window(GetInstanceID(), position, DrawWindow, $"Headlines -- {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()}");
             }
         }
         
@@ -534,14 +534,14 @@ namespace RPStoryteller.source.GUI
                 searchCost *= 5;
                 if (storyEngine.GetFunds() > searchCost)
                 {
-                    if (GUILayout.Button($"Contract a headHunter (${searchCost})"))
+                    if (GUILayout.Button($"Contract a head hunter firm (${searchCost})"))
                     {
                         storyEngine.LaunchSearch(true);
                     }
                 }
                 else
                 {
-                    GUILayout.Label($"Hiring a headhunter costs ${searchCost}");
+                    GUILayout.Label($"Hiring a head hunter firm costs ${searchCost}");
                 }
             }
             else

@@ -40,6 +40,8 @@ namespace RPStoryteller
 
         public static StoryEngine Instance = null;
 
+        //public Settings settings;
+
         public static string[] renownLevels = new[] { "underdog", "renowned", "leader", "excellent", "legendary"};
 
         // Random number generator
@@ -122,6 +124,11 @@ namespace RPStoryteller
 
         #region UnityStuff
 
+        internal void Awake()
+        {
+            //settings = new Settings("settings.cfg");
+        }
+        
         /// <summary>
         /// Unity method with some basics stuff that needs to run once inside a the scene.
         /// </summary>
@@ -196,6 +203,7 @@ namespace RPStoryteller
         /// <param name="node">Unity passes this one.</param>
         public override void OnSave(ConfigNode node)
         {
+
             _peopleManager.RefreshPersonnelFolder();
             
             base.OnSave(node);
