@@ -4,3 +4,5 @@ shutil.copyfile("bin\Debug\RPStoryteller.dll", "GameData\Headlines\Plugins\RPSto
 # Useful only for bongo on devmachine
 shutil.rmtree("C:\KSP dev\RP1play\GameData\Headlines")
 shutil.copytree("GameData\Headlines", "C:\KSP dev\RP1play\GameData\Headlines")
+shutil.rmtree("C:\KSP dev\RP1\GameData\Headlines")
+shutil.copytree("GameData\Headlines", "C:\KSP dev\RP1\GameData\Headlines")
