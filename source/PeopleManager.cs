@@ -769,6 +769,11 @@ namespace RPStoryteller
         {
             return pcm.inactive;
         }
+
+        public double InactiveDeadline()
+        {
+            return pcm.inactiveTimeEnd;
+        }
         
         public bool IsFeuding(PersonnelFile candidate)
         {

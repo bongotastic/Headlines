@@ -1242,7 +1242,7 @@ namespace RPStoryteller
 
             if (funds > 0)
             {
-                ns.AddToStory($"They finalize a gift agreement for ${(int) (funds / 1000)}K.");
+                ns.AddToStory($"{personnelFile.DisplayName()} finalizes a gift agreement for ${(int) (funds / 1000)}K.");
                 FileHeadline(ns);
                 
                 Funding.Instance.AddFunds(funds, TransactionReasons.Any);

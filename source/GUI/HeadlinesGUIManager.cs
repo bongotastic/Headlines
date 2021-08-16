@@ -476,18 +476,25 @@ namespace RPStoryteller.source.GUI
             }
             
             // Activity controls
-            BuildActivityLabels(focusCrew.Specialty()); // inefficient
-            GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
-            _currentActivity = activityLabels.IndexOf(focusCrew.kerbalTask);
-            _currentActivity = GUILayout.SelectionGrid(_currentActivity, activityLabels.ToArray(), 2);
-            if (_currentActivity != activityLabels.IndexOf(focusCrew.kerbalTask))
+            if (focusCrew.IsInactive())
             {
-                storyEngine.KerbalOrderTask(focusCrew, activityLabels[_currentActivity]);
+                double deltaTime = focusCrew.InactiveDeadline() - HeadlinesUtil.GetUT();
+                GUILayout.Box($"Activity (inactive)");
+                GUILayout.Label($"Earliest possible return: {KSPUtil.PrintDateDelta(deltaTime,false, false)}");
             }
+            else
+            {
+                BuildActivityLabels(focusCrew.Specialty()); // inefficient
+                GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
+                _currentActivity = activityLabels.IndexOf(focusCrew.kerbalTask);
+                _currentActivity = GUILayout.SelectionGrid(_currentActivity, activityLabels.ToArray(), 2);
+                if (_currentActivity != activityLabels.IndexOf(focusCrew.kerbalTask))
+                {
+                    storyEngine.KerbalOrderTask(focusCrew, activityLabels[_currentActivity]);
+                }
 
-            focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
-
-
+                focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
+            }
         }
 
         /// <summary>
