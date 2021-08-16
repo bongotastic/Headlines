@@ -402,18 +402,16 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.Box($"{peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))} {focusCrew.Specialty().ToLower()}{personality}");
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Profile: {focusCrew.Effectiveness(deterministic:true)}");
-            GUILayout.Label($"training: {focusCrew.trainingLevel}");
-            GUILayout.Label($"Discontent: {focusCrew.GetDiscontent()}");
+            GUILayout.Label($"Likability: {focusCrew.EffectivenessLikability(true)}", GUILayout.Width(133));
+            GUILayout.Label($"Training: {focusCrew.trainingLevel}", GUILayout.Width(133));
+            GUILayout.Label($"Experience: {focusCrew.EffectivenessExperience()}", GUILayout.Width(133));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Charisma: {Math.Round(focusCrew.Charisma(),2)}");
-            GUILayout.Label($"Peers: {focusCrew.collaborators.Count-focusCrew.feuds.Count}");
-            int mood = 0;
-            if (focusCrew.kerbalProductiveState == "inspired") mood = 1;
-            if (focusCrew.kerbalProductiveState == "slump") mood = -1;
-            GUILayout.Label($"Mood: {mood}");
+            GUILayout.Label($"Personality: {focusCrew.EffectivenessPersonality()}", GUILayout.Width(133));
+            GUILayout.Label($"Peers: {focusCrew.EffectivenessHumanFactors()}", GUILayout.Width(133));
+            GUILayout.Label($"Mood: {focusCrew.EffectivenessMood()}", GUILayout.Width(133));
             GUILayout.EndHorizontal();
+            GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}");
             GUILayout.Space(10);
             
             // If untrained, offers to reassign

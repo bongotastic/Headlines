@@ -671,6 +671,8 @@ namespace RPStoryteller
             return outputProfile;
         }
 
+        #region effectiveness
+
         /// <summary>
         /// Computes the skill level of a kerbal. This method is non-deterministic as it treats partial profile as
         /// a probability. 
@@ -679,8 +681,32 @@ namespace RPStoryteller
         /// <returns>effectiveness</returns>
         public int Effectiveness(bool isMedia = false, bool deterministic = false)
         {
-            int effectiveness = 0;
+            int effectiveness = EffectivenessLikability(deterministic);
 
+            // experience Level (untrained if media for non-pilot
+            if (!(isMedia && Specialty() != "Pilot"))
+            {
+                effectiveness += EffectivenessExperience();
+            }
+            
+            // Charm and personality
+            effectiveness += EffectivenessPersonality(isMedia);
+
+            // training
+            effectiveness += this.trainingLevel;
+
+            // Discontentment, collaborations and feuds
+            effectiveness += EffectivenessHumanFactors(isMedia);
+            
+            // slump/inspired
+            effectiveness += EffectivenessMood();
+
+            return (int)Math.Max(0, effectiveness);
+        }
+
+        public int EffectivenessLikability(bool deterministic = false)
+        {
+            int effectiveness = 0;
             // Profile and experience with probability for fractional points
             double tempProfile = Charisma();
             int wholePartProfile = (int) Math.Floor(tempProfile);
@@ -696,28 +722,56 @@ namespace RPStoryteller
             {
                 effectiveness += (int)Math.Round(partialProfile,MidpointRounding.AwayFromZero);
             }
-            
-            // experience Level (untrained if media for non-pilot
-            if (!(isMedia && Specialty() != "Pilot"))
-            {
-                effectiveness += ExperienceProfileIncrements();
-            }
-            
-            // Charm
+
+            return effectiveness;
+        }
+        
+        /// <summary>
+        /// Impact of personality tags on effectiveness
+        /// </summary>
+        /// <param name="isMedia"></param>
+        /// <returns></returns>
+        public int EffectivenessPersonality(bool isMedia = false)
+        {
+            int effectiveness = 0;
             if (isMedia | Specialty() == "Pilot")
             {
                 if (HasAttribute("charming")) effectiveness++;
                 if (HasAttribute("bland")) effectiveness--;
             }
 
-            // training
-            effectiveness += this.trainingLevel;
-            
-            // feuds, collaborations, discontentment (human factors)
-            effectiveness += collaborators.Count;
-            effectiveness -= feuds.Count;
-            
-            if (isMedia == true || Specialty() == "Pilot")
+            return effectiveness;
+        }
+        
+        /// <summary>
+        /// Effect of productivity hidden state
+        /// </summary>
+        /// <returns>Partial effectiveness</returns>
+        public int EffectivenessMood()
+        {
+            int effectiveness = 0;
+            switch (kerbalProductiveState)
+            {
+                case "kerbal_slump":
+                    effectiveness -= 1;
+                    break;
+                case "kerbal_inspired":
+                    effectiveness += 1;
+                    break;
+            }
+
+            return effectiveness;
+        }
+        /// <summary>
+        /// Accounts for the effect of discontentment, collaborations and feuds.
+        /// </summary>
+        /// <param name="isMedia"></param>
+        /// <returns>Partial effectiveness</returns>
+        public int EffectivenessHumanFactors(bool isMedia = false)
+        {
+            int effectiveness = collaborators.Count;
+
+            if (isMedia || Specialty() == "Pilot")
             {
                 // Feuds can be ignored in charm campaigns (outside of the KSC)
                 effectiveness -= discontent;
@@ -727,20 +781,8 @@ namespace RPStoryteller
                 // Feuds can't be ignored when working at the KSC
                 effectiveness -= (discontent + feuds.Count);
             }
-            
-            
-            // slump/inspired
-            switch (kerbalProductiveState)
-            {
-               case "kerbal_slump":
-                   effectiveness -= 1;
-                   break;
-               case "kerbal_inspired":
-                   effectiveness += 1;
-                   break;
-            }
 
-            return (int)Math.Max(0, effectiveness);
+            return effectiveness;
         }
 
         /// <summary>
@@ -748,7 +790,7 @@ namespace RPStoryteller
         /// upper range.
         /// </summary>
         /// <returns>Starstruck levels</returns>
-        private int ExperienceProfileIncrements()
+        public int EffectivenessExperience()
         {
             float xp = pcm.experience;
 
@@ -759,6 +801,9 @@ namespace RPStoryteller
             }
             else return 4;
         }
+
+        #endregion
+        
 
         public bool IsCollaborator(string candidate)
         {
