@@ -1374,7 +1374,7 @@ namespace RPStoryteller
         /// <param name="critical">force adjustment</param>
         public void KerbalRegisterSuccess(PersonnelFile personnelFile, bool critical = false)
         {
-            if (critical | storytellerRand.NextDouble() < 0.5)
+            if (critical | storytellerRand.NextDouble() < 0.15)
             {
                 personnelFile.AdjustDiscontent(-1);
             }
@@ -1899,11 +1899,19 @@ namespace RPStoryteller
             // Let player know without spamming the screen
             if (increment > 0 && attentionSpanFactor > 1.61)
             {
-                PrintScreen( "People understand that space exploration takes time.");
+                Emissions em = new Emissions("attention_span_long");
+                NewsStory ns = new NewsStory(em);
+                ns.headline = "Pressure lowers on you";
+                ns.AddToStory(em.GenerateStory());
+                FileHeadline(ns);
             }
             else if (attentionSpanFactor <= 1)
             {
-                PrintScreen( "Public grow impatient. Act soon!");
+                Emissions em = new Emissions("attention_span_short");
+                NewsStory ns = new NewsStory(em);
+                ns.headline = "Space craze is low";
+                ns.AddToStory(em.GenerateStory());
+                FileHeadline(ns);
             }
         }
 

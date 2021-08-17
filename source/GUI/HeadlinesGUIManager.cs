@@ -63,7 +63,7 @@ namespace RPStoryteller.source.GUI
         public void Start()
         {
             storyEngine = StoryEngine.Instance;
-            position = new Rect(100f, 100f, 400f, 200f);
+            position = new Rect(100f, 150f, 400f, 575f);
         }
 
         protected void OnDestroy()
@@ -402,7 +402,7 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.Box($"{peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))} {focusCrew.Specialty().ToLower()}{personality}");
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Likability: {focusCrew.EffectivenessLikability(true)}", GUILayout.Width(133));
+            GUILayout.Label($"Charisma: {focusCrew.EffectivenessLikability(true)}", GUILayout.Width(133));
             GUILayout.Label($"Training: {focusCrew.trainingLevel}", GUILayout.Width(133));
             GUILayout.Label($"Experience: {focusCrew.EffectivenessExperience()}", GUILayout.Width(133));
             GUILayout.EndHorizontal();
