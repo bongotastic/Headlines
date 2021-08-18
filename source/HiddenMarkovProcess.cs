@@ -28,6 +28,7 @@ namespace HiddenMarkovProcess
 
         // Housekeeping
         private bool _dirty = true;
+        public bool _personalityApplied = false;
 
         public HiddenState(string templateStateIdentity, string kerbalName="")
         {
@@ -56,7 +57,7 @@ namespace HiddenMarkovProcess
         /// <summary>
         /// Debug method that may not be needed in the long run.
         /// </summary>
-        private void PrintHMM()
+        public void PrintHMM()
         {
             HeadlinesUtil.Report(1,$"[HMM] {this.templateStateName}");
 
@@ -86,8 +87,9 @@ namespace HiddenMarkovProcess
         /// <returns></returns>
         public string RegisteredName()
         {
-            if (this.kerbalName != "") return this.kerbalName + "@" + this.templateStateName;
-            else return this.templateStateName;
+            if (kerbalName != "") return kerbalName + "@" + templateStateName;
+            
+            return templateStateName;
         }
 
         public List<string> ListEmissions()
@@ -127,7 +129,7 @@ namespace HiddenMarkovProcess
                     _transitions.Add(item.name, float.Parse(item.value));
                 }
             }
-            
+
             // Emissions
             if (emissionNode != null)
             {

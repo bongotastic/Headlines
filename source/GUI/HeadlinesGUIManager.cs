@@ -622,7 +622,18 @@ namespace RPStoryteller.source.GUI
             double clock = HeadlinesUtil.GetUT();
             
             GUILayout.BeginVertical();
-            GUILayout.Box("Cheats");
+            GUILayout.Box("Story Elements");
+            if (GUILayout.Button("Ouch! Debris in populated area"))
+            {
+                storyEngine.DebrisOverLand(true);
+            }
+            if (GUILayout.Button("Oops: unintended debris in the wild"))
+            {
+                storyEngine.DebrisOverLand();
+            }
+            GUILayout.Space(10);
+            
+            GUILayout.Box("Beta testers");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Add 5 Hype"))
             {

@@ -66,6 +66,7 @@ namespace RPStoryteller
 
         public override void OnLoad(ConfigNode node)
         {
+            initialized = true;
             base.OnLoad(node);
             
             // Load personnel files

@@ -72,14 +72,12 @@ namespace RPStoryteller.source.Emissions
             bool addAct = false;
             foreach (string actor in actors)
             {
-                HeadlinesUtil.Report(1,$"actor: {actor}");
                 act.AddValue(actor, "actor");
                 addAct = true;
             }
 
             if (addAct)
             {
-                HeadlinesUtil.Report(1,$"Add actor node");
                 output.AddNode("actors", act);
             }
 
@@ -92,7 +90,6 @@ namespace RPStoryteller.source.Emissions
             scope = (HeadlineScope) int.Parse(node.GetValue("scope"));
             headline = node.GetValue("headline");
             story = node.GetValue("story");
-            HeadlinesUtil.Report(1, this.ToString());
 
             ConfigNode act = node.GetNode("actors");
             if (act != null)

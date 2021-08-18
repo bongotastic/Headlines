@@ -253,14 +253,11 @@ namespace RPStoryteller
             _liveProcesses.Clear();
             _hmmScheduler.Clear();
             
-            Debug("Attempting to read feed", "FEED");
             ConfigNode hlNode = node.GetNode("HEADLINESFEED");
             if (hlNode != null)
             {
-                Debug("In FEED node","FEED");
                 foreach (ConfigNode headline in hlNode.GetNodes("headline"))
                 {
-                    Debug($"Reading {headline.GetValue("headline")}","FEED");
                     headlines.Enqueue(new NewsStory(headline));
                 }
             }
@@ -298,7 +295,7 @@ namespace RPStoryteller
                 }
             }
             
-            ConfigNode vsNode = node.GetNode("HIDDENMODELS");
+            ConfigNode vsNode = node.GetNode("VISITINGSCHOLAR");
             if (vsNode != null)
             {
                 foreach (ConfigNode.Value cfV in vsNode.values)
@@ -1406,6 +1403,7 @@ namespace RPStoryteller
         /// <param name="registeredStateIdentity">The identifier as registered in the scheduler</param>
         private void InitializeHMM(string registeredStateIdentity, double timestamp = 0, string kerbalName = "")
         {
+            Debug($"Initializing {registeredStateIdentity} for '{kerbalName}'");
             string templateStateIdentity = registeredStateIdentity;
 
             // Split template and kerbal parts when initialized from a save node
@@ -1415,14 +1413,42 @@ namespace RPStoryteller
                 templateStateIdentity = registeredStateIdentity.Substring(splitter + 1);
                 kerbalName = registeredStateIdentity.Substring(0, splitter);
             }
-            Debug( $"Initializing {templateStateIdentity}");
+            Debug( $"Initializing {templateStateIdentity} for {kerbalName}");
 
             HiddenState newState = new HiddenState(templateStateIdentity, kerbalName);
+
+            // Odd case where people manager isn't loaded yet
+            //ApplyPersonality(newState);
             
-            // Personality
-            if (kerbalName != "")
+            // Avoid duplications
+            if (_liveProcesses.ContainsKey(newState.RegisteredName()) == false)
             {
-                PersonnelFile pf = _peopleManager.GetFile(kerbalName);
+                _liveProcesses.Add(newState.RegisteredName(), newState);
+            }
+
+            timestamp = timestamp != 0 ? timestamp : HeadlinesUtil.GetUT() + GeneratePeriod(newState.period, newState.RegisteredName().Contains("_decay"));
+
+            if (_hmmScheduler.ContainsKey(newState.RegisteredName()) == false)
+            {
+                _hmmScheduler.Add(newState.RegisteredName(), timestamp);
+            }
+            else
+            {
+                _hmmScheduler[newState.RegisteredName()] = timestamp;
+            }
+
+        }
+
+        public void ApplyPersonality(HiddenState newState)
+        {
+            // People manager may not be loaded
+            if (_peopleManager.applicantFolders.Count + _peopleManager.personnelFolders.Count == 0) return;
+            
+            newState._personalityApplied = true;
+            // Personality
+            if (newState.kerbalName != "")
+            {
+                PersonnelFile pf = _peopleManager.GetFile(newState.kerbalName);
                 float tempVal = 0;
                 bool recompute = false;
                 
@@ -1455,24 +1481,6 @@ namespace RPStoryteller
                 
                 if (recompute) newState.Recompute();
             }
-
-            // Avoid duplications
-            if (_liveProcesses.ContainsKey(newState.RegisteredName()) == false)
-            {
-                _liveProcesses.Add(newState.RegisteredName(), newState);
-            }
-
-            timestamp = timestamp != 0 ? timestamp : HeadlinesUtil.GetUT() + GeneratePeriod(newState.period, newState.RegisteredName().Contains("_decay"));
-
-            if (_hmmScheduler.ContainsKey(newState.RegisteredName()) == false)
-            {
-                _hmmScheduler.Add(newState.RegisteredName(), timestamp);
-            }
-            else
-            {
-                _hmmScheduler[newState.RegisteredName()] = timestamp;
-            }
-
         }
         
         /// <summary>
@@ -1585,7 +1593,7 @@ namespace RPStoryteller
             double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) *
                                    Math.Sin(2.0 * Math.PI * u2);
             double returnedVal = meanValue + stdDev * randStdNormal;
-            double floorVal = meanValue / 20;
+            double floorVal = meanValue / 10;
             double outValue = Math.Max(returnedVal * modifier, floorVal);
 
             // Convert to seconds based on hardcoded period
@@ -1641,6 +1649,7 @@ namespace RPStoryteller
         /// <param name="currentTime">Passed on from GetUT() from a previous calls</param>
         private void SchedulerUpdate(double currentTime)
         {
+            Debug("Scheduler update");
             string emittedEvent = "";
             string nextTransitionState = "";
 
@@ -1656,8 +1665,13 @@ namespace RPStoryteller
 
             foreach (string registeredStateName in triggerStates)
             {
+                Debug($"Triggering HMM {registeredStateName}");
                 // Check for validity as it *may* have been removed recently
-                if (_liveProcesses.ContainsKey(registeredStateName) == false) continue;
+                if (_liveProcesses.ContainsKey(registeredStateName) == false)
+                {
+                    Debug($"{registeredStateName} schedule, but doesn't exist");
+                    continue;
+                }
 
                 // HMM emission call
                 emittedEvent = _liveProcesses[registeredStateName].Emission();
@@ -1684,7 +1698,8 @@ namespace RPStoryteller
                         EmitEvent(emittedEvent);
                     }
                 }
-
+                
+                _liveProcesses[registeredStateName].PrintHMM();
                 // HMM transition determination
                 nextTransitionState = _liveProcesses[registeredStateName].Transition();
                 Debug( $"HMM {registeredStateName} transitions to {nextTransitionState}", "HMM");
@@ -1716,7 +1731,7 @@ namespace RPStoryteller
         {
             Debug( $"[Emission] {eventName} at time {KSPUtil.PrintDate(GetUT(), true, false)}");
 
-            Emissions emitData = new Emissions(eventName);
+            //Emissions emitData = new Emissions(eventName);
 
             switch (eventName)
             {
@@ -1752,6 +1767,15 @@ namespace RPStoryteller
                     break;
                 case "conclude_inquiry":
                     InquiryConclude();
+                    break;
+                case "debris_damage":
+                    DebrisDamage();
+                    break;
+                case "debris_spin":
+                    DebrisSpin();
+                    break;
+                case "debris_conclude":
+                    DebrisConclude();
                     break;
                 default:
                     Debug( $"[Emission] {eventName} is not implemented yet.");
@@ -1984,7 +2008,7 @@ namespace RPStoryteller
         /// <summary>
         /// Public reevaluation of the hype around a program versus its actual reputation, and a proportional correction.
         /// </summary>
-        public void RealityCheck()
+        public void RealityCheck(bool withStory = true)
         {
             Reputation repInstance = Reputation.Instance;
 
@@ -1993,9 +2017,12 @@ namespace RPStoryteller
                 float overrating = (this.programHype + repInstance.reputation) / repInstance.reputation;
                 this.programHype /= overrating;
 
-                Emissions em = new Emissions("reality_check");
-                em.Add("delta", ((int) this.programHype).ToString());
-                FileHeadline(new NewsStory(em, Headline:"Hype deflates", generateStory:true));
+                if (withStory)
+                {
+                    Emissions em = new Emissions("reality_check");
+                    em.Add("delta", ((int) this.programHype).ToString());
+                    FileHeadline(new NewsStory(em, Headline:"Hype deflates", generateStory:true));
+                }
             }
             else
             {
@@ -2103,6 +2130,76 @@ namespace RPStoryteller
         {
 
         }
+
+        #region Debris
+        
+        /// <summary>
+        /// Triggered by self-declaration
+        /// </summary>
+        /// <param name="populated"></param>
+        public void DebrisOverLand(bool populated = false)
+        {
+            if (populated)
+            {
+                InitializeHMM("debris_endangerment_populated");
+            }
+            else
+            {
+                InitializeHMM("debris_endangerment");
+            }
+        }
+
+        /// <summary>
+        /// Something bad happened because you these debris.
+        /// </summary>
+        private void DebrisDamage()
+        {
+            Emissions em = new Emissions("debris_damage");
+            NewsStory ns = new NewsStory(em);
+            ns.headline = "Debris: Damage report";
+            ns.AddToStory(em.GenerateStory());
+            FileHeadline(ns);
+            DecayReputation();
+            RealityCheck(withStory:false);
+        }
+
+        /// <summary>
+        /// benine, if not positive effect of media attention
+        /// </summary>
+        private void DebrisSpin()
+        {
+            Emissions em = new Emissions("debris_spin");
+            NewsStory ns = new NewsStory(em);
+            ns.headline = "Debris: It could be worse";
+            ns.AddToStory(em.GenerateStory());
+            ns.AddToStory("Hype is going up by 5.");
+            FileHeadline(ns);
+            programHype += 5;
+        }
+
+        /// <summary>
+        /// End the sequence of events related to debris on land.
+        /// </summary>
+        private void DebrisConclude()
+        {
+            string stateToRemove = "";
+            foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
+            {
+                if (kvp.Key.StartsWith("debris_endangerment"))
+                {
+                    stateToRemove = kvp.Key;
+                    break;
+                }
+            }
+
+            if (stateToRemove != "")
+            {
+                RemoveHMM(stateToRemove);
+            }
+        }
+
+        #endregion
+        
 
         #endregion
 
