@@ -2161,6 +2161,7 @@ namespace RPStoryteller
             FileHeadline(ns);
             DecayReputation();
             RealityCheck(withStory:false);
+            DebrisResolve();
         }
 
         /// <summary>
@@ -2175,6 +2176,7 @@ namespace RPStoryteller
             ns.AddToStory("Hype is going up by 5.");
             FileHeadline(ns);
             programHype += 5;
+            DebrisResolve();
         }
 
         /// <summary>
@@ -2195,6 +2197,19 @@ namespace RPStoryteller
             if (stateToRemove != "")
             {
                 RemoveHMM(stateToRemove);
+            }
+        }
+
+        public void DebrisResolve()
+        {
+            foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
+            {
+                if (kvp.Key.StartsWith("debris_"))
+                {
+                    double concludeProb = kvp.Value.GetEmissionProbability("debris_conclude");
+                    concludeProb += (1 - concludeProb) / 2;
+                    kvp.Value.SpecifyEmission("debris_conclude", (float)concludeProb);
+                }
             }
         }
 
