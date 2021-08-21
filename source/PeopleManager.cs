@@ -260,7 +260,18 @@ namespace RPStoryteller
                 GetFile(apcm.name);
             }
         }
-        
+
+        /// <summary>
+        ///  So there is variability in each new career
+        /// </summary>
+        public void RandomizeStartingCrew()
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                kvp.Value.RandomizeType();
+            }
+        }
+
         #endregion
 
         #region Logic
@@ -638,6 +649,18 @@ namespace RPStoryteller
             if (feuds.Contains(kerbalName)) feuds.Remove(kerbalName);
             if (collaborators.Contains(kerbalName)) collaborators.Remove(kerbalName);
         }
+        
+        /// <summary>
+        /// Add one experience point to an inexperienced kerbal, no matter what.
+        /// This is triggered when taking flight. This is an override of the KSP mechanics.
+        /// </summary>
+        public void RegisterFirstFlight()
+        {
+            if (pcm.experience == 0)
+            {
+                KerbalRoster.SetExperienceLevel(pcm, 1);
+            }
+        }
 
         #endregion
 
@@ -750,7 +773,8 @@ namespace RPStoryteller
         /// <returns>Partial effectiveness</returns>
         public int EffectivenessMood()
         {
-            int effectiveness = 0;
+            int effectiveness = -1 * discontent;
+
             switch (kerbalProductiveState)
             {
                 case "kerbal_slump":
@@ -772,15 +796,10 @@ namespace RPStoryteller
         {
             int effectiveness = collaborators.Count;
 
-            if (isMedia || Specialty() == "Pilot")
-            {
-                // Feuds can be ignored in charm campaigns (outside of the KSC)
-                effectiveness -= discontent;
-            }
-            else
+            if (!(isMedia || Specialty() == "Pilot"))
             {
                 // Feuds can't be ignored when working at the KSC
-                effectiveness -= (discontent + feuds.Count);
+                effectiveness -= feuds.Count;
             }
 
             return effectiveness;
@@ -1030,7 +1049,7 @@ namespace RPStoryteller
             level += randomNG.Next(-1, 2);
             level = Math.Min(5, level);
             level = Math.Max(0, level);
-            
+
             discontent = randomNG.Next(0, 2);
             int difference = level - Effectiveness();
 
@@ -1046,11 +1065,21 @@ namespace RPStoryteller
                 discontent = Math.Max(0, discontent + difference);
             }
             
-            // TODO Pick 0+ personality trait.
             if (randomNG.NextDouble() < 0.5)
             {
                 int attributeIndex = randomNG.Next(0, attributes.Count);
                 personality = attributes[attributeIndex];
+            }
+        }
+
+        public void RandomizeType()
+        {
+            // Only the first starting 4 will be randomized as crew
+            if (pcm.type == ProtoCrewMember.KerbalType.Crew)
+            {
+                string[] newTypes = new[] {"Pilot", "Engineer", "Scientist"};
+                string newType = newTypes[randomNG.Next(0,4)];
+                KerbalRoster.SetExperienceTrait(pcm, newType);
             }
         }
 

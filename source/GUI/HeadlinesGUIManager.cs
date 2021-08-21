@@ -253,17 +253,13 @@ namespace RPStoryteller.source.GUI
         public void DrawContracts()
         {
             float ratio = 0f;
-            bool hasheader = false;
 
             Color originalColor = UnityEngine.GUI.contentColor;
 
+            GUILayout.Box("Contracts (% hyped)");
+            
             foreach (Contract myContract in ContractSystem.Instance.GetCurrentContracts<Contract>())
             {
-                if (!hasheader)
-                {
-                    GUILayout.Box("Contracts (% hyped)");
-                    hasheader = true;
-                }
                 if (myContract.ContractState == Contract.State.Active)
                 {
                     // Skip autoaccepted contracts 
@@ -528,30 +524,34 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.BeginVertical();
 
-            double searchCost = 2000 + 2000 * (double) storyEngine.GetValuationLevel();
-            if (storyEngine.GetFunds() > searchCost)
+            // Avoid launching a search that get overwritten at the start of a career
+            if(!storyEngine.hasnotvisitedAstronautComplex)
             {
-                if (GUILayout.Button($"Open new search (${searchCost})"))
-                {
-                    storyEngine.LaunchSearch(false);
-                }
-
-                searchCost *= 5;
+                double searchCost = 2000 + 2000 * (double) storyEngine.GetValuationLevel();
                 if (storyEngine.GetFunds() > searchCost)
                 {
-                    if (GUILayout.Button($"Contract a head hunter firm (${searchCost})"))
+                    if (GUILayout.Button($"Open new search (${searchCost})"))
                     {
-                        storyEngine.LaunchSearch(true);
+                        storyEngine.LaunchSearch(false);
+                    }
+
+                    searchCost *= 5;
+                    if (storyEngine.GetFunds() > searchCost)
+                    {
+                        if (GUILayout.Button($"Contract a head hunter firm (${searchCost})"))
+                        {
+                            storyEngine.LaunchSearch(true);
+                        }
+                    }
+                    else
+                    {
+                        GUILayout.Label($"Hiring a head hunter firm costs ${searchCost}");
                     }
                 }
                 else
                 {
-                    GUILayout.Label($"Hiring a head hunter firm costs ${searchCost}");
+                    GUILayout.Label($"Open a search for ${searchCost}");
                 }
-            }
-            else
-            {
-                GUILayout.Label($"Open a search for ${searchCost}");
             }
             
             

@@ -165,6 +165,12 @@ namespace RPStoryteller
             {
                 if (updateIndex == 9)
                 {
+                    // if the mod is installed in a new career (less than an hour), randomize crew specialty
+                    if (HeadlinesUtil.GetUT() < 3600)
+                    {
+                        Debug("New career detected, randomizing crew specialty");
+                        _peopleManager.RandomizeStartingCrew();
+                    }
                     AssertRoleHMM();
                     _peopleManager.RefreshPersonnelFolder();
                     _peopleManager.initialized = true;
@@ -949,6 +955,7 @@ namespace RPStoryteller
             if (personnelFile.coercedTask) difficulty += 2;
             
             NewsStory ns = new NewsStory(emitData,$"Study leave: {personnelFile.UniqueName()}", true);
+            ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             
             // A leave is always good for the soul.
             personnelFile.AdjustDiscontent(-1);
@@ -2010,6 +2017,9 @@ namespace RPStoryteller
         /// </summary>
         public void RealityCheck(bool withStory = true)
         {
+            // No check if there is no hype
+            if (programHype == 0) return;
+            
             Reputation repInstance = Reputation.Instance;
 
             if (repInstance.reputation > 0)

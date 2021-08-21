@@ -103,12 +103,12 @@ namespace RPStoryteller.source.Emissions
         
         public void Load(ConfigNode node)
         {
-            ConfigNode.LoadObjectFromConfig(this, node);
+            //ConfigNode.LoadObjectFromConfig(this, node);
         }
 
         public void Save(ConfigNode node)
         {
-            ConfigNode.CreateConfigFromObject(node);
+            //ConfigNode.CreateConfigFromObject(node);
         }
 
         #endregion
