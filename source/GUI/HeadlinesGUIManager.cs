@@ -18,6 +18,7 @@ namespace RPStoryteller.source.GUI
 
         public bool _isDisplayed = false;
         public bool _showAutoAcceptedContracts = false;
+        public bool _reducedMessage = false;
         
         private string _activeTab = "program";
         private int _activeTabIndex = 0;
@@ -671,7 +672,7 @@ namespace RPStoryteller.source.GUI
         {
             FeedThreshold(GUILayout.SelectionGrid(feedThreshold, feedFilter, 4, GUILayout.Width(400)));
 
-            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(450));
+            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(430));
             if (storyEngine.headlines.Count == 0)
             {
                 GUILayout.Label("This is soon to become a busy feed. Enjoy the silence while it lasts.");
@@ -683,6 +684,12 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Space(5);
             }
             GUILayout.EndScrollView();
+            GUILayout.Space(10);
+
+            _reducedMessage = GUILayout.Toggle(storyEngine.notificationThreshold != HeadlineScope.NEWSLETTER,
+                "Fewer messages");
+            if (_reducedMessage) storyEngine.notificationThreshold = HeadlineScope.FEATURE;
+            else storyEngine.notificationThreshold = HeadlineScope.NEWSLETTER;
             GUILayout.Space(20);
         }
 

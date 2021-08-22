@@ -956,6 +956,7 @@ namespace RPStoryteller
             
             NewsStory ns = new NewsStory(emitData,$"Study leave: {personnelFile.UniqueName()}", true);
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
+            ns.AddToStory(emitData.GenerateStory());
             
             // A leave is always good for the soul.
             personnelFile.AdjustDiscontent(-1);
@@ -979,6 +980,10 @@ namespace RPStoryteller
                 personnelFile.trainingLevel -= 1;
                 personnelFile.AdjustDiscontent(1);
                 ns.AddToStory($" {personnelFile.DisplayName()} goes down a misguided rabbit hole during their study leave.");
+            }
+            else if (outcome == SkillCheckOutcome.FAILURE)
+            {
+                ns.AddToStory($" The only thing to show for this leave will be a postcard or some beach glass.");
             }
             FileHeadline(ns);
         }
@@ -1706,7 +1711,6 @@ namespace RPStoryteller
                     }
                 }
                 
-                _liveProcesses[registeredStateName].PrintHMM();
                 // HMM transition determination
                 nextTransitionState = _liveProcesses[registeredStateName].Transition();
                 Debug( $"HMM {registeredStateName} transitions to {nextTransitionState}", "HMM");
