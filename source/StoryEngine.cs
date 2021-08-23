@@ -113,7 +113,7 @@ namespace RPStoryteller
         public bool inAstronautComplex = false;
         
         // Logging
-        [KSPField(isPersistant = true)] public HeadlineScope notificationThreshold = HeadlineScope.FEATURE;
+        [KSPField(isPersistant = true)] public HeadlineScope notificationThreshold = HeadlineScope.NEWSLETTER;
         [KSPField(isPersistant = true)] public HeadlineScope feedThreshold = HeadlineScope.FEATURE;
         [KSPField(isPersistant = true)] public bool logDebug = true;
         public Queue<NewsStory> headlines = new Queue<NewsStory>();
@@ -579,6 +579,12 @@ namespace RPStoryteller
                 {
                     pf = _peopleManager.GetFile(pcm.name);
                     onboardHype += pf.Effectiveness();
+
+                    // First flight grants one experience point as a baseline display of compentence (not sure if this will work)
+                    if (pcm.experienceLevel == 0)
+                    {
+                        pcm.ExtraExperience += 1f;
+                    }
                 }
 
                 if (onboardHype != 0)
