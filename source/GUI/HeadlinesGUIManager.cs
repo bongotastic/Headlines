@@ -18,6 +18,7 @@ namespace RPStoryteller.source.GUI
 
         public bool _isDisplayed = false;
         public bool _showAutoAcceptedContracts = false;
+        public bool _reducedMessage = false;
         
         private string _activeTab = "program";
         private int _activeTabIndex = 0;
@@ -63,7 +64,7 @@ namespace RPStoryteller.source.GUI
         public void Start()
         {
             storyEngine = StoryEngine.Instance;
-            position = new Rect(100f, 100f, 400f, 200f);
+            position = new Rect(100f, 150f, 400f, 575f);
         }
 
         protected void OnDestroy()
@@ -253,17 +254,13 @@ namespace RPStoryteller.source.GUI
         public void DrawContracts()
         {
             float ratio = 0f;
-            bool hasheader = false;
 
             Color originalColor = UnityEngine.GUI.contentColor;
 
+            GUILayout.Box("Contracts (% hyped)");
+            
             foreach (Contract myContract in ContractSystem.Instance.GetCurrentContracts<Contract>())
             {
-                if (!hasheader)
-                {
-                    GUILayout.Box("Contracts (% hyped)");
-                    hasheader = true;
-                }
                 if (myContract.ContractState == Contract.State.Active)
                 {
                     // Skip autoaccepted contracts 
@@ -402,18 +399,16 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.Box($"{peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))} {focusCrew.Specialty().ToLower()}{personality}");
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Profile: {focusCrew.Effectiveness(deterministic:true)}");
-            GUILayout.Label($"training: {focusCrew.trainingLevel}");
-            GUILayout.Label($"Discontent: {focusCrew.GetDiscontent()}");
+            GUILayout.Label($"Charisma: {focusCrew.EffectivenessLikability(true)}", GUILayout.Width(133));
+            GUILayout.Label($"Training: {focusCrew.trainingLevel}", GUILayout.Width(133));
+            GUILayout.Label($"Experience: {focusCrew.EffectivenessExperience()}", GUILayout.Width(133));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Charisma: {Math.Round(focusCrew.Charisma(),2)}");
-            GUILayout.Label($"Peers: {focusCrew.collaborators.Count-focusCrew.feuds.Count}");
-            int mood = 0;
-            if (focusCrew.kerbalProductiveState == "inspired") mood = 1;
-            if (focusCrew.kerbalProductiveState == "slump") mood = -1;
-            GUILayout.Label($"Mood: {mood}");
+            GUILayout.Label($"Personality: {focusCrew.EffectivenessPersonality()}", GUILayout.Width(133));
+            GUILayout.Label($"Peers: {focusCrew.EffectivenessHumanFactors()}", GUILayout.Width(133));
+            GUILayout.Label($"Mood: {focusCrew.EffectivenessMood()}", GUILayout.Width(133));
             GUILayout.EndHorizontal();
+            GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}");
             GUILayout.Space(10);
             
             // If untrained, offers to reassign
@@ -530,30 +525,34 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.BeginVertical();
 
-            double searchCost = 2000 + 2000 * (double) storyEngine.GetValuationLevel();
-            if (storyEngine.GetFunds() > searchCost)
+            // Avoid launching a search that get overwritten at the start of a career
+            if(!storyEngine.hasnotvisitedAstronautComplex)
             {
-                if (GUILayout.Button($"Open new search (${searchCost})"))
-                {
-                    storyEngine.LaunchSearch(false);
-                }
-
-                searchCost *= 5;
+                double searchCost = 2000 + 2000 * (double) storyEngine.GetValuationLevel();
                 if (storyEngine.GetFunds() > searchCost)
                 {
-                    if (GUILayout.Button($"Contract a head hunter firm (${searchCost})"))
+                    if (GUILayout.Button($"Open new search (${searchCost})"))
                     {
-                        storyEngine.LaunchSearch(true);
+                        storyEngine.LaunchSearch(false);
+                    }
+
+                    searchCost *= 5;
+                    if (storyEngine.GetFunds() > searchCost)
+                    {
+                        if (GUILayout.Button($"Contract a head hunter firm (${searchCost})"))
+                        {
+                            storyEngine.LaunchSearch(true);
+                        }
+                    }
+                    else
+                    {
+                        GUILayout.Label($"Hiring a head hunter firm costs ${searchCost}");
                     }
                 }
                 else
                 {
-                    GUILayout.Label($"Hiring a head hunter firm costs ${searchCost}");
+                    GUILayout.Label($"Open a search for ${searchCost}");
                 }
-            }
-            else
-            {
-                GUILayout.Label($"Open a search for ${searchCost}");
             }
             
             
@@ -624,7 +623,18 @@ namespace RPStoryteller.source.GUI
             double clock = HeadlinesUtil.GetUT();
             
             GUILayout.BeginVertical();
-            GUILayout.Box("Cheats");
+            GUILayout.Box("Story Elements");
+            if (GUILayout.Button("Ouch! Debris in populated area"))
+            {
+                storyEngine.DebrisOverLand(true);
+            }
+            if (GUILayout.Button("Oops: unintended debris in the wild"))
+            {
+                storyEngine.DebrisOverLand();
+            }
+            GUILayout.Space(10);
+            
+            GUILayout.Box("Beta testers");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Add 5 Hype"))
             {
@@ -662,7 +672,7 @@ namespace RPStoryteller.source.GUI
         {
             FeedThreshold(GUILayout.SelectionGrid(feedThreshold, feedFilter, 4, GUILayout.Width(400)));
 
-            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(450));
+            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(430));
             if (storyEngine.headlines.Count == 0)
             {
                 GUILayout.Label("This is soon to become a busy feed. Enjoy the silence while it lasts.");
@@ -674,6 +684,12 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Space(5);
             }
             GUILayout.EndScrollView();
+            GUILayout.Space(10);
+
+            _reducedMessage = GUILayout.Toggle(storyEngine.notificationThreshold != HeadlineScope.NEWSLETTER,
+                "Fewer messages");
+            if (_reducedMessage) storyEngine.notificationThreshold = HeadlineScope.FEATURE;
+            else storyEngine.notificationThreshold = HeadlineScope.NEWSLETTER;
             GUILayout.Space(20);
         }
 
