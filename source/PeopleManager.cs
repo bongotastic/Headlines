@@ -892,6 +892,27 @@ namespace RPStoryteller
             return Math.Max(0, Math.Min(5,output));
         }
 
+        /// <summary>
+        /// This isn't working.
+        /// </summary>
+        /// <returns></returns>
+        public string GetCulture()
+        {
+            string output = "Unknown";
+            for (int i = 0; i < pcm.flightLog.Count; i++)
+            {
+                FlightLog.Entry e = pcm.flightLog[i];
+                if (e.type.ToString() == "Nationality")
+                {
+                    output = e.target.ToString();
+                }
+            }
+
+            output = output.Replace("_or_", "/");
+            output = output.Replace("_", " ");
+            return output;
+        }
+
         #endregion
 
         #region Setters

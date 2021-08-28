@@ -328,7 +328,7 @@ namespace RPStoryteller.source.GUI
                 }
                 else
                 {
-                    GUILayout.Label($"Awaiting {storyEngine.wageredReputation - Reputation.CurrentRep} additional reputation points to be satisfied.", GUILayout.Width(380));
+                    GUILayout.Label($"Awaiting {Math.Round(storyEngine.wageredReputation - Reputation.CurrentRep,MidpointRounding.AwayFromZero) } additional reputation points to be satisfied.", GUILayout.Width(380));
                     if (GUILayout.Button("Dismiss the press gallery"))
                     {
                         storyEngine.endSpotlight = HeadlinesUtil.GetUT() - 1;
@@ -408,7 +408,10 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"Peers: {focusCrew.EffectivenessHumanFactors()}", GUILayout.Width(133));
             GUILayout.Label($"Mood: {focusCrew.EffectivenessMood()}", GUILayout.Width(133));
             GUILayout.EndHorizontal();
-            GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(133));
+            GUILayout.Label($"Nation: {focusCrew.GetCulture()}");
+            GUILayout.EndHorizontal();
             GUILayout.Space(10);
             
             // If untrained, offers to reassign

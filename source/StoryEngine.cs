@@ -580,10 +580,10 @@ namespace RPStoryteller
                     pf = _peopleManager.GetFile(pcm.name);
                     onboardHype += pf.Effectiveness();
 
-                    // First flight grants one experience point as a baseline display of compentence (not sure if this will work)
+                    // First flight grants one experience point as a baseline display of competence (not sure if this will work)
                     if (pcm.experienceLevel == 0)
                     {
-                        pcm.ExtraExperience += 1f;
+                        KerbalRoster.SetExperienceLevel(pcm, 1);
                     }
                 }
 
