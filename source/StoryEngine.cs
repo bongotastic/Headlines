@@ -960,7 +960,7 @@ namespace RPStoryteller
             int difficulty = personnelFile.Effectiveness();
             if (personnelFile.coercedTask) difficulty += 2;
             
-            NewsStory ns = new NewsStory(emitData,$"Study leave: {personnelFile.UniqueName()}", true);
+            NewsStory ns = new NewsStory(emitData,$"Study leave: {personnelFile.UniqueName()}", false);
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             ns.AddToStory(emitData.GenerateStory());
             
@@ -2011,6 +2011,11 @@ namespace RPStoryteller
                 return;
             }
 
+            if (KerbalProtectReputationDecay())
+            {
+                HeadlinesUtil.Report(2, "Your crew prevented your reputation from decaying.", "Media relation");
+                return;
+            }
             // Calculate the magic loss 0.9330 (1/2 life of 10 iterations, or baseline 1 year of doing nothing)
             double decayReputation = marginOverProfile * (1 - 0.933);
 
@@ -2444,13 +2449,12 @@ namespace RPStoryteller
             Debug( "Launch a new search");
             _peopleManager.ClearApplicants();
 
-            double cost = 2000 * (double)(GetValuationLevel() + 1);
+            double cost = SearchCost(headhunt);
 
             int generationLevel = GetValuationLevel();
             if (headhunt)
             {
                 generationLevel += 2;
-                cost *= 5;
             }
 
             if (!nocost)
@@ -2468,6 +2472,22 @@ namespace RPStoryteller
                 _peopleManager.GenerateRandomApplicant(generationLevel);
                 poolSize--;
             }
+        }
+
+        /// <summary>
+        /// Compute search cost (and headhunt)
+        /// </summary>
+        /// <param name="headhunt">is this a headhunt?</param>
+        /// <returns>Cost in funds</returns>
+        public double SearchCost(bool headhunt = false)
+        {
+            double cost = 1000 * (double)(GetValuationLevel() + 1);
+            if (headhunt)
+            {
+                cost *= 4;
+            }
+
+            return cost;
         }
 
         public void InvitePress(bool invite)
@@ -2534,6 +2554,23 @@ namespace RPStoryteller
                 output += 0.12f * (1f/(1f+i));
             }
             return output;
+        }
+
+        /// <summary>
+        /// Determines whether crew on staff are protecting against decay.
+        /// </summary>
+        /// <returns></returns>
+        public bool KerbalProtectReputationDecay()
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
+            {
+                if (kvp.Value.IsInactive()) continue;
+
+                SkillCheckOutcome outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true));
+                if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
+            }
+
+            return false;
         }
         #endregion
 

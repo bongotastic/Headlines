@@ -531,7 +531,7 @@ namespace RPStoryteller.source.GUI
             // Avoid launching a search that get overwritten at the start of a career
             if(!storyEngine.hasnotvisitedAstronautComplex)
             {
-                double searchCost = 2000 + 2000 * (double) storyEngine.GetValuationLevel();
+                double searchCost = storyEngine.SearchCost();
                 if (storyEngine.GetFunds() > searchCost)
                 {
                     if (GUILayout.Button($"Open new search (${searchCost})"))
@@ -539,7 +539,7 @@ namespace RPStoryteller.source.GUI
                         storyEngine.LaunchSearch(false);
                     }
 
-                    searchCost *= 5;
+                    searchCost = storyEngine.SearchCost(true);
                     if (storyEngine.GetFunds() > searchCost)
                     {
                         if (GUILayout.Button($"Contract a head hunter firm (${searchCost})"))
