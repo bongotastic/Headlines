@@ -561,7 +561,7 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.Box($"Applicant Pool ({peopleManager.applicantFolders.Count})");
 
-            if (storyEngine.programPayrollRebate > 1)
+            if (storyEngine.programPayrollRebate > 0)
             {
                 GUILayout.Label($"Hiring vouchers: {storyEngine.programPayrollRebate} X 40,000 funds.");
             }
