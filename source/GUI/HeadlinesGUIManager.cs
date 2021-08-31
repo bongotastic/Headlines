@@ -561,6 +561,11 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.Box($"Applicant Pool ({peopleManager.applicantFolders.Count})");
 
+            if (storyEngine.programPayrollRebate > 1)
+            {
+                GUILayout.Label($"Hiring vouchers: {storyEngine.programPayrollRebate} X 40,000 funds.");
+            }
+
             int nApplicant = 0;
             List<string> toDelete = new List<string>();
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)

@@ -86,6 +86,9 @@ namespace RPStoryteller
 
         // Highest reputation achieved (including overvaluation)
         [KSPField(isPersistant = true)] public float programHighestValuation = 0;
+        
+        // Hiring payroll rebate
+        [KSPField(isPersistant = true)] public int programPayrollRebate = 1;
 
         // Antagonized potential capital campaign donors
         [KSPField(isPersistant = true)] public bool fundraisingBlackout = false;
@@ -310,7 +313,6 @@ namespace RPStoryteller
                 }
             }
             visitingScholarEndTimes.Sort();
-            
         }
 
         private void OnDestroy()
@@ -483,6 +485,11 @@ namespace RPStoryteller
         /// <param name="count"></param>
         public void EventCrewHired(ProtoCrewMember pcm, int count)
         {
+            if (programPayrollRebate > 0)
+            {
+                Funding.Instance.AddFunds(40000, TransactionReasons.None);
+                programPayrollRebate -= 1;
+            }
             PersonnelFile newCrew = _peopleManager.GetFile(pcm.name);
             _peopleManager.HireApplicant(newCrew);
             InitializeCrewHMM(newCrew);
@@ -1300,6 +1307,8 @@ namespace RPStoryteller
         /// <param name="emitData"></param>
         public void KerbalScoutTalent(PersonnelFile personnelFile, Emissions emitData)
         {
+            programPayrollRebate += 1;
+            
             PersonnelFile newApplicant = _peopleManager.GenerateRandomApplicant(GetValuationLevel() + 2);
 
             NewsStory ns = new NewsStory(emitData);
