@@ -11,6 +11,8 @@ namespace RPStoryteller.source
     
     public class ReputationManager
     {
+        public static string[] renownLevels = new[] { "underdog", "renowned", "leader", "excellent", "legendary"};
+        
         public MediaRelationMode currentMode = MediaRelationMode.LOWPROFILE;
         
         private double programHype = 0;
@@ -29,11 +31,17 @@ namespace RPStoryteller.source
         public void FromConfigNode(ConfigNode node)
         {
             currentMode = (MediaRelationMode)int.Parse(node.GetValue("currentMode"));
+            
             programHype = Double.Parse(node.GetValue("programeHype"));
             highestReputation = Double.Parse(node.GetValue("highestReputation"));
+            
             headlinesScore = Double.Parse(node.GetValue("headlinesScore"));
             lastScoreTimeStamp = Double.Parse(node.GetValue("lastScoreTimeStamp"));
             lastKnownCredibility = Double.Parse(node.GetValue("lastKnownCredibility"));
+            
+            airTimeStarts = Double.Parse(node.GetValue("airTimeStarts"));
+            airTimeEnds = Double.Parse(node.GetValue("airTimeEnds"));
+            mediaOpsTarget = Double.Parse(node.GetValue("mediaOpsTarget"));
         }
 
         public ConfigNode AsConfigNode()
@@ -48,6 +56,10 @@ namespace RPStoryteller.source
             output.AddValue("headlinesScore", headlinesScore);
             output.AddValue("lastScoreTimeStamp", lastScoreTimeStamp);
             output.AddValue("lastKnownCredibility", lastKnownCredibility);
+            
+            output.AddValue("airTimeStarts", airTimeStarts);
+            output.AddValue("airTimeEnds", airTimeEnds);
+            output.AddValue("mediaOpsTarget", mediaOpsTarget);
             
 
             return output;
@@ -138,9 +150,15 @@ namespace RPStoryteller.source
         /// <param name="newReputation"></param>
         public void EarnReputation(double newReputation)
         {
+            // During a campaign, legit credibility is converted to hype. 
+            if (currentMode == MediaRelationMode.CAMPAIGN)
+            {
+                AdjustHype(newReputation);
+            }
+            
             if (newReputation <= Hype())
             {
-                // Anything under Hype() doesn't take away from Hype() when LIVE
+                // Anything less than Hype() doesn't take away from Hype() when LIVE
                 if (currentMode != MediaRelationMode.LIVE)
                 {
                     AdjustHype(-1*newReputation);
@@ -167,7 +185,8 @@ namespace RPStoryteller.source
         }
 
         /// <summary>
-        /// Returns the adjustment in reputation
+        /// Returns the adjustment in reputation. Does NOT apply it as storyteller must
+        /// apply out of class logic to this process.
         /// </summary>
         /// <param name="programCredibility">Program credibiilty</param>
         /// <returns></returns>
@@ -185,6 +204,22 @@ namespace RPStoryteller.source
         private void UpdatePeakReputation()
         {
             highestReputation = Math.Max(highestReputation, CurrentReputation());
+        }
+
+        public int GetReputationLevel()
+        {
+            double valuation = CurrentReputation();
+
+            if (valuation <= 50) return 0;
+            if (valuation <= 150) return 1;
+            if (valuation <= 350) return 2;
+            if (valuation <= 600) return 3;
+            return 4;
+        }
+
+        public string QualitativeReputation()
+        {
+            return renownLevels[GetReputationLevel()];
         }
 
         #region Score
