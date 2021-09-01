@@ -221,6 +221,10 @@ namespace RPStoryteller.source
         public void MediaDebrief()
         {
             currentMode = MediaRelationMode.LOWPROFILE;
+            if (!EventSuccess())
+            {
+                AdjustCredibility(Credibility()-mediaOpsTarget);
+            }
         }
 
         public bool EventSuccess()
