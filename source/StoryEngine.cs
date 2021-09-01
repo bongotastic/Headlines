@@ -67,7 +67,7 @@ namespace RPStoryteller
         // Multiplier to the _assumedPeriod when it comes to HMM triggering
         [KSPField(isPersistant = true)] public double attentionSpanFactor = 1;
 
-        // Maximum earning in repuation in a single increase call.
+        // Maximum earning in reputation in a single increase call.
         [KSPField(isPersistant = true)] public float programHype = 10;
         
         // To appeal to the optimizers
@@ -78,8 +78,6 @@ namespace RPStoryteller
         [KSPField(isPersistant = true)] public bool mediaSpotlight = false;
         [KSPField(isPersistant = true)] public double endSpotlight = 0;
         [KSPField(isPersistant = true)] public double wageredReputation = 0;
-        
-        //[KSPField(isPersistant = true)] public Dictionary<System.Guid, double> pledgedContracts = 10;
 
         // Cache of the last time we manipulated repuation
         [KSPField(isPersistant = true)] public float programLastKnownReputation = 0;
