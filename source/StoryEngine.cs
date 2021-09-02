@@ -2411,7 +2411,7 @@ namespace RPStoryteller
         {
             if (_reputationManager.currentMode == MediaRelationMode.LOWPROFILE & invite)
             {
-                double start = HeadlinesUtil.GetUT() + 0 * (3600 * 24);
+                double start = HeadlinesUtil.GetUT() + 1 * (3600 * 24);
                 _reputationManager.LaunchCampaign(start);
             }
         }

@@ -337,7 +337,8 @@ namespace RPStoryteller.source.GUI
             double timeToLive = RepMgr.airTimeStarts - HeadlinesUtil.GetUT();
             GUILayout.BeginHorizontal();
             GUILayout.Label("", GUILayout.Width(10));
-            GUILayout.Box($"Public Event in {KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(256));
+            GUILayout.Label("Public Event in", GUILayout.Width(100));
+            GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(150));
             GUILayout.Label($"Hype:{Math.Round(RepMgr.CampaignHype(), MidpointRounding.AwayFromZero)}");
             GUILayout.EndHorizontal();
 

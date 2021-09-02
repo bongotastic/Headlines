@@ -285,6 +285,10 @@ namespace RPStoryteller.source
             mediaInitialHype = Hype();
             airTimeStarts = goLiveTime;
             airTimeEnds = goLiveTime + (3600*24*2);
+            KSPLog.print($"[MEDIA] Campaign mode engaged.");
+            KSPLog.print($"[MEDIA] Targeting credibility of {mediaOpsTarget}.");
+            KSPLog.print($"[MEDIA] Going live at {KSPUtil.PrintDate(airTimeStarts, true, false)}.");
+            KSPLog.print($"[MEDIA] Going dark at {KSPUtil.PrintDate(airTimeEnds, true, false)}.");
         }
         
         public void GoLIVE()
