@@ -14,6 +14,7 @@ namespace RPStoryteller.source.GUI
     public class HeadlinesGUIManager : MonoBehaviour
     {
         private StoryEngine storyEngine;
+        private ReputationManager RepMgr;
         private static ApplicationLauncherButton stockButton;
 
         public bool _isDisplayed = false;
@@ -194,8 +195,6 @@ namespace RPStoryteller.source.GUI
                 stockButton.SetFalse();
             }
             
-            
-            
             UnityEngine.GUI.DragWindow();
         }
 
@@ -208,6 +207,7 @@ namespace RPStoryteller.source.GUI
         public void DrawProgramDashboard(int windowID)
         {
             storyEngine = StoryEngine.Instance;
+            RepMgr = storyEngine._reputationManager;
             
             GUILayout.BeginVertical();
             DrawProgramStats();
@@ -303,40 +303,66 @@ namespace RPStoryteller.source.GUI
         public void DrawPressGallery()
         {
             GUILayout.Box("Media relation");
+
+            switch (RepMgr.currentMode)
+            {
+                case MediaRelationMode.LOWPROFILE:
+                    DrawPressGalleryLowProfile();
+                    break;
+                case MediaRelationMode.CAMPAIGN:
+                    DrawPressGalleryCampaign();
+                    break;
+                case MediaRelationMode.LIVE:
+                    DrawPressGalleryLive();
+                    break;
+            }
             
-            if (storyEngine._reputationManager.currentMode == MediaRelationMode.LOWPROFILE) 
-            {
-                if (storyEngine._reputationManager.Hype() >= storyEngine._reputationManager.MinimumHypeForInvite())
-                {
-                    storyEngine.InvitePress(GUILayout.Button("Invite Press"));
-                }
-                else
-                {
-                    GUILayout.Label($"Right now, even if lunch is provided, no outlet cares enough to come.\nPress will come only if your hype is at least {(int)storyEngine._reputationManager.MinimumHypeForInvite()}.");
-                }
-            }
-            if (storyEngine._reputationManager.currentMode == MediaRelationMode.LIVE)
-            {
-                GUILayout.Label($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine._reputationManager.airTimeEnds - HeadlinesUtil.GetUT(), true, true)}");
-                if (storyEngine._reputationManager.EventSuccess())
-                {
-                    if (GUILayout.Button("Call successful media debrief"))
-                    {
-                        storyEngine._reputationManager.EndLIVE();
-                        storyEngine.EndMediaSpotlight();
-                    }
-                }
-                else
-                {
-                    GUILayout.Label($"Awaiting {Math.Round(storyEngine._reputationManager.WageredCredibilityToGo(),MidpointRounding.AwayFromZero) } additional reputation points to be satisfied.", GUILayout.Width(380));
-                    if (GUILayout.Button("Dismiss the press gallery"))
-                    {
-                        storyEngine._reputationManager.EndLIVE();
-                        storyEngine.EndMediaSpotlight();
-                    }
-                }
-            }
             GUILayout.Space(20);
+        }
+
+        public void DrawPressGalleryLowProfile()
+        {
+            if (RepMgr.Hype() >= RepMgr.MinimumHypeForInvite())
+            {
+                storyEngine.InvitePress(GUILayout.Button("Invite Press"));
+            }
+            else
+            {
+                GUILayout.Label($"Right now, even if lunch is provided, no outlet cares enough to come.\nPress will come only if your hype is at least {(int)RepMgr.MinimumHypeForInvite()}.");
+            }
+        }
+        
+        public void DrawPressGalleryCampaign()
+        {
+            double timeToLive = RepMgr.airTimeStarts - HeadlinesUtil.GetUT();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("", GUILayout.Width(10));
+            GUILayout.Box($"Public Event in {KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(256));
+            GUILayout.Label($"Hype:{Math.Round(RepMgr.CampaignHype(), MidpointRounding.AwayFromZero)}");
+            GUILayout.EndHorizontal();
+
+        }
+        
+        public void DrawPressGalleryLive()
+        {
+            GUILayout.Label($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(RepMgr.airTimeEnds - HeadlinesUtil.GetUT(), true, true)}");
+            if (RepMgr.EventSuccess())
+            {
+                if (GUILayout.Button("Call successful media debrief"))
+                {
+                    RepMgr.EndLIVE();
+                    storyEngine.EndMediaSpotlight();
+                }
+            }
+            else
+            {
+                GUILayout.Label($"Awaiting {Math.Round(RepMgr.WageredCredibilityToGo(),MidpointRounding.AwayFromZero) } additional reputation points to be satisfied.", GUILayout.Width(380));
+                if (GUILayout.Button("Dismiss the press gallery"))
+                {
+                    RepMgr.EndLIVE();
+                    storyEngine.EndMediaSpotlight();
+                }
+            }
         }
 
         public void DrawImpact()

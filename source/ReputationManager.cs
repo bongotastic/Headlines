@@ -25,6 +25,7 @@ namespace RPStoryteller.source
         public double airTimeStarts = 0;
         public double airTimeEnds = 0;
         private double mediaOpsTarget = 0;
+        private double mediaInitialHype = 0;
 
         #region Serialization
 
@@ -42,6 +43,7 @@ namespace RPStoryteller.source
             airTimeStarts = Double.Parse(node.GetValue("airTimeStarts"));
             airTimeEnds = Double.Parse(node.GetValue("airTimeEnds"));
             mediaOpsTarget = Double.Parse(node.GetValue("mediaOpsTarget"));
+            mediaInitialHype = Double.Parse(node.GetValue("mediaInitialHype"));
         }
 
         public ConfigNode AsConfigNode()
@@ -60,7 +62,7 @@ namespace RPStoryteller.source
             output.AddValue("airTimeStarts", airTimeStarts);
             output.AddValue("airTimeEnds", airTimeEnds);
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
-            
+            output.AddValue("mediaInitialHype", mediaInitialHype);
 
             return output;
         }
@@ -102,6 +104,11 @@ namespace RPStoryteller.source
             }
 
             return 1;
+        }
+
+        public double CampaignHype()
+        {
+            return Hype() - mediaInitialHype;
         }
 
         #endregion
@@ -275,6 +282,7 @@ namespace RPStoryteller.source
         {
             currentMode = MediaRelationMode.CAMPAIGN;
             mediaOpsTarget = CurrentReputation();
+            mediaInitialHype = Hype();
             airTimeStarts = goLiveTime;
             airTimeEnds = goLiveTime + (3600*24*2);
         }
