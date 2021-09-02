@@ -47,6 +47,8 @@ namespace RPStoryteller
 
         // Mod data structures
         private PeopleManager _peopleManager;
+
+        public ReputationManager _reputationManager;
         
         // Terrible hack
         private int updateIndex = 0;
@@ -136,7 +138,8 @@ namespace RPStoryteller
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
             InitializeHMM("position_search");
-            //InitializeHMM("death_inquiry");
+
+            _reputationManager = new ReputationManager();
 
             InitializePeopleManager();
             SchedulerCacheNextTime();
@@ -250,6 +253,8 @@ namespace RPStoryteller
             }
 
             node.AddNode(visitingEndTimes);
+            
+            node.AddNode(_reputationManager.AsConfigNode());
         }
 
         public override void OnLoad(ConfigNode node)
@@ -311,6 +316,25 @@ namespace RPStoryteller
                 }
             }
             visitingScholarEndTimes.Sort();
+
+            ConfigNode rmNode = node.GetNode("REPUTATIONMANAGER");
+            if (rmNode != null)
+            {
+                _reputationManager.FromConfigNode(rmNode);
+            }
+            else
+            {
+                // TODO backward compatibility from 0.3 stuff to delete some day
+                if (mediaSpotlight)
+                {
+                    _reputationManager.LaunchCampaign(HeadlinesUtil.GetUT());
+                    mediaSpotlight = false;
+                }
+                _reputationManager.ResetHype(programHype);
+                _reputationManager.SetScore(headlinesScore);
+                _reputationManager.SetlastScoreTimeStamp(lastScoreTimestamp);
+                _reputationManager.SetLastKnownCredibility(programLastKnownReputation);
+            }
         }
 
         private void OnDestroy()
@@ -358,67 +382,24 @@ namespace RPStoryteller
             // Avoid processing recursively the adjustment
             if (reason == TransactionReasons.None)
             {
-                programLastKnownReputation = newReputation;
-                UpdatePeakValuation();
-
+                _reputationManager.AdjustCredibility();
                 return;
             }
 
             // Don't grant reputation for losing a vessel
             if (reason == TransactionReasons.VesselLoss)
             {
-                Reputation.Instance.SetReputation(programLastKnownReputation, TransactionReasons.None);
+                _reputationManager.IgnoreLastCredibilityChange();
                 return;
             }
+
             
-            float deltaReputation = newReputation - this.programLastKnownReputation;
-            if (deltaReputation == 0) return;
-            
-            string before =
-                $"Rep: {programLastKnownReputation}, New delta rep: {deltaReputation}, Hype: {this.programHype}.";
-            string after = "";
-            Debug( before, "Reputation");
-            if (deltaReputation <= programHype)
+            _reputationManager.HighjackCredibility(newReputation, reason);
+
+            if (_reputationManager.Credibility() < newReputation)
             {
-                this.programHype -= deltaReputation;
-                this.programLastKnownReputation = newReputation;
-                after = $"Final Rep: {programLastKnownReputation}, Net delta: {deltaReputation}, Hype: {programHype}.";
+                HeadlinesUtil.Report(2, $"{newReputation - _reputationManager.Credibility()} reputation spoiled");
             }
-            else
-            {
-                // Retroactively cap the reputation gain to the active hype
-                float realDelta = programHype;
-                if (mediaSpotlight)
-                {
-                    realDelta = Math.Min(deltaReputation, programHype*2f);
-                    if (realDelta > programHype)
-                    {
-                        PrintScreen(
-                            $"Thanks to the media invitation, you capture the public's imagination.");
-                    }
-                }
-                else
-                {
-                    float percent =  programHype / deltaReputation;
-                    if (percent < 1f)
-                    {
-                        PrintScreen(
-                            $"Underrated! Your achievement's impact is limited.\n({percent.ToString("P1")})");
-                    }
-                }
-                
-                // Integrate as reputation X time in year
-                headlinesScore += programLastKnownReputation * ((HeadlinesUtil.GetUT() - lastScoreTimestamp)/(31536000));
-                lastScoreTimestamp = HeadlinesUtil.GetUT();
-                
-                // Surplus reputation goes as new hype
-                programHype = deltaReputation - programHype;
-                programLastKnownReputation += realDelta;
-                Reputation.Instance.SetReputation(programLastKnownReputation, TransactionReasons.None);
-                after = $"Final Rep: {programLastKnownReputation}, Net delta: {realDelta}, Hype: {programHype}.";
-                Debug( after, "Reputation");
-            }
-            UpdatePeakValuation();
         }
 
         /// <summary>
@@ -491,6 +472,9 @@ namespace RPStoryteller
             PersonnelFile newCrew = _peopleManager.GetFile(pcm.name);
             _peopleManager.HireApplicant(newCrew);
             InitializeCrewHMM(newCrew);
+            
+            // Add to credibility
+            _reputationManager.AdjustCredibility(newCrew.Effectiveness(deterministic:true));
         }
 
         public void EventCrewKilled(EventReport data)
@@ -520,6 +504,9 @@ namespace RPStoryteller
 
                 PersonnelFile personnelFile = _peopleManager.GetFile(crewName);
                 if (personnelFile == null) PrintScreen("null pfile");
+                
+                // Credibility loos
+                _reputationManager.AdjustCredibility(-2 * personnelFile.Effectiveness(deterministic:true));
             
                 // Make crew members a bit more discontent
                 _peopleManager.OperationalDeathShock(crewName);
@@ -1139,6 +1126,9 @@ namespace RPStoryteller
             // HMMs
             RemoveHMM(personnelFile);
 
+            // Reputation
+            _reputationManager.AdjustCredibility(-1 * personnelFile.Effectiveness(deterministic:true));
+            
             // Make it happen
             _peopleManager.RemoveKerbal(personnelFile);
         }
@@ -2513,31 +2503,22 @@ namespace RPStoryteller
         /// </summary>
         public void EndMediaSpotlight()
         {
-            if (!mediaSpotlight)
+            if (_reputationManager.currentMode != MediaRelationMode.LIVE)
             {
                 return;
             }
 
-            if (endSpotlight < HeadlinesUtil.GetUT())
+            if (_reputationManager.airTimeEnds < HeadlinesUtil.GetUT())
             {
-                Debug( $"Media invite expires {wageredReputation} wagered, {Reputation.CurrentRep} actual");
-                double shortcoming = wageredReputation - Reputation.CurrentRep;
-                if (shortcoming > 0)
+                double credibilityAdjustment = _reputationManager.EndLIVE();
+                if (credibilityAdjustment < 0)
                 {
-                    shortcoming *= -1;
-                    Reputation.Instance.AddReputation((float)shortcoming, TransactionReasons.None);
-                    programHype = 0;
-                    wageredReputation = 0;
-                    HeadlinesUtil.Report(3,$"The media crews are leaving disappointed. (Rep: {Math.Round(shortcoming,2)})", "Media debrief: failure");
+                    HeadlinesUtil.Report(3,$"The media crews are leaving disappointed. (Rep: {Math.Round(credibilityAdjustment,2)})", "Media debrief: failure");
                 }
                 else
                 {
-                    wageredReputation = 0;
-                    programHype *= 2;
-                    HeadlinesUtil.Report(3,$"The media crews are leaving impressed. (Hype: {programHype})", "Media Debrief: success");
+                    HeadlinesUtil.Report(3,$"The media crews are leaving impressed. (Hype: {_reputationManager.Hype()})", "Media Debrief: success");
                 }
-
-                mediaSpotlight = false;
             }
         }
 

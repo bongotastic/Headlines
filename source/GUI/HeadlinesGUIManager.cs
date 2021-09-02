@@ -306,13 +306,13 @@ namespace RPStoryteller.source.GUI
             
             if (!storyEngine.mediaSpotlight) 
             {
-                if (storyEngine.programHype >= Math.Max(1, Reputation.CurrentRep * 0.05))
+                if (storyEngine._reputationManager.Hype() >= storyEngine._reputationManager.MinimumHypeForInvite())
                 {
                     storyEngine.InvitePress(GUILayout.Button("Invite Press"));
                 }
                 else
                 {
-                    GUILayout.Label($"Right now, even if lunch is provided, no outlet cares enough to come.\nPress will come only if your hype is at least {(int)Math.Max(1, Math.Ceiling(Reputation.CurrentRep * 0.05))}.");
+                    GUILayout.Label($"Right now, even if lunch is provided, no outlet cares enough to come.\nPress will come only if your hype is at least {(int)storyEngine._reputationManager.MinimumHypeForInvite()}.");
                 }
             }
             else

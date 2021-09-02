@@ -46,7 +46,7 @@ namespace RPStoryteller.source
 
         public ConfigNode AsConfigNode()
         {
-            ConfigNode output = new ConfigNode();
+            ConfigNode output = new ConfigNode("REPUTATIONMANAGER");
             
             output.AddValue("currentMode", (int)currentMode);
             
@@ -122,6 +122,11 @@ namespace RPStoryteller.source
             UpdatePeakReputation();
         }
 
+        public void IgnoreLastCredibilityChange()
+        {
+            AdjustCredibility( Credibility() - lastKnownCredibility);
+        }
+
         public void AdjustHype(double scalar = 0, double factor = 1)
         {
             // Hype increases are doubled during a campaign
@@ -147,30 +152,40 @@ namespace RPStoryteller.source
         /// <summary>
         /// Process reputation earnings with respect to hype (real and media)
         /// </summary>
-        /// <param name="newReputation"></param>
-        public void EarnReputation(double newReputation)
+        /// <param name="newCredibility">New credibility to be earned</param>
+        /// <param name="reason">KSP transaction reason</param>
+        public void HighjackCredibility(double newCredibility, TransactionReasons reason)
         {
             // During a campaign, legit credibility is converted to hype. 
             if (currentMode == MediaRelationMode.CAMPAIGN)
             {
-                AdjustHype(newReputation);
+                AdjustHype(newCredibility - lastKnownCredibility);
+                IgnoreLastCredibilityChange();
+                return;
             }
             
-            if (newReputation <= Hype())
+            // Useful values
+            double deltaReputation = newCredibility - lastKnownCredibility;
+            
+            if (deltaReputation <= Hype())
             {
                 // Anything less than Hype() doesn't take away from Hype() when LIVE
                 if (currentMode != MediaRelationMode.LIVE)
                 {
-                    AdjustHype(-1*newReputation);
+                    AdjustHype(-1*deltaReputation);
                 }
-                AdjustCredibility(newReputation);
             }
             else
             {
-                double outstanding = newReputation - Hype();
-                AdjustCredibility(Hype());
+                double outstanding = deltaReputation - Hype();
+                AdjustCredibility(-1 * outstanding, reason:TransactionReasons.None);
                 ResetHype(outstanding);
             }
+        }
+
+        public double InferredCredibilityEarnings()
+        {
+            return Credibility() - lastKnownCredibility;
         }
 
         /// <summary>
@@ -253,13 +268,17 @@ namespace RPStoryteller.source
             currentMode = MediaRelationMode.LIVE;
         }
 
-        public void MediaDebrief()
+        public double EndLIVE()
         {
             currentMode = MediaRelationMode.LOWPROFILE;
             if (!EventSuccess())
             {
-                AdjustCredibility(Credibility()-mediaOpsTarget);
+                double credibilityLoss = Credibility() - mediaOpsTarget;
+                AdjustCredibility(credibilityLoss);
+                return credibilityLoss;
             }
+            AdjustHype(10);
+            return 0;
         }
 
         public bool EventSuccess()
@@ -267,7 +286,31 @@ namespace RPStoryteller.source
             return Credibility() >= mediaOpsTarget;
         }
 
+        public double MinimumHypeForInvite()
+        {
+            return Math.Min(1, Credibility() * 0.05);
+        }
+
         #endregion
+
+        #endregion
+
+        #region backward compatibility
+
+        public void SetScore(double score)
+        {
+            headlinesScore = score;
+        }
+
+        public void SetlastScoreTimeStamp(double x)
+        {
+            lastScoreTimeStamp = x;
+        }
+
+        public void SetLastKnownCredibility(double cred)
+        {
+            lastKnownCredibility = cred;
+        }
 
         #endregion
     }
