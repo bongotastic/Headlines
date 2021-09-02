@@ -15,7 +15,7 @@ namespace RPStoryteller.source
         
         public MediaRelationMode currentMode = MediaRelationMode.LOWPROFILE;
         
-        private double programHype = 0;
+        private double programHype = 10;
         private double highestReputation = 0;
 
         private double headlinesScore = 0;
@@ -96,7 +96,12 @@ namespace RPStoryteller.source
 
         public double OverRating()
         {
-            return programHype / CurrentReputation();
+            if (CurrentReputation() > 0)
+            {
+                return programHype / CurrentReputation();
+            }
+
+            return 1;
         }
 
         #endregion
@@ -137,6 +142,8 @@ namespace RPStoryteller.source
             }
             programHype += scalar;
             programHype *= factor;
+            programHype = Math.Max(0, programHype);
+            
             UpdatePeakReputation();
         }
 
@@ -195,7 +202,16 @@ namespace RPStoryteller.source
         public double RealityCheck()
         {
             double hypeLoss = programHype * OverRating();
-            AdjustHype(factor:1 - OverRating());
+            
+            if (Credibility() == 0)
+            {
+                hypeLoss = Hype() * 0.1;
+                AdjustHype(factor:0.9);
+            }
+            else
+            {
+                AdjustHype(factor:1 - OverRating());
+            }
             return hypeLoss;
         }
 
@@ -278,6 +294,9 @@ namespace RPStoryteller.source
                 return credibilityLoss;
             }
             AdjustHype(10);
+
+            airTimeEnds = HeadlinesUtil.GetUT() - 1;
+            
             return 0;
         }
 
@@ -289,6 +308,11 @@ namespace RPStoryteller.source
         public double MinimumHypeForInvite()
         {
             return Math.Min(1, Credibility() * 0.05);
+        }
+
+        public double WageredCredibilityToGo()
+        {
+            return mediaOpsTarget - Credibility();
         }
 
         #endregion
@@ -310,6 +334,11 @@ namespace RPStoryteller.source
         public void SetLastKnownCredibility(double cred)
         {
             lastKnownCredibility = cred;
+        }
+
+        public void SetHighestReputation(double value)
+        {
+            highestReputation = value;
         }
 
         #endregion

@@ -225,7 +225,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"Reputation:", GUILayout.Width(100));
             GUILayout.Label($"{storyEngine.GUIValuation()}", GUILayout.Width(100));
             GUILayout.Label($"Overvaluation:", GUILayout.Width(100));
-            GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine.programHype, MidpointRounding.ToEven)})", GUILayout.Width(100));
+            GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine._reputationManager.Hype(), MidpointRounding.ToEven)})", GUILayout.Width(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
@@ -243,7 +243,7 @@ namespace RPStoryteller.source.GUI
             }
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Area under reputation's curve:", GUILayout.Width(200));
-            GUILayout.Label($"{Math.Round(storyEngine.headlinesScore,2)} Rep * year");
+            GUILayout.Label($"{Math.Round(storyEngine._reputationManager.GetScore(),2)} Rep * year");
             GUILayout.EndHorizontal();
             GUILayout.Space(20);
         }
@@ -268,7 +268,7 @@ namespace RPStoryteller.source.GUI
                     
                     if (myContract.ReputationCompletion > 0)
                     {
-                        ratio = storyEngine.programHype / myContract.ReputationCompletion;
+                        ratio = (float)storyEngine._reputationManager.Hype() / myContract.ReputationCompletion;
                     }
                     else
                     {
@@ -304,7 +304,7 @@ namespace RPStoryteller.source.GUI
         {
             GUILayout.Box("Media relation");
             
-            if (!storyEngine.mediaSpotlight) 
+            if (storyEngine._reputationManager.currentMode == MediaRelationMode.LOWPROFILE) 
             {
                 if (storyEngine._reputationManager.Hype() >= storyEngine._reputationManager.MinimumHypeForInvite())
                 {
@@ -315,23 +315,23 @@ namespace RPStoryteller.source.GUI
                     GUILayout.Label($"Right now, even if lunch is provided, no outlet cares enough to come.\nPress will come only if your hype is at least {(int)storyEngine._reputationManager.MinimumHypeForInvite()}.");
                 }
             }
-            else
+            if (storyEngine._reputationManager.currentMode == MediaRelationMode.LIVE)
             {
-                GUILayout.Label($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine.endSpotlight - HeadlinesUtil.GetUT(), true, true)}");
-                if (storyEngine.wageredReputation <= Reputation.CurrentRep)
+                GUILayout.Label($"Media spotlight for {KSPUtil.PrintDateDeltaCompact(storyEngine._reputationManager.airTimeEnds - HeadlinesUtil.GetUT(), true, true)}");
+                if (storyEngine._reputationManager.EventSuccess())
                 {
                     if (GUILayout.Button("Call successful media debrief"))
                     {
-                        storyEngine.endSpotlight = HeadlinesUtil.GetUT() - 1;
+                        storyEngine._reputationManager.EndLIVE();
                         storyEngine.EndMediaSpotlight();
                     }
                 }
                 else
                 {
-                    GUILayout.Label($"Awaiting {Math.Round(storyEngine.wageredReputation - Reputation.CurrentRep,MidpointRounding.AwayFromZero) } additional reputation points to be satisfied.", GUILayout.Width(380));
+                    GUILayout.Label($"Awaiting {Math.Round(storyEngine._reputationManager.WageredCredibilityToGo(),MidpointRounding.AwayFromZero) } additional reputation points to be satisfied.", GUILayout.Width(380));
                     if (GUILayout.Button("Dismiss the press gallery"))
                     {
-                        storyEngine.endSpotlight = HeadlinesUtil.GetUT() - 1;
+                        storyEngine._reputationManager.EndLIVE();
                         storyEngine.EndMediaSpotlight();
                     }
                 }
@@ -646,7 +646,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Add 5 Hype"))
             {
-                storyEngine.programHype += 5;
+                storyEngine._reputationManager.AdjustHype(5);
             }
             if (GUILayout.Button("Add 5 Reputation"))
             {
