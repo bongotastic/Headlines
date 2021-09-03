@@ -79,6 +79,7 @@
     <Compile Include="source\GUI\HeadlinesGUIManager.cs" />
     <Compile Include="source\HiddenMarkovProcess.cs" />
     <Compile Include="source\PeopleManager.cs" />
+    <Compile Include="source\ReputationManager.cs" />
     <Compile Include="source\StoryEngine.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>

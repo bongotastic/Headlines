@@ -40,13 +40,13 @@ namespace RPStoryteller
 
         public static StoryEngine Instance = null;
 
-        public static string[] renownLevels = new[] { "underdog", "renowned", "leader", "excellent", "legendary"};
-
         // Random number generator
         private static System.Random storytellerRand = new System.Random();
 
         // Mod data structures
         private PeopleManager _peopleManager;
+
+        public ReputationManager _reputationManager;
         
         // Terrible hack
         private int updateIndex = 0;
@@ -67,7 +67,7 @@ namespace RPStoryteller
         // Multiplier to the _assumedPeriod when it comes to HMM triggering
         [KSPField(isPersistant = true)] public double attentionSpanFactor = 1;
 
-        // Maximum earning in repuation in a single increase call.
+        // Maximum earning in reputation in a single increase call.
         [KSPField(isPersistant = true)] public float programHype = 10;
         
         // To appeal to the optimizers
@@ -78,8 +78,6 @@ namespace RPStoryteller
         [KSPField(isPersistant = true)] public bool mediaSpotlight = false;
         [KSPField(isPersistant = true)] public double endSpotlight = 0;
         [KSPField(isPersistant = true)] public double wageredReputation = 0;
-        
-        //[KSPField(isPersistant = true)] public Dictionary<System.Guid, double> pledgedContracts = 10;
 
         // Cache of the last time we manipulated repuation
         [KSPField(isPersistant = true)] public float programLastKnownReputation = 0;
@@ -138,7 +136,8 @@ namespace RPStoryteller
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
             InitializeHMM("position_search");
-            //InitializeHMM("death_inquiry");
+
+            _reputationManager = new ReputationManager();
 
             InitializePeopleManager();
             SchedulerCacheNextTime();
@@ -189,7 +188,7 @@ namespace RPStoryteller
             if (ongoingInquiry && !_liveProcesses.ContainsKey("death_inquiry")) InitializeHMM("death_inquiry");
             
             // End of Media spotlight?
-            EndMediaSpotlight();
+            MediaEventUpdate();
             
             // Minimizing the profile of this method's call.
             if (_nextUpdate <= GetUT()) SchedulerUpdate(GetUT());
@@ -252,6 +251,8 @@ namespace RPStoryteller
             }
 
             node.AddNode(visitingEndTimes);
+            
+            node.AddNode(_reputationManager.AsConfigNode());
         }
 
         public override void OnLoad(ConfigNode node)
@@ -313,6 +314,26 @@ namespace RPStoryteller
                 }
             }
             visitingScholarEndTimes.Sort();
+
+            ConfigNode rmNode = node.GetNode("REPUTATIONMANAGER");
+            if (rmNode != null)
+            {
+                _reputationManager.FromConfigNode(rmNode);
+            }
+            else
+            {
+                // TODO backward compatibility from 0.3 stuff to delete some day
+                if (mediaSpotlight)
+                {
+                    _reputationManager.LaunchCampaign(HeadlinesUtil.GetUT());
+                    mediaSpotlight = false;
+                }
+                _reputationManager.ResetHype(programHype);
+                _reputationManager.SetScore(headlinesScore);
+                _reputationManager.SetlastScoreTimeStamp(lastScoreTimestamp);
+                _reputationManager.SetLastKnownCredibility(programLastKnownReputation);
+                _reputationManager.SetHighestReputation(programHighestValuation);
+            }
         }
 
         private void OnDestroy()
@@ -360,67 +381,24 @@ namespace RPStoryteller
             // Avoid processing recursively the adjustment
             if (reason == TransactionReasons.None)
             {
-                programLastKnownReputation = newReputation;
-                UpdatePeakValuation();
-
+                _reputationManager.UpdatePeakReputation();
                 return;
             }
 
             // Don't grant reputation for losing a vessel
             if (reason == TransactionReasons.VesselLoss)
             {
-                Reputation.Instance.SetReputation(programLastKnownReputation, TransactionReasons.None);
+                _reputationManager.IgnoreLastCredibilityChange();
                 return;
             }
+
             
-            float deltaReputation = newReputation - this.programLastKnownReputation;
-            if (deltaReputation == 0) return;
-            
-            string before =
-                $"Rep: {programLastKnownReputation}, New delta rep: {deltaReputation}, Hype: {this.programHype}.";
-            string after = "";
-            Debug( before, "Reputation");
-            if (deltaReputation <= programHype)
+            _reputationManager.HighjackCredibility(newReputation, reason);
+
+            if (_reputationManager.Credibility() < newReputation)
             {
-                this.programHype -= deltaReputation;
-                this.programLastKnownReputation = newReputation;
-                after = $"Final Rep: {programLastKnownReputation}, Net delta: {deltaReputation}, Hype: {programHype}.";
+                HeadlinesUtil.Report(2, $"{Math.Round(newReputation - _reputationManager.Credibility(),MidpointRounding.AwayFromZero)} reputation spoiled");
             }
-            else
-            {
-                // Retroactively cap the reputation gain to the active hype
-                float realDelta = programHype;
-                if (mediaSpotlight)
-                {
-                    realDelta = Math.Min(deltaReputation, programHype*2f);
-                    if (realDelta > programHype)
-                    {
-                        PrintScreen(
-                            $"Thanks to the media invitation, you capture the public's imagination.");
-                    }
-                }
-                else
-                {
-                    float percent =  programHype / deltaReputation;
-                    if (percent < 1f)
-                    {
-                        PrintScreen(
-                            $"Underrated! Your achievement's impact is limited.\n({percent.ToString("P1")})");
-                    }
-                }
-                
-                // Integrate as reputation X time in year
-                headlinesScore += programLastKnownReputation * ((HeadlinesUtil.GetUT() - lastScoreTimestamp)/(31536000));
-                lastScoreTimestamp = HeadlinesUtil.GetUT();
-                
-                // Surplus reputation goes as new hype
-                programHype = deltaReputation - programHype;
-                programLastKnownReputation += realDelta;
-                Reputation.Instance.SetReputation(programLastKnownReputation, TransactionReasons.None);
-                after = $"Final Rep: {programLastKnownReputation}, Net delta: {realDelta}, Hype: {programHype}.";
-                Debug( after, "Reputation");
-            }
-            UpdatePeakValuation();
         }
 
         /// <summary>
@@ -487,12 +465,15 @@ namespace RPStoryteller
         {
             if (programPayrollRebate > 0)
             {
-                Funding.Instance.AddFunds(40000, TransactionReasons.None);
+                Funding.Instance.AddFunds(HiringRebate(), TransactionReasons.None);
                 programPayrollRebate -= 1;
             }
             PersonnelFile newCrew = _peopleManager.GetFile(pcm.name);
             _peopleManager.HireApplicant(newCrew);
             InitializeCrewHMM(newCrew);
+            
+            // Add to credibility
+            _reputationManager.AdjustCredibility(newCrew.Effectiveness(deterministic:true));
         }
 
         public void EventCrewKilled(EventReport data)
@@ -522,6 +503,9 @@ namespace RPStoryteller
 
                 PersonnelFile personnelFile = _peopleManager.GetFile(crewName);
                 if (personnelFile == null) PrintScreen("null pfile");
+                
+                // Credibility loos
+                _reputationManager.AdjustCredibility(-2 * personnelFile.Effectiveness(deterministic:true));
             
                 // Make crew members a bit more discontent
                 _peopleManager.OperationalDeathShock(crewName);
@@ -580,12 +564,15 @@ namespace RPStoryteller
                 List<ProtoCrewMember> inFlight = vessel.GetVesselCrew();
 
                 float onboardHype = 0f;
+                float individualHype = 0f;
             
                 PersonnelFile pf;
                 foreach (ProtoCrewMember pcm in inFlight)
                 {
                     pf = _peopleManager.GetFile(pcm.name);
-                    onboardHype += pf.Effectiveness();
+                    individualHype = (float)_reputationManager.AdjustHype(pf.Effectiveness());
+                    onboardHype += individualHype;
+                    pf.lifetimeHype += (int)individualHype;
 
                     // First flight grants one experience point as a baseline display of competence (not sure if this will work)
                     if (pcm.experienceLevel == 0)
@@ -597,8 +584,7 @@ namespace RPStoryteller
                 if (onboardHype != 0)
                 {
                     HeadlinesUtil.Report(3, $"Hype and rep increased by {onboardHype} due to the crew.", "Crew in Flight");
-                    AdjustHype(onboardHype);
-                    Reputation.Instance.AddReputation(onboardHype, TransactionReasons.Vessels);
+                    _reputationManager.AdjustCredibility(onboardHype, reason: TransactionReasons.Vessels);
                 }
             }
             
@@ -798,7 +784,7 @@ namespace RPStoryteller
             ns.AddToStory(em.GenerateStory());
             ns.AddToStory($"They are{adjective}in the public eye. Hype gain is {deltaHype}.");
             FileHeadline(ns);
-            AdjustHype(deltaHype );
+            kerbalFile.lifetimeHype += (int)AdjustHype(deltaHype);
         }
 
         /// <summary>
@@ -1141,6 +1127,9 @@ namespace RPStoryteller
             // HMMs
             RemoveHMM(personnelFile);
 
+            // Reputation
+            _reputationManager.AdjustCredibility(-1 * personnelFile.Effectiveness(deterministic:true));
+            
             // Make it happen
             _peopleManager.RemoveKerbal(personnelFile);
         }
@@ -1152,6 +1141,9 @@ namespace RPStoryteller
 
             // HMMs
             RemoveHMM(personnelFile);
+            
+            // reputation
+            _reputationManager.AdjustCredibility(-1*personnelFile.Effectiveness());
 
             // Make it happen
             _peopleManager.ReturnToApplicantPool(personnelFile);
@@ -1269,6 +1261,7 @@ namespace RPStoryteller
                 
                 Funding.Instance.AddFunds(funds, TransactionReasons.Any);
                 this.fundraisingTally += funds;
+                personnelFile.fundRaised += (int)funds;
             }
 
         }
@@ -1308,6 +1301,8 @@ namespace RPStoryteller
         public void KerbalScoutTalent(PersonnelFile personnelFile, Emissions emitData)
         {
             programPayrollRebate += 1;
+            personnelFile.numberScout += 1;
+            personnelFile.fundRaised += 40000;
             
             PersonnelFile newApplicant = _peopleManager.GenerateRandomApplicant(GetValuationLevel() + 2);
 
@@ -1348,6 +1343,7 @@ namespace RPStoryteller
             NewsStory ns = new NewsStory(emitData);
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             emitData.Add("visiting_name", visitingScholarName);
+            ns.headline = "New visiting scientist";
             ns.AddToStory(emitData.GenerateStory());
             ns.AddToStory($" {visitingScholarName} is expected to be in-residence until {KSPUtil.PrintDate(expiryDate,false, false)}.");
             FileHeadline(ns);
@@ -1940,7 +1936,7 @@ namespace RPStoryteller
             }
 
             attentionSpanFactor *= power;
-            programHype *= (float)power;
+            _reputationManager.AdjustHype(factor:power);
 
             // Clamp this factor within reasonable boundaries
             attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // min is 0.47
@@ -1970,29 +1966,9 @@ namespace RPStoryteller
         /// as negative hype.
         /// </summary>
         /// <param name="increment">(float)the number of increment unit to apply.</param>
-        public void AdjustHype(float increment)
+        public double AdjustHype(float increment)
         {
-            // Simplistic model ignoring reasonable targets
-            this.programHype += increment;
-            this.programHype = Math.Max(0f, this.programHype);
-
-            Debug( $"Hype on the program changed by {increment} to now be {this.programHype}.");
-            if (increment > 0)
-            {
-                PrintScreen($"Space craze is heating up in the press.");
-            }
-            else
-            {
-                PrintScreen($"Space craze is cooling down.");
-            }
-
-            PrintScreen($"Program Hype: {string.Format("{0:0}", this.programHype)}");
-
-            if (programHype + Reputation.CurrentRep > programHighestValuation)
-            {
-                programHighestValuation = programHype + Reputation.CurrentRep;
-            }
-
+            return _reputationManager.AdjustHype(increment);
         }
 
         /// <summary>
@@ -2000,23 +1976,12 @@ namespace RPStoryteller
         /// </summary>
         public void DecayReputation()
         {
-            Reputation repInterface = Reputation.Instance;
-
-            // Get current reputation
-            double currentReputation = repInterface.reputation;
-
-            // Get the program's reputation floor
-            double programProfile = _peopleManager.ProgramProfile();
-
-            // margin over profile (losable reputation)
-            double marginOverProfile = Math.Max(0, currentReputation - programProfile);
+            double decayScalar = _reputationManager.GetReputationDecay(_peopleManager.ProgramProfile());
 
             // reputation tends to program profile if too low.
-            if (marginOverProfile == 0f)
+            if (decayScalar > 0)
             {
-                repInterface.AddReputation((float) (0.5 * (programProfile - currentReputation)),
-                    TransactionReasons.None);
-                Debug( $"Reputation increased by {0.5 * (programProfile - currentReputation)} to approach program profile.");
+                _reputationManager.AdjustCredibility(decayScalar);
                 return;
             }
 
@@ -2025,14 +1990,12 @@ namespace RPStoryteller
                 HeadlinesUtil.Report(2, "Your crew prevented your reputation from decaying.", "Media relation");
                 return;
             }
-            // Calculate the magic loss 0.9330 (1/2 life of 10 iterations, or baseline 1 year of doing nothing)
-            double decayReputation = marginOverProfile * (1 - 0.933);
 
-            if (storytellerRand.NextDouble() <= (marginOverProfile / 100))
+            double marginOverProfile = _reputationManager.Credibility() - _peopleManager.ProgramProfile();
+            if (marginOverProfile / 100 > storytellerRand.NextDouble())
             {
-                repInterface.AddReputation((float) (-1 * decayReputation), TransactionReasons.None);
-                PrintScreen(
-                    $"{(int) decayReputation} reputation decayed. New total: {(int) repInterface.reputation}.");
+                _reputationManager.AdjustCredibility(decayScalar);
+                HeadlinesUtil.Report(2, $"{(int) decayScalar} reputation decayed. New total: {(int) _reputationManager.CurrentReputation()}.");
             }
         }
 
@@ -2041,29 +2004,16 @@ namespace RPStoryteller
         /// </summary>
         public void RealityCheck(bool withStory = true)
         {
-            // No check if there is no hype
-            if (programHype == 0) return;
-            
-            Reputation repInstance = Reputation.Instance;
-
-            if (repInstance.reputation > 0)
+            double hypeLoss = _reputationManager.RealityCheck();
+            if (hypeLoss > 0)
             {
-                float overrating = (this.programHype + repInstance.reputation) / repInstance.reputation;
-                this.programHype /= overrating;
-
                 if (withStory)
                 {
                     Emissions em = new Emissions("reality_check");
-                    em.Add("delta", ((int) this.programHype).ToString());
+                    em.Add("delta", ((int) hypeLoss).ToString());
                     FileHeadline(new NewsStory(em, Headline:"Hype deflates", generateStory:true));
                 }
             }
-            else
-            {
-                // Edge case where there is no reputation (start game), be nice
-                programHype *= 0.9f;
-            }
-
         }
 
         #region Death
@@ -2073,7 +2023,7 @@ namespace RPStoryteller
             Emissions em = new Emissions("damning_report");
             FileHeadline(new NewsStory(em, Headline: "Public inquiry: damning report", generateStory:true));
             
-            if (storytellerRand.NextDouble() < 0.5 | programHype == 0) DecayReputation();
+            if (storytellerRand.NextDouble() < 0.5 | _reputationManager.Hype() == 0) DecayReputation();
             RealityCheck();
         }
         
@@ -2209,7 +2159,7 @@ namespace RPStoryteller
             ns.AddToStory(em.GenerateStory());
             ns.AddToStory("Hype is going up by 5.");
             FileHeadline(ns);
-            programHype += 5;
+            _reputationManager.AdjustHype(5);
             DebrisResolve();
         }
 
@@ -2260,9 +2210,7 @@ namespace RPStoryteller
         /// <returns></returns>
         public string GUIValuation()
         {
-            double reputation = GetValuation();
-            string output = StoryEngine.renownLevels[GetValuationLevel()];
-            return output + $" ({(int) Math.Floor(reputation)})";
+            return $"{_reputationManager.QualitativeReputation()} ({(int)_reputationManager.CurrentReputation()})";
         }
 
         /// <summary>
@@ -2271,15 +2219,8 @@ namespace RPStoryteller
         /// <returns></returns>
         public string GUIOvervaluation()
         {
-            float reputation = Reputation.CurrentRep;
-
-            if (reputation + programHype == 0f)
-            {
-                return "0%";
-            }
-
-            return
-                $"{(int) Math.Floor(100f * Math.Floor(this.programHype) / Math.Floor(reputation + this.programHype))}%";
+            double ovr = Math.Round(100 * _reputationManager.OverRating(),MidpointRounding.AwayFromZero);
+            return $"{ovr}%";
         }
 
         public string GUISpaceCraze()
@@ -2301,16 +2242,9 @@ namespace RPStoryteller
 
         public string GUIRelativeToPeak()
         {
-            double valuation = GetValuation();
-            if (valuation > programHighestValuation)
-            {
-                programHighestValuation = (float) valuation;
-            }
-            
-            // in case of a really bad mishap
-            valuation = Math.Max(0f, valuation);
+            double peak = _reputationManager.Peak();
 
-            return $"{Math.Round(100 * (valuation / this.programHighestValuation))}%";
+            return $"{Math.Round(100 * peak)}%";
         }
 
         public double GUIVisitingSciencePercent()
@@ -2417,32 +2351,12 @@ namespace RPStoryteller
         /// <returns></returns>
         public double GetValuation()
         {
-            return this.programLastKnownReputation + this.programHype;
-        }
-
-        public void UpdatePeakValuation()
-        {
-            if (GetValuation() > programHighestValuation)
-            {
-                programHighestValuation = (float)GetValuation();
-            }
-        }
-
-        public double GetReputation()
-        {
-            return programLastKnownReputation;
+            return _reputationManager.CurrentReputation();
         }
 
         public int GetValuationLevel()
         {
-            double valuation = GetValuation();
-
-            if (valuation <= 50) return 0;
-            if (valuation <= 150) return 1;
-            if (valuation <= 350) return 2;
-            if (valuation <= 600) return 3;
-            return 4;
-
+            return _reputationManager.GetReputationLevel();
         }
 
         public PeopleManager GetPeopleManager()
@@ -2474,7 +2388,7 @@ namespace RPStoryteller
             generationLevel = Math.Min(5, generationLevel);
             
             int poolSize = 4 +
-                           (int) Math.Round((double) generationLevel * (2 * GetValuation() / programHighestValuation + 1)) +
+                           (int) Math.Round((double) generationLevel * (2 * _reputationManager.Peak() + 1)) +
                            storytellerRand.Next(-1, 2);
             while (poolSize > 0)
             {
@@ -2499,47 +2413,42 @@ namespace RPStoryteller
             return cost;
         }
 
-        public void InvitePress(bool invite)
+        public void InvitePress(bool invite, int nDays)
         {
-            if (!mediaSpotlight & invite)
+            if (_reputationManager.currentMode == MediaRelationMode.LOWPROFILE & invite)
             {
-                mediaSpotlight = true;
-                endSpotlight = HeadlinesUtil.GetUT() + (3600*24*2);
-                wageredReputation = Reputation.CurrentRep + programHype;
-                Debug( $"Media Spotlight started with end at {KSPUtil.PrintDateCompact(endSpotlight,true,true)}");
+                double start = HeadlinesUtil.GetUT() + nDays * (3600 * 24);
+                _reputationManager.LaunchCampaign(start);
             }
         }
 
         /// <summary>
         /// If time expires and the target isn't met, deduce the shortcoming from actual reputation and zero hype.
         /// </summary>
-        public void EndMediaSpotlight()
+        public void MediaEventUpdate()
         {
-            if (!mediaSpotlight)
+            if (_reputationManager.currentMode == MediaRelationMode.LOWPROFILE)
             {
                 return;
             }
 
-            if (endSpotlight < HeadlinesUtil.GetUT())
+            if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN &
+                _reputationManager.airTimeStarts < HeadlinesUtil.GetUT())
             {
-                Debug( $"Media invite expires {wageredReputation} wagered, {Reputation.CurrentRep} actual");
-                double shortcoming = wageredReputation - Reputation.CurrentRep;
-                if (shortcoming > 0)
+                _reputationManager.GoLIVE();
+            }
+
+            if (_reputationManager.currentMode == MediaRelationMode.LIVE & _reputationManager.airTimeEnds < HeadlinesUtil.GetUT())
+            {
+                double credibilityAdjustment = _reputationManager.EndLIVE();
+                if (credibilityAdjustment < 0)
                 {
-                    shortcoming *= -1;
-                    Reputation.Instance.AddReputation((float)shortcoming, TransactionReasons.None);
-                    programHype = 0;
-                    wageredReputation = 0;
-                    HeadlinesUtil.Report(3,$"The media crews are leaving disappointed. (Rep: {Math.Round(shortcoming,2)})", "Media debrief: failure");
+                    HeadlinesUtil.Report(3,$"The media crews are leaving disappointed. (Rep: {Math.Round(credibilityAdjustment,2)})", "Media debrief: failure");
                 }
                 else
                 {
-                    wageredReputation = 0;
-                    programHype *= 2;
-                    HeadlinesUtil.Report(3,$"The media crews are leaving impressed. (Hype: {programHype})", "Media Debrief: success");
+                    HeadlinesUtil.Report(3,$"The media crews are leaving impressed. (Hype: {_reputationManager.Hype()})", "Media Debrief: success");
                 }
-
-                mediaSpotlight = false;
             }
         }
 
@@ -2580,6 +2489,11 @@ namespace RPStoryteller
             }
 
             return false;
+        }
+
+        public double HiringRebate()
+        {
+            return 40000;
         }
         #endregion
 
