@@ -397,7 +397,7 @@ namespace RPStoryteller
 
             if (_reputationManager.Credibility() < newReputation)
             {
-                HeadlinesUtil.Report(2, $"{newReputation - _reputationManager.Credibility()} reputation spoiled");
+                HeadlinesUtil.Report(2, $"{Math.Round(newReputation - _reputationManager.Credibility(),MidpointRounding.AwayFromZero)} reputation spoiled");
             }
         }
 
@@ -1343,6 +1343,7 @@ namespace RPStoryteller
             NewsStory ns = new NewsStory(emitData);
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             emitData.Add("visiting_name", visitingScholarName);
+            ns.headline = "New visiting scientist";
             ns.AddToStory(emitData.GenerateStory());
             ns.AddToStory($" {visitingScholarName} is expected to be in-residence until {KSPUtil.PrintDate(expiryDate,false, false)}.");
             FileHeadline(ns);

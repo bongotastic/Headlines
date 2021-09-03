@@ -409,7 +409,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndHorizontal();
             if (storyEngine.visitingScholarEndTimes.Count != 0)
             {
-                GUILayout.Label($"There are {storyEngine.visitingScholarEndTimes.Count} visiting scholars in residence providing a science bonus of {Math.Round(storyEngine.VisitingScienceBonus())*100f}% on new science data.");
+                GUILayout.Label($"There are {storyEngine.visitingScholarEndTimes.Count} visiting scholar(s) in residence providing a science bonus of {Math.Round(storyEngine.VisitingScienceBonus()*100f)}% on new science data.");
             }
             GUILayout.Space(20);
         }
