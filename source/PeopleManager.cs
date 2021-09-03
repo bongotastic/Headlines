@@ -524,6 +524,11 @@ namespace RPStoryteller
         public int teamInfluence = 0;
         // Will never be removed
         public int legacy = 0;
+        
+        // Pilot related performance
+        public int numberScout = 0;
+        public int fundRaised = 0;
+        public int lifetimeHype = 0;
 
         // Store HMM
         public string kerbalProductiveState;

@@ -139,8 +139,9 @@ namespace RPStoryteller.source
             AdjustCredibility( Credibility() - lastKnownCredibility);
         }
 
-        public void AdjustHype(double scalar = 0, double factor = 1)
+        public double AdjustHype(double scalar = 0, double factor = 1)
         {
+            double initHype = programHype;
             // Hype increases are doubled during a campaign
             if (currentMode == MediaRelationMode.CAMPAIGN)
             {
@@ -152,6 +153,8 @@ namespace RPStoryteller.source
             programHype = Math.Max(0, programHype);
             
             UpdatePeakReputation();
+
+            return programHype - initHype;
         }
 
         public void ResetHype(double newHype = 0)
@@ -239,7 +242,7 @@ namespace RPStoryteller.source
             return (1 - 0.933) * margin;
         }
 
-        private void UpdatePeakReputation()
+        public void UpdatePeakReputation()
         {
             highestReputation = Math.Max(highestReputation, CurrentReputation());
         }
@@ -294,6 +297,7 @@ namespace RPStoryteller.source
         public void GoLIVE()
         {
             currentMode = MediaRelationMode.LIVE;
+            HeadlinesUtil.ScreenMessage("Going LIVE now!");
         }
 
         public double EndLIVE()
@@ -319,12 +323,42 @@ namespace RPStoryteller.source
 
         public double MinimumHypeForInvite()
         {
-            return Math.Min(1, Credibility() * 0.05);
+            return Math.Max(1, Credibility() * 0.05);
         }
 
         public double WageredCredibilityToGo()
         {
             return mediaOpsTarget - Credibility();
+        }
+
+        /// <summary>
+        /// Enough of a penalty to make it dangerous to troll the press simply for the campaign hype boost.
+        /// </summary>
+        public void CancelMediaEvent()
+        {
+            double penalty = (Hype() - mediaInitialHype)/2;
+            AdjustHype(-1*penalty);
+            penalty /= 2;
+            AdjustCredibility(-1 * penalty);
+            currentMode = MediaRelationMode.LOWPROFILE;
+        }
+
+        /// <summary>
+        /// Meant to be 1K for the last 10 days, another 1K for the last 90 days.
+        /// </summary>
+        /// <param name="nDays"></param>
+        /// <returns></returns>
+        public double MediaCampaignCost(int nDays)
+        {
+            double output = 100;
+            output += Math.Min(nDays, 10) * 90;
+            if (nDays > 10)
+            {
+                nDays -= 10;
+                output += Math.Min(90, nDays) * 9;
+            }
+
+            return output;
         }
 
         #endregion
