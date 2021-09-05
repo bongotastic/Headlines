@@ -179,6 +179,8 @@ namespace RPStoryteller
                 }
                 updateIndex += 1;
             }
+            
+            _reputationManager.SetLastKnownCredibility(Reputation.CurrentRep);
 
             // Unfortunate addition to the Update look to get around weirdness in Event Firing.
             if (newDeath.Count != 0) DeathRoutine();
@@ -395,7 +397,7 @@ namespace RPStoryteller
             
             _reputationManager.HighjackCredibility(newReputation, reason);
 
-            if (_reputationManager.Credibility() < newReputation)
+            if ( newReputation - _reputationManager.Credibility() >= 1)
             {
                 HeadlinesUtil.Report(2, $"{Math.Round(newReputation - _reputationManager.Credibility(),MidpointRounding.AwayFromZero)} reputation spoiled");
             }
@@ -584,7 +586,7 @@ namespace RPStoryteller
                 if (onboardHype != 0)
                 {
                     HeadlinesUtil.Report(3, $"Hype and rep increased by {onboardHype} due to the crew.", "Crew in Flight");
-                    _reputationManager.AdjustCredibility(onboardHype, reason: TransactionReasons.Vessels);
+                    _reputationManager.AdjustCredibility(onboardHype, reason: TransactionReasons.None);
                 }
             }
             
@@ -1102,6 +1104,9 @@ namespace RPStoryteller
         public void KerbalResignation(PersonnelFile personnelFile, Emissions emitData, bool trajedy = false)
         {
             Debug($"Kerbal resignation for {personnelFile.DisplayName()}");
+            HeadlinesUtil.Report(2, $"BREAKING: {personnelFile.DisplayName()} resigns!");
+            TimeWarp.SetRate(1,false);
+            
             // Message
             if (!trajedy)
             {
@@ -2005,7 +2010,7 @@ namespace RPStoryteller
         public void RealityCheck(bool withStory = true)
         {
             double hypeLoss = _reputationManager.RealityCheck();
-            if (hypeLoss > 0)
+            if (hypeLoss >= 1)
             {
                 if (withStory)
                 {

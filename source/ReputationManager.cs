@@ -118,16 +118,16 @@ namespace RPStoryteller.source
         public void AdjustCredibility(double scalar = 0, double factor = 1, TransactionReasons reason = TransactionReasons.None)
         {
             UpdateHeadlinesScore();
-            if (scalar != 0)
-            {
-                Reputation.Instance.AddReputation((float)scalar, reason);
-            }
-
-            if (factor != 0)
+            if (factor != 1)
             {
                 double current = Reputation.CurrentRep;
-                current *= factor;
-                Reputation.Instance.SetReputation((float)current, reason);
+                current *= (factor - 1);
+                Reputation.Instance.AddReputation((float)current, reason);
+            }
+            
+            if (scalar != 0)
+            {
+                Reputation.Instance.AddReputation((float) scalar, reason);
             }
 
             lastKnownCredibility = Reputation.CurrentRep;
@@ -173,9 +173,11 @@ namespace RPStoryteller.source
         /// <param name="reason">KSP transaction reason</param>
         public void HighjackCredibility(double newCredibility, TransactionReasons reason)
         {
+            KSPLog.print($"Highjacking rep new:{newCredibility}, old:{lastKnownCredibility}");
             // During a campaign, legit credibility is converted to hype. 
             if (currentMode == MediaRelationMode.CAMPAIGN)
             {
+                KSPLog.print($"[HEADLINES] Credibility converted to hype during campaign: {newCredibility - lastKnownCredibility}");
                 AdjustHype(newCredibility - lastKnownCredibility);
                 IgnoreLastCredibilityChange();
                 return;
@@ -183,6 +185,7 @@ namespace RPStoryteller.source
             
             // Useful values
             double deltaReputation = newCredibility - lastKnownCredibility;
+            KSPLog.print($"Delta: {deltaReputation}, hype:{Hype()}");
             
             if (deltaReputation <= Hype())
             {
@@ -195,6 +198,7 @@ namespace RPStoryteller.source
             else
             {
                 double outstanding = deltaReputation - Hype();
+                KSPLog.print($"Excess rep:{outstanding}");
                 AdjustCredibility(-1 * outstanding, reason:TransactionReasons.None);
                 ResetHype(outstanding);
             }
