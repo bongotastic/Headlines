@@ -27,23 +27,37 @@ namespace RPStoryteller.source
         private double mediaOpsTarget = 0;
         private double mediaInitialHype = 0;
 
+        private bool announcedSuccess = false;
+
         #region Serialization
 
         public void FromConfigNode(ConfigNode node)
         {
+            HeadlinesUtil.Report(1, "[REPMANAGER] Entering config node");
             currentMode = (MediaRelationMode)int.Parse(node.GetValue("currentMode"));
+
+            programHype = SafeRead(node,"programHype");
+            highestReputation = SafeRead(node,"highestReputation");
             
-            programHype = Double.Parse(node.GetValue("programeHype"));
-            highestReputation = Double.Parse(node.GetValue("highestReputation"));
+            headlinesScore = SafeRead(node,"headlinesScore");
+            lastScoreTimeStamp = SafeRead(node, "lastScoreTimeStamp");
+            lastKnownCredibility = SafeRead(node,"lastKnownCredibility");
             
-            headlinesScore = Double.Parse(node.GetValue("headlinesScore"));
-            lastScoreTimeStamp = Double.Parse(node.GetValue("lastScoreTimeStamp"));
-            lastKnownCredibility = Double.Parse(node.GetValue("lastKnownCredibility"));
-            
-            airTimeStarts = Double.Parse(node.GetValue("airTimeStarts"));
-            airTimeEnds = Double.Parse(node.GetValue("airTimeEnds"));
-            mediaOpsTarget = Double.Parse(node.GetValue("mediaOpsTarget"));
-            mediaInitialHype = Double.Parse(node.GetValue("mediaInitialHype"));
+            airTimeStarts = SafeRead(node,"airTimeStarts");
+            airTimeEnds = SafeRead(node,"airTimeEnds");
+            mediaOpsTarget = SafeRead(node,"mediaOpsTarget");
+            mediaInitialHype = SafeRead(node,"mediaInitialHype");
+        }
+
+        private double SafeRead(ConfigNode node, string name)
+        {
+            double output = 0;
+            string value = node.GetValue(name);
+            if (value == "")
+            {
+                return 0;
+            }
+            return double.Parse(value);
         }
 
         public ConfigNode AsConfigNode()
@@ -115,19 +129,18 @@ namespace RPStoryteller.source
 
         #region Setters
 
-        public void AdjustCredibility(double scalar = 0, double factor = 1, TransactionReasons reason = TransactionReasons.None)
+        public void AdjustCredibility(double scalar = 0, TransactionReasons reason = TransactionReasons.None)
         {
             UpdateHeadlinesScore();
-            if (factor != 1)
-            {
-                double current = Reputation.CurrentRep;
-                current *= (factor - 1);
-                Reputation.Instance.AddReputation((float)current, reason);
-            }
-            
+
             if (scalar != 0)
             {
                 Reputation.Instance.AddReputation((float) scalar, reason);
+                // Avoid moving the goalpost with during a campaign
+                if (currentMode == MediaRelationMode.CAMPAIGN)
+                {
+                    mediaOpsTarget += scalar;
+                }
             }
 
             lastKnownCredibility = Reputation.CurrentRep;
@@ -177,7 +190,8 @@ namespace RPStoryteller.source
             // During a campaign, legit credibility is converted to hype. 
             if (currentMode == MediaRelationMode.CAMPAIGN)
             {
-                KSPLog.print($"[HEADLINES] Credibility converted to hype during campaign: {newCredibility - lastKnownCredibility}");
+                double timetoLIVE = airTimeStarts - HeadlinesUtil.GetUT();
+                HeadlinesUtil.Report(2,$"NEWSFEED: Expect greater things in {KSPUtil.PrintDateDelta(timetoLIVE,false,false)} days. Hype +{newCredibility - lastKnownCredibility}");
                 AdjustHype(newCredibility - lastKnownCredibility);
                 IgnoreLastCredibilityChange();
                 return;
@@ -192,6 +206,7 @@ namespace RPStoryteller.source
                 // Anything less than Hype() doesn't take away from Hype() when LIVE
                 if (currentMode != MediaRelationMode.LIVE)
                 {
+                    HeadlinesUtil.Report(2,"BREAKING NEWS: The public is whipped into a frenzy.");
                     AdjustHype(-1*deltaReputation);
                 }
             }
@@ -201,6 +216,11 @@ namespace RPStoryteller.source
                 KSPLog.print($"Excess rep:{outstanding}");
                 AdjustCredibility(-1 * outstanding, reason:TransactionReasons.None);
                 ResetHype(outstanding);
+                if (currentMode == MediaRelationMode.LIVE & Credibility() >= mediaOpsTarget & !announcedSuccess)
+                {
+                    announcedSuccess = true;
+                    HeadlinesUtil.Report(2, $"BREAKING NEWS: Media event is a success!");
+                }
             }
         }
 
@@ -302,6 +322,7 @@ namespace RPStoryteller.source
         {
             currentMode = MediaRelationMode.LIVE;
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
+            announcedSuccess = false;
         }
 
         public double EndLIVE()
@@ -314,10 +335,16 @@ namespace RPStoryteller.source
                 return credibilityLoss;
             }
             AdjustHype(10);
+            announcedSuccess = false;
 
             airTimeEnds = HeadlinesUtil.GetUT() - 1;
             
             return 0;
+        }
+
+        public void CallMediaDebrief()
+        {
+            airTimeEnds = HeadlinesUtil.GetUT() - 1;
         }
 
         public bool EventSuccess()

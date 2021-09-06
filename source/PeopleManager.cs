@@ -380,19 +380,19 @@ namespace RPStoryteller
             // Everyone gets a discontent increment
             foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
             {
+                if (deceased == kvp.Value.UniqueName()) continue;
                 // Scrappers are unfazed by other people's death
                 shock = 1;
-                if (kvp.Value.HasAttribute("scrapper")) shock = 0;
-
-                if (deceased != kvp.Value.UniqueName())
+                if (kvp.Value.HasAttribute("scrapper"))
                 {
-                    if (kvp.Value.IsCollaborator(deceased))
-                    {
-                        shock++;
-                    }
-                    HeadlinesUtil.Report(2, $"{kvp.Value.DisplayName()} suffer {shock} shock.");
-                    kvp.Value.AdjustDiscontent(shock);
+                    shock -= 1;
                 }
+                if (kvp.Value.IsCollaborator(deceased))
+                {
+                    shock += 1;
+                }
+                HeadlinesUtil.Report(2, $"{kvp.Value.DisplayName()} suffer {shock} shock.");
+                kvp.Value.AdjustDiscontent(shock);
             }
         }
         
@@ -496,6 +496,31 @@ namespace RPStoryteller
             return true;
         }
 
+        public PersonnelFile TopCrewMembers(string specialtyFilter = "")
+        {
+            PersonnelFile output = null;
+            double tempEffectiveness = 0;
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                if (specialtyFilter != "")
+                {
+                    if (specialtyFilter != kvp.Value.Specialty()) continue;
+                }
+                if (output == null)
+                {
+                    output = kvp.Value;
+                    tempEffectiveness = output.Effectiveness(deterministic: true);
+                }
+                else if (kvp.Value.Effectiveness(deterministic: true) > tempEffectiveness)
+                {
+                    output = kvp.Value;
+                    tempEffectiveness = kvp.Value.Effectiveness(deterministic: true);
+                }
+            }
+
+            return output;
+        } 
+
 
         #endregion
     }
@@ -514,6 +539,8 @@ namespace RPStoryteller
         
         // Personality
         [KSPField(isPersistant = true)] public string personality = "";
+
+        [KSPField(isPersistant = true)] public string nationality = "";
 
         // Indicate that the current task was ordered by the player
         public bool coercedTask = false;
@@ -903,6 +930,8 @@ namespace RPStoryteller
         /// <returns></returns>
         public string GetCulture()
         {
+            if (nationality != "") return nationality;
+            
             string output = "Unknown";
             for (int i = 0; i < pcm.flightLog.Count; i++)
             {
@@ -915,6 +944,7 @@ namespace RPStoryteller
 
             output = output.Replace("_or_", "/");
             output = output.Replace("_", " ");
+            nationality = output;
             return output;
         }
 

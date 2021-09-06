@@ -21,7 +21,6 @@ namespace RPStoryteller.source.GUI
         public bool _showAutoAcceptedContracts = false;
         public bool _reducedMessage = false;
         
-        private string _activeTab = "program";
         private int _activeTabIndex = 0;
         private int _selectedCrew = 0;
         private int _currentActivity = 0;
@@ -35,6 +34,7 @@ namespace RPStoryteller.source.GUI
 
         // location of the Window
         public Rect position;
+        private bool resizePosition = true;
 
         private Vector2 scrollFeedView = new Vector2(0,0);
         private Vector2 scrollHMMView = new Vector2(0,0);
@@ -145,6 +145,11 @@ namespace RPStoryteller.source.GUI
         {
             if (_isDisplayed)
             {
+                if (resizePosition)
+                {
+                    position.height = 100f;
+                    resizePosition = false;
+                }
                 position = GUILayout.Window(GetInstanceID(), position, DrawWindow, $"Headlines -- {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()}");
             }
         }
@@ -157,9 +162,13 @@ namespace RPStoryteller.source.GUI
         /// Store the tab to display
         /// </summary>
         /// <param name="activeTab"></param>
-        private void SwitchTab(string activeTab)
+        private void SwitchTab(int selectedActiveTab)
         {
-            _activeTab = activeTab;
+            if (selectedActiveTab != _activeTabIndex)
+            {
+                resizePosition = true;
+                _activeTabIndex = selectedActiveTab;
+            }
         }
         
         /// <summary>
@@ -168,7 +177,7 @@ namespace RPStoryteller.source.GUI
         /// <param name="windowID"></param>
         public void DrawWindow(int windowID)
         {
-            _activeTabIndex = GUILayout.SelectionGrid(_activeTabIndex, tabs, 5, GUILayout.Width(400));
+            SwitchTab(GUILayout.SelectionGrid(_activeTabIndex, tabs, 5, GUILayout.Width(400)));
 
             switch (_activeTabIndex)
             {
@@ -261,7 +270,7 @@ namespace RPStoryteller.source.GUI
 
             GUILayout.Box("Contracts (% hyped)");
             
-            foreach (Contract myContract in ContractSystem.Instance.GetCurrentContracts<Contract>())
+            foreach (Contract myContract in ContractSystem.Instance.GetCurrentContracts<Contract>().OrderBy(x=>x.ReputationCompletion))
             {
                 if (myContract.ContractState == Contract.State.Active)
                 {
@@ -341,6 +350,7 @@ namespace RPStoryteller.source.GUI
                 mediaInvitationDelay = Int32.Parse(GUILayout.TextField($"{mediaInvitationDelay}", GUILayout.Width(40)));
                 GUILayout.Label("  days");
                 GUILayout.EndHorizontal();
+                GUILayout.Label($"  NB: Invite the press if you expect to exceed earnings of {RepMgr.Hype()} on that day. They will report negatively otherwise.");
             }
             else
             {
@@ -374,15 +384,15 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label("", GUILayout.Width(10));
             GUILayout.Label("Live for ", GUILayout.Width(100));
             GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(150));
-            GUILayout.Label($"  Target:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}");
+            GUILayout.Label($"  Cred. Target:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}");
             GUILayout.EndHorizontal();
             
             if (RepMgr.EventSuccess())
             {
                 if (GUILayout.Button("Call successful media debrief"))
                 {
-                    RepMgr.EndLIVE();
-                    storyEngine.MediaEventUpdate();
+                    RepMgr.CallMediaDebrief();
+                    //storyEngine.MediaEventUpdate();
                 }
             }
             else
@@ -390,8 +400,8 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Label($"Awaiting {Math.Round(RepMgr.WageredCredibilityToGo(),MidpointRounding.AwayFromZero) } additional reputation points to be satisfied.", GUILayout.Width(380));
                 if (GUILayout.Button("Dismiss the press gallery in shame"))
                 {
-                    RepMgr.EndLIVE();
-                    storyEngine.MediaEventUpdate();
+                    RepMgr.CallMediaDebrief();
+                    //storyEngine.MediaEventUpdate();
                 }
             }
         }

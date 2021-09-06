@@ -46,7 +46,7 @@ namespace RPStoryteller
         // Mod data structures
         private PeopleManager _peopleManager;
 
-        public ReputationManager _reputationManager;
+        public ReputationManager _reputationManager = new ReputationManager();
         
         // Terrible hack
         private int updateIndex = 0;
@@ -123,6 +123,12 @@ namespace RPStoryteller
 
         #region UnityStuff
 
+        public override void OnAwake()
+        {
+            base.OnAwake();
+            //_reputationManager = new ReputationManager();
+        }
+
         /// <summary>
         /// Unity method with some basics stuff that needs to run once inside a the scene.
         /// </summary>
@@ -136,8 +142,6 @@ namespace RPStoryteller
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
             InitializeHMM("position_search");
-
-            _reputationManager = new ReputationManager();
 
             InitializePeopleManager();
             SchedulerCacheNextTime();
@@ -265,6 +269,7 @@ namespace RPStoryteller
             _liveProcesses.Clear();
             _hmmScheduler.Clear();
             
+            Debug("Loading HEADLINESFEED");
             ConfigNode hlNode = node.GetNode("HEADLINESFEED");
             if (hlNode != null)
             {
@@ -273,7 +278,32 @@ namespace RPStoryteller
                     headlines.Enqueue(new NewsStory(headline));
                 }
             }
-
+            
+            Debug("Loading REPUTATIONMANAGER");
+            foreach (ConfigNode rmNode in node.GetNodes("REPUTATIONMANAGER"))
+            {
+                _reputationManager.FromConfigNode(rmNode);
+            }
+            /*
+            else
+            {
+                HeadlinesUtil.Report(1, "REPUTATIONMANAGER not found");
+                
+                // TODO backward compatibility from 0.3 stuff to delete some day
+                if (mediaSpotlight)
+                {
+                    _reputationManager.LaunchCampaign(HeadlinesUtil.GetUT());
+                    mediaSpotlight = false;
+                }
+                _reputationManager.ResetHype(programHype);
+                _reputationManager.SetScore(headlinesScore);
+                _reputationManager.SetlastScoreTimeStamp(lastScoreTimestamp);
+                _reputationManager.SetLastKnownCredibility(programLastKnownReputation);
+                _reputationManager.SetHighestReputation(programHighestValuation);
+                
+            }
+            */
+            Debug("Loading HIDDENMODELS");
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
             if (hmNode != null)
             {
@@ -307,6 +337,7 @@ namespace RPStoryteller
                 }
             }
             
+            Debug("Loading VISITINGSCHOLAR");
             ConfigNode vsNode = node.GetNode("VISITINGSCHOLAR");
             if (vsNode != null)
             {
@@ -316,26 +347,7 @@ namespace RPStoryteller
                 }
             }
             visitingScholarEndTimes.Sort();
-
-            ConfigNode rmNode = node.GetNode("REPUTATIONMANAGER");
-            if (rmNode != null)
-            {
-                _reputationManager.FromConfigNode(rmNode);
-            }
-            else
-            {
-                // TODO backward compatibility from 0.3 stuff to delete some day
-                if (mediaSpotlight)
-                {
-                    _reputationManager.LaunchCampaign(HeadlinesUtil.GetUT());
-                    mediaSpotlight = false;
-                }
-                _reputationManager.ResetHype(programHype);
-                _reputationManager.SetScore(headlinesScore);
-                _reputationManager.SetlastScoreTimeStamp(lastScoreTimestamp);
-                _reputationManager.SetLastKnownCredibility(programLastKnownReputation);
-                _reputationManager.SetHighestReputation(programHighestValuation);
-            }
+            
         }
 
         private void OnDestroy()
@@ -506,8 +518,10 @@ namespace RPStoryteller
                 PersonnelFile personnelFile = _peopleManager.GetFile(crewName);
                 if (personnelFile == null) PrintScreen("null pfile");
                 
-                // Credibility loos
-                _reputationManager.AdjustCredibility(-2 * personnelFile.Effectiveness(deterministic:true));
+                // Credibility loss
+                double repLoss = -2 * personnelFile.Effectiveness(deterministic: true);
+                HeadlinesUtil.Report(2,$"Initial shock at {personnelFile.DisplayName()}'s death. Credibility decreased by {repLoss}");
+                _reputationManager.AdjustCredibility(repLoss);
             
                 // Make crew members a bit more discontent
                 _peopleManager.OperationalDeathShock(crewName);
@@ -2446,14 +2460,19 @@ namespace RPStoryteller
             if (_reputationManager.currentMode == MediaRelationMode.LIVE & _reputationManager.airTimeEnds < HeadlinesUtil.GetUT())
             {
                 double credibilityAdjustment = _reputationManager.EndLIVE();
+                HeadlinesUtil.Report(2, $"Coming off live with a credibility loss of {credibilityAdjustment}");
+                NewsStory ns = new NewsStory(HeadlineScope.FEATURE);
                 if (credibilityAdjustment < 0)
                 {
-                    HeadlinesUtil.Report(3,$"The media crews are leaving disappointed. (Rep: {Math.Round(credibilityAdjustment,2)})", "Media debrief: failure");
+                    ns.AddToStory($"The media crews are leaving disappointed. (Rep: {Math.Round(credibilityAdjustment,2)})");
+                    ns.headline = "Media debrief: failure";
                 }
                 else
                 {
-                    HeadlinesUtil.Report(3,$"The media crews are leaving impressed. (Hype: {_reputationManager.Hype()})", "Media Debrief: success");
+                    ns.AddToStory($"The media crews are leaving impressed. (Hype: {_reputationManager.Hype()})");
+                    ns.headline = "Media debrief: Success";
                 }
+                FileHeadline(ns);
             }
         }
 
