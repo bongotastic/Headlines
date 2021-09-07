@@ -96,7 +96,7 @@ namespace RPStoryteller.source.Emissions
             {
                 foreach (ConfigNode.Value actor in act.values)
                 {
-                    actors.Add(actor.ToString());
+                    actors.Add(actor.name);
                 }
             }
         }

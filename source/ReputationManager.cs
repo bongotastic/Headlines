@@ -49,9 +49,14 @@ namespace RPStoryteller.source
             mediaInitialHype = SafeRead(node,"mediaInitialHype");
         }
 
+        /// <summary>
+        /// Not necessary anymore. Delete?
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
         private double SafeRead(ConfigNode node, string name)
         {
-            double output = 0;
             string value = node.GetValue(name);
             if (value == "")
             {
@@ -85,11 +90,19 @@ namespace RPStoryteller.source
         
         #region Getters
 
+        /// <summary>
+        /// Get Headline Reputation as the sum of credibility and hype
+        /// </summary>
+        /// <returns></returns>
         public double CurrentReputation()
         {
             return Reputation.CurrentRep + programHype;
         }
 
+        /// <summary>
+        /// Interface to KSP for reputation.
+        /// </summary>
+        /// <returns></returns>
         public double Credibility()
         {
             return Reputation.CurrentRep;
@@ -100,6 +113,10 @@ namespace RPStoryteller.source
             return programHype;
         }
 
+        /// <summary>
+        /// Fraction of current Reputation vs highest achieved.
+        /// </summary>
+        /// <returns></returns>
         public double Peak()
         {
             if (highestReputation != 0)
@@ -110,6 +127,10 @@ namespace RPStoryteller.source
             return 1;
         }
 
+        /// <summary>
+        /// Fraction of the Reputation that is hype
+        /// </summary>
+        /// <returns></returns>
         public double OverRating()
         {
             if (CurrentReputation() > 0)
@@ -120,6 +141,10 @@ namespace RPStoryteller.source
             return 1;
         }
 
+        /// <summary>
+        /// Tally of hype accumulated during a campaign
+        /// </summary>
+        /// <returns></returns>
         public double CampaignHype()
         {
             return Hype() - mediaInitialHype;
@@ -129,6 +154,11 @@ namespace RPStoryteller.source
 
         #region Setters
 
+        /// <summary>
+        /// Interface to add/remove KSP reputation. 
+        /// </summary>
+        /// <param name="scalar"></param>
+        /// <param name="reason"></param>
         public void AdjustCredibility(double scalar = 0, TransactionReasons reason = TransactionReasons.None)
         {
             UpdateHeadlinesScore();
@@ -147,11 +177,20 @@ namespace RPStoryteller.source
             UpdatePeakReputation();
         }
 
+        /// <summary>
+        /// Cancel the last KSP reputation update
+        /// </summary>
         public void IgnoreLastCredibilityChange()
         {
             AdjustCredibility( Credibility() - lastKnownCredibility);
         }
 
+        /// <summary>
+        /// Public internface to changing Hype
+        /// </summary>
+        /// <param name="scalar"></param>
+        /// <param name="factor"></param>
+        /// <returns></returns>
         public double AdjustHype(double scalar = 0, double factor = 1)
         {
             double initHype = programHype;
@@ -170,6 +209,10 @@ namespace RPStoryteller.source
             return programHype - initHype;
         }
 
+        /// <summary>
+        /// Set Hype instead of modifying it.
+        /// </summary>
+        /// <param name="newHype"></param>
         public void ResetHype(double newHype = 0)
         {
             programHype = newHype;
@@ -180,7 +223,7 @@ namespace RPStoryteller.source
         #region Internal Logic
 
         /// <summary>
-        /// Process reputation earnings with respect to hype (real and media)
+        /// Process reputation earnings with respect to hype (real and media). This is called by the Event handler.
         /// </summary>
         /// <param name="newCredibility">New credibility to be earned</param>
         /// <param name="reason">KSP transaction reason</param>
@@ -266,11 +309,18 @@ namespace RPStoryteller.source
             return (1 - 0.933) * margin;
         }
 
+        /// <summary>
+        /// Used for calculation of Peak.
+        /// </summary>
         public void UpdatePeakReputation()
         {
             highestReputation = Math.Max(highestReputation, CurrentReputation());
         }
 
+        /// <summary>
+        /// Convert reputation into a level
+        /// </summary>
+        /// <returns></returns>
         public int GetReputationLevel()
         {
             double valuation = CurrentReputation();
@@ -282,6 +332,10 @@ namespace RPStoryteller.source
             return 4;
         }
 
+        /// <summary>
+        /// Narrative reputation level
+        /// </summary>
+        /// <returns></returns>
         public string QualitativeReputation()
         {
             return renownLevels[GetReputationLevel()];
@@ -305,6 +359,10 @@ namespace RPStoryteller.source
 
         #region Media Ops
 
+        /// <summary>
+        /// begin a media blitz ahead of a live event
+        /// </summary>
+        /// <param name="goLiveTime"></param>
         public void LaunchCampaign(double goLiveTime)
         {
             currentMode = MediaRelationMode.CAMPAIGN;
@@ -318,6 +376,9 @@ namespace RPStoryteller.source
             KSPLog.print($"[MEDIA] Going dark at {KSPUtil.PrintDate(airTimeEnds, true, false)}.");
         }
         
+        /// <summary>
+        /// End the campaign and start the live event.
+        /// </summary>
         public void GoLIVE()
         {
             currentMode = MediaRelationMode.LIVE;
@@ -325,6 +386,10 @@ namespace RPStoryteller.source
             announcedSuccess = false;
         }
 
+        /// <summary>
+        /// Close the live event, deal with the reputation wager, and return to low profile.
+        /// </summary>
+        /// <returns></returns>
         public double EndLIVE()
         {
             currentMode = MediaRelationMode.LOWPROFILE;
@@ -342,6 +407,9 @@ namespace RPStoryteller.source
             return 0;
         }
 
+        /// <summary>
+        /// Force the transition for the next frame.
+        /// </summary>
         public void CallMediaDebrief()
         {
             airTimeEnds = HeadlinesUtil.GetUT() - 1;

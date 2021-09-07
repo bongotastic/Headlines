@@ -6,6 +6,7 @@ using HiddenMarkovProcess;
 using KSP.UI.Screens;
 using RPStoryteller.source.Emissions;
 using UnityEngine;
+using Enumerable = UniLinq.Enumerable;
 
 
 namespace RPStoryteller.source.GUI
@@ -171,6 +172,14 @@ namespace RPStoryteller.source.GUI
             }
         }
         
+        private void SwitchCrew(int selectedCrew)
+        {
+            if (selectedCrew != _selectedCrew)
+            {
+                resizePosition = true;
+                _selectedCrew = selectedCrew;
+            }
+        }
         /// <summary>
         /// Top-level UI for Headlines
         /// </summary>
@@ -191,7 +200,7 @@ namespace RPStoryteller.source.GUI
                     DrawRecruitmentPanel();
                     break;
                 case 1:
-                    DrawFeed();
+                    DrawProgramFeed();
                     break;
                 case 4:
                     DrawStoryPanel();
@@ -350,7 +359,7 @@ namespace RPStoryteller.source.GUI
                 mediaInvitationDelay = Int32.Parse(GUILayout.TextField($"{mediaInvitationDelay}", GUILayout.Width(40)));
                 GUILayout.Label("  days");
                 GUILayout.EndHorizontal();
-                GUILayout.Label($"  NB: Invite the press if you expect to exceed earnings of {RepMgr.Hype()} on that day. They will report negatively otherwise.");
+                GUILayout.Label($"  NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.Hype(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.");
             }
             else
             {
@@ -438,7 +447,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.BeginVertical();
             GUILayout.Box("Active crew");
             
-            _selectedCrew = GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3);
+            SwitchCrew(GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3));
             if (_selectedCrew >= crewRoster.Count)
             {
                 _selectedCrew = 0;
@@ -448,6 +457,7 @@ namespace RPStoryteller.source.GUI
             DrawCrew();
             GUILayout.EndVertical();
         }
+
         
         /// <summary>
         /// Draw the crew UI assuming that _selectedCrew is set to the index of a a crew. Assumes that crewRoster is built.
@@ -569,6 +579,10 @@ namespace RPStoryteller.source.GUI
 
                 focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
             }
+            
+            GUILayout.Space(10);
+            GUILayout.Box("News feed");
+            DrawFeedSection(true);
         }
 
         /// <summary>
@@ -752,10 +766,12 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndVertical();
         }
 
-        public void DrawFeed()
+        public void DrawProgramFeed()
         {
             FeedThreshold(GUILayout.SelectionGrid(feedThreshold, feedFilter, 4, GUILayout.Width(400)));
 
+            DrawFeedSection();
+            /*
             scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(430));
             if (storyEngine.headlines.Count == 0)
             {
@@ -768,6 +784,7 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Space(5);
             }
             GUILayout.EndScrollView();
+            */
             GUILayout.Space(10);
 
             _reducedMessage = GUILayout.Toggle(storyEngine.notificationThreshold != HeadlineScope.NEWSLETTER,
@@ -775,6 +792,32 @@ namespace RPStoryteller.source.GUI
             if (_reducedMessage) storyEngine.notificationThreshold = HeadlineScope.FEATURE;
             else storyEngine.notificationThreshold = HeadlineScope.NEWSLETTER;
             GUILayout.Space(20);
+        }
+
+        private void DrawFeedSection(bool crewSpecific = false)
+        {
+            int height = crewSpecific ? 100 : 430;
+            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(height));
+            if (storyEngine.headlines.Count == 0)
+            {
+                GUILayout.Label("This is soon to become a busy feed. Enjoy the silence while it lasts.");
+            }
+            foreach (NewsStory ns in storyEngine.headlines.Reverse())
+            {
+                if (crewSpecific)
+                {
+                    if (ns.HasActor(crewRoster[_selectedCrew]))
+                    {
+                        DrawHeadline(ns);
+                    }
+                }
+                else
+                {
+                    if ((int)ns.scope < feedThreshold + 1) continue;
+                    DrawHeadline(ns);
+                }
+            }
+            GUILayout.EndScrollView();
         }
 
         private void DrawHeadline(NewsStory ns)
@@ -791,6 +834,7 @@ namespace RPStoryteller.source.GUI
                 GUILayout.TextArea(ns.story, GUILayout.Width(360));
                 GUILayout.EndHorizontal();
             }
+            GUILayout.Space(5);
         }
         #endregion
 
