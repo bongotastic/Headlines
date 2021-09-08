@@ -391,7 +391,7 @@ namespace RPStoryteller
                 {
                     shock += 1;
                 }
-                HeadlinesUtil.Report(2, $"{kvp.Value.DisplayName()} suffer {shock} shock.");
+                HeadlinesUtil.Report(2, $"{kvp.Value.DisplayName()} suffers {shock} shock.");
                 kvp.Value.AdjustDiscontent(shock);
             }
         }
@@ -710,7 +710,7 @@ namespace RPStoryteller
         /// <returns></returns>
         public bool HasAttribute(string attribute)
         {
-            if (attributes.Contains(attribute)) return true;
+            if (personality == attribute) return true;
             return false;
         }
         

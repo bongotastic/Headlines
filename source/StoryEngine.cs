@@ -522,9 +522,15 @@ namespace RPStoryteller
                 double repLoss = -2 * personnelFile.Effectiveness(deterministic: true);
                 HeadlinesUtil.Report(2,$"Initial shock at {personnelFile.DisplayName()}'s death. Credibility decreased by {repLoss}");
                 _reputationManager.AdjustCredibility(repLoss);
+                
+                // Kill all Hype
+                _reputationManager.ResetHype();
             
                 // Make crew members a bit more discontent
                 _peopleManager.OperationalDeathShock(crewName);
+                
+                // Paralyze the KCS
+                CancelAllInfluence();
             
                 // inquiry
                 InitializeHMM("death_inquiry");
@@ -2587,6 +2593,17 @@ namespace RPStoryteller
                 }
 
                 kerbalFile.influence = 0;
+            }
+        }
+
+        /// <summary>
+        /// When an event causes everything to stop.
+        /// </summary>
+        private void CancelAllInfluence()
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
+            {
+                CancelInfluence(kvp.Value);
             }
         }
         
