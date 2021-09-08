@@ -1731,6 +1731,7 @@ namespace RPStoryteller
                     {
                         PersonnelFile personnelFile =
                             _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
+                        if (personnelFile.IsInactive()) continue;
                         if (personnelFile.coercedTask)
                         {
                             EmitEvent(personnelFile.kerbalTask, personnelFile);
