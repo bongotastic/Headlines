@@ -5,6 +5,7 @@ using KerbalConstructionTime;
 using RPStoryteller.source;
 using Smooth.Collections;
 using UniLinq;
+using Enumerable = System.Linq.Enumerable;
 
 namespace RPStoryteller
 {
@@ -519,8 +520,31 @@ namespace RPStoryteller
             }
 
             return output;
-        } 
+        }
 
+        /// <summary>
+        /// Returns a list of names ordered by effectiveness. 
+        /// </summary>
+        /// <remarks>This could be done in one step, but is fighting me rn.</remarks>
+        /// <returns></returns>
+        public List<string> RankCrewMembers()
+        {
+            List<PersonnelFile> temp =new List<PersonnelFile>();
+
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                temp.Add(kvp.Value);    
+            }
+
+            List<string> output = new List<string>();
+            
+            foreach (PersonnelFile pf in temp.OrderByDescending(o=>o.Effectiveness(deterministic:true, quickDirty:true)))
+            {
+                output.Add(pf.UniqueName());
+            }
+
+            return output;
+        }
 
         #endregion
     }
@@ -569,6 +593,8 @@ namespace RPStoryteller
         //private string personalityTrait = "";
 
         private ProtoCrewMember pcm;
+
+        private int _cachedEffectiveness = 0; 
         
         /// <summary>
         /// Constructor used to generate a brand new file from a protocrewember
@@ -611,13 +637,14 @@ namespace RPStoryteller
 
         public void FromConfigNode(ConfigNode node)
         {
-            this.kerbalProductiveState = node.GetValue("kerbalState");
-            this.kerbalTask = node.GetValue("kerbalTask");
-            this.trainingLevel = int.Parse(node.GetValue("trainingLevel"));
-            this.influence = int.Parse(node.GetValue("influence"));
-            this.teamInfluence = int.Parse(node.GetValue("teamInfluence"));
-            this.legacy = int.Parse(node.GetValue("legacy"));
-            this.discontent = int.Parse(node.GetValue("discontent"));
+            kerbalProductiveState = node.GetValue("kerbalState");
+            kerbalTask = node.GetValue("kerbalTask");
+            trainingLevel = int.Parse(node.GetValue("trainingLevel"));
+            influence = int.Parse(node.GetValue("influence"));
+            teamInfluence = int.Parse(node.GetValue("teamInfluence"));
+            legacy = int.Parse(node.GetValue("legacy"));
+            discontent = int.Parse(node.GetValue("discontent"));
+            lifetimeHype = int.Parse(node.GetValue("lifetimeHype"));
             personality = node.GetValue("personality");
             
             ConfigNode people = node.GetNode("people");
@@ -646,6 +673,7 @@ namespace RPStoryteller
             outputNode.AddValue("teamInfluence", this.teamInfluence);
             outputNode.AddValue("legacy", this.legacy);
             outputNode.AddValue("discontent", this.discontent);
+            outputNode.AddValue("lifetimeHype", lifetimeHype);
             outputNode.AddValue("personality", personality);
 
             ConfigNode people = new ConfigNode();
@@ -735,8 +763,12 @@ namespace RPStoryteller
         /// </summary>
         /// <param name="isMedia">Indicate a media task when Kerbal is not a pilot</param>
         /// <returns>effectiveness</returns>
-        public int Effectiveness(bool isMedia = false, bool deterministic = false)
+        public int Effectiveness(bool isMedia = false, bool deterministic = false, bool quickDirty= false)
         {
+            if (quickDirty && _cachedEffectiveness != 0)
+            {
+                return _cachedEffectiveness;
+            }
             int effectiveness = EffectivenessLikability(deterministic);
 
             // experience Level (untrained if media for non-pilot
@@ -757,6 +789,8 @@ namespace RPStoryteller
             // slump/inspired
             effectiveness += EffectivenessMood();
 
+            _cachedEffectiveness = effectiveness;
+            
             return (int)Math.Max(0, effectiveness);
         }
 

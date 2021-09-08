@@ -848,12 +848,15 @@ namespace RPStoryteller.source.GUI
         {
             peopleManager = storyEngine.GetPeopleManager();
 
+            crewRoster = peopleManager.RankCrewMembers();
+            /*
             crewRoster = new List<string>();
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.personnelFolders)
             {
                 crewRoster.Add(kvp.Value.UniqueName());
             }
-
+            */
+            
             applicantRoster = new List<string>();
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)
             {
