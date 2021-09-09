@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Security.AccessControl;
+using System.Text.RegularExpressions;
+using KerbalConstructionTime;
+using UniLinq;
 using UnityEngine;
 
 namespace RPStoryteller.source.Emissions
@@ -16,6 +19,7 @@ namespace RPStoryteller.source.Emissions
         
         private ConfigNode _node;
         private Dictionary<string, string> localVariable = new Dictionary<string, string>();
+        private int _recursionDepth = 0;
 
         /// <summary>
         /// Fetch an load an emission node from the object database. 
@@ -46,6 +50,10 @@ namespace RPStoryteller.source.Emissions
         /// <returns></returns>
         public string GenerateStory()
         {
+            _recursionDepth = 0;
+
+            return ResolveLabel("event_text");
+            /*
             string story = "";
             
             ConfigNode template = GetRandomNodeOfType("event_text");
@@ -69,6 +77,7 @@ namespace RPStoryteller.source.Emissions
             }
 
             return story;
+            */
         }
         
         /// <summary>
@@ -159,6 +168,68 @@ namespace RPStoryteller.source.Emissions
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Recursive resolution of a label. A label can either be event_text itself, or [label] within another text fragment.
+        /// </summary>
+        /// <remarks>Recursion depth is there to prevent cfg designers to cause stack overflow</remarks>
+        /// <param name="label"></param>
+        /// <returns>expanded text for this label</returns>
+        private string ResolveLabel(string label)
+        {
+            HeadlinesUtil.Report(1, $"Generating label {label} from emission {nodeName}");
+            _recursionDepth += 1;
+            
+            string outputText = $"[{label}]";
+            ConfigNode labelNode = GetRandomNodeOfType(label);
+
+            if (labelNode == null | _recursionDepth > 10)
+            {
+                HeadlinesUtil.Report(1,"Recursion depth met with {label}");
+                _recursionDepth -= 1;
+                return outputText;
+            }
+
+            if (labelNode.HasValue("text"))
+            {
+                outputText = Strip(labelNode.GetValue("text"));
+            }
+            else
+            {
+                _recursionDepth -= 1;
+                return outputText;
+            }
+            
+            // Resolve labels within the new text
+            string subLabel = "";
+            string expandedLabel = "";
+            Match m = Regex.Match(outputText, @"\[\w+\]");
+            while (m.Success)
+            {
+                subLabel = m.Value.Substring(1, m.Value.Length - 2);
+
+                if (localVariable.ContainsKey(subLabel))
+                {
+                    // Side effect: sub-nodes can be overriden in-code by providing a value in localVariable
+                    expandedLabel = localVariable[subLabel];
+                }
+                else if (subLabel != label)
+                {
+                    expandedLabel = ResolveLabel(subLabel);
+                }
+                else
+                {
+                    expandedLabel = label;
+                }
+                
+                outputText = outputText.Replace(m.Value, expandedLabel);
+                m = m.NextMatch();
+            }
+
+            _recursionDepth -= 1;
+            
+            return outputText;
         }
 
         /// <summary>
