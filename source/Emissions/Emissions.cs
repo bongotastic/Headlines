@@ -7,13 +7,14 @@ namespace RPStoryteller.source.Emissions
 {
     public class Emissions
     {
+        // Generator
         private static System.Random _random = new System.Random();
         
+        //Public/Private attributes
         public string nodeName;
         public HeadlineScope scope;
         
         private ConfigNode _node;
-
         private Dictionary<string, string> localVariable = new Dictionary<string, string>();
 
         /// <summary>
@@ -35,6 +36,8 @@ namespace RPStoryteller.source.Emissions
             }
             if (_node == null) HeadlinesUtil.Report(1,$"Emission {nodeName} not found in config files.");
         }
+
+        #region API
 
         /// <summary>
         /// Uses the patterns from the config nodes to generate a story
@@ -67,7 +70,45 @@ namespace RPStoryteller.source.Emissions
 
             return story;
         }
+        
+        /// <summary>
+        /// Feed the emission instance data specific to a situation
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        public void AddStoryElement(string key, string value)
+        {
+            localVariable.Add(key, value);
+        }
+        
+        /// <summary>
+        /// Attempts to obtain a value already stored in the instance.
+        /// </summary>
+        /// <param name="keyName"></param>
+        /// <returns>Content or empty string</returns>
+        public string GetStoryElement(string keyName)
+        {
+            if (_node.HasValue(keyName) == true)
+            {
+                return _node.GetValue(keyName);
+            }
 
+            return "";
+        }
+        
+        public bool IsOngoingTask()
+        {
+            if (_node.HasValue("takesTime") == true)
+            {
+                return bool.Parse(_node.GetValue("takesTime"));
+            }
+
+            return false;
+        }
+        
+        #endregion
+        
+        #region Internal
         /// <summary>
         /// Connect to a ConfigNode.
         /// </summary>
@@ -77,22 +118,7 @@ namespace RPStoryteller.source.Emissions
             _node = node;
             this.scope = (HeadlineScope)int.Parse(_node.GetValue("significance"));
         }
-
-        /// <summary>
-        /// Attempts to obtain a value from a node.
-        /// </summary>
-        /// <param name="keyName"></param>
-        /// <returns>Content or empty string</returns>
-        public string GetValue(string keyName)
-        {
-            if (_node.HasValue(keyName) == true)
-            {
-                return _node.GetValue(keyName);
-            }
-
-            return "";
-        }
-
+        
         /// <summary>
         /// Removes quotation marks from the config file
         /// </summary>
@@ -108,12 +134,16 @@ namespace RPStoryteller.source.Emissions
             return entry;
         }
 
+        #endregion
+
+        #region Language generation
+
         /// <summary>
-        /// Returns one of many nodes of a certain type, if many, pic one randomly.
+        /// Returns one of many nodes of a certain type, if many, pick one randomly.
         /// </summary>
         /// <param name="nodeName"></param>
         /// <returns>A node or null</returns>
-        public ConfigNode GetRandomNodeOfType(string nodeName)
+        private ConfigNode GetRandomNodeOfType(string nodeName)
         {
             List<ConfigNode> nodeSet = new List<ConfigNode>();
             
@@ -134,8 +164,9 @@ namespace RPStoryteller.source.Emissions
         /// <summary>
         /// Convenience method that selects 1 of 1+ causes in the config node and returns as string.
         /// </summary>
+        /// <remarks>This is redundant to the more general GetRandomNodeOfType()</remarks>
         /// <returns></returns>
-        public string RandomCause()
+        private string RandomCause()
         {
             ConfigNode cfg = GetRandomNodeOfType("cause");
             if (cfg != null)
@@ -145,19 +176,6 @@ namespace RPStoryteller.source.Emissions
             return "";
         }
 
-        public bool OngoingTask()
-        {
-            if (_node.HasValue("takesTime") == true)
-            {
-                return bool.Parse(_node.GetValue("takesTime"));
-            }
-
-            return false;
-        }
-
-        public void Add(string key, string value)
-        {
-            localVariable.Add(key, value);
-        }
+        #endregion
     }
 }

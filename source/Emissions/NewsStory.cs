@@ -131,7 +131,7 @@ namespace RPStoryteller.source.Emissions
 
             if (emission != null)
             {
-                emission.Add("actor_name", actorName);
+                emission.AddStoryElement("actor_name", actorName);
             }
         }
 
@@ -141,7 +141,7 @@ namespace RPStoryteller.source.Emissions
 
             if (emission != null)
             {
-                emission.Add("other_crew", crewName);
+                emission.AddStoryElement("other_crew", crewName);
             }
         }
 

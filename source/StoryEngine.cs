@@ -1334,7 +1334,7 @@ namespace RPStoryteller
 
             NewsStory ns = new NewsStory(emitData);
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
-            emitData.Add("recruit_name", newApplicant.DisplayName());
+            emitData.AddStoryElement("recruit_name", newApplicant.DisplayName());
             ns.AddToStory(emitData.GenerateStory());
             ns.AddToStory($"{newApplicant.DisplayName()} is a  {_peopleManager.QualitativeEffectiveness(newApplicant.Effectiveness())} {newApplicant.Specialty()}.");
             if (newApplicant.personality != "")
@@ -1368,7 +1368,7 @@ namespace RPStoryteller
 
             NewsStory ns = new NewsStory(emitData);
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
-            emitData.Add("visiting_name", visitingScholarName);
+            emitData.AddStoryElement("visiting_name", visitingScholarName);
             ns.headline = "New visiting scientist";
             ns.AddToStory(emitData.GenerateStory());
             ns.AddToStory($" {visitingScholarName} is expected to be in-residence until {KSPUtil.PrintDate(expiryDate,false, false)}.");
@@ -1843,7 +1843,7 @@ namespace RPStoryteller
             
             Emissions emitData = new Emissions(eventName);
 
-            if (emitData.OngoingTask() == true)
+            if (emitData.IsOngoingTask() == true)
             {
                 // Can only go forward if active
                 if (personnelFile.IsInactive()) return;
@@ -2037,7 +2037,7 @@ namespace RPStoryteller
                 if (withStory)
                 {
                     Emissions em = new Emissions("reality_check");
-                    em.Add("delta", ((int) hypeLoss).ToString());
+                    em.AddStoryElement("delta", ((int) hypeLoss).ToString());
                     FileHeadline(new NewsStory(em, Headline:"Hype deflates", generateStory:true));
                 }
             }
@@ -2082,9 +2082,9 @@ namespace RPStoryteller
             
             Emissions emission = new Emissions("new_applicant");
             NewsStory ns = new NewsStory(emission);
-            emission.Add("name", pf.DisplayName());
-            emission.Add("effectiveness", _peopleManager.QualitativeEffectiveness(pf.Effectiveness()));
-            emission.Add("specialty", pf.Specialty());
+            emission.AddStoryElement("name", pf.DisplayName());
+            emission.AddStoryElement("effectiveness", _peopleManager.QualitativeEffectiveness(pf.Effectiveness()));
+            emission.AddStoryElement("specialty", pf.Specialty());
             ns.AddToStory(emission.GenerateStory());
             if (pf.personality != "")
             {
@@ -2122,7 +2122,7 @@ namespace RPStoryteller
                 }
                 
                 Emissions em = new Emissions("withdraw_application");
-                em.Add("name", dropOut.DisplayName()); 
+                em.AddStoryElement("name", dropOut.DisplayName()); 
                 
                 NewsStory ns = new NewsStory(em, Headline:"Withdrawn application");
                 ns.AddToStory(em.GenerateStory());
