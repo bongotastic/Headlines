@@ -157,7 +157,7 @@ namespace RPStoryteller
             GameEvents.onGUIAstronautComplexSpawn.Add(EventAstronautComplexSpawn);
             GameEvents.onGUIAstronautComplexDespawn.Add(EventAstronautComplexDespawn);
             GameEvents.Contract.onCompleted.Add(EventContractCompleted);
-            GameEvents.Contract.onCompleted.Add(EventContractAccepted);
+            GameEvents.Contract.onAccepted.Add(EventContractAccepted);
         }
 
         /// <summary>
@@ -595,6 +595,7 @@ namespace RPStoryteller
                     individualHype = (float)_reputationManager.AdjustHype(pf.Effectiveness());
                     onboardHype += individualHype;
                     pf.lifetimeHype += (int)individualHype;
+                    pf.AdjustDiscontent(-1);
 
                     // First flight grants one experience point as a baseline display of competence (not sure if this will work)
                     if (pcm.experienceLevel == 0)
@@ -2133,12 +2134,31 @@ namespace RPStoryteller
 
         public void EventContractCompleted(Contract contract)
         {
-
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "Breaking!");
+            ns.AddToStory($"Multiple reports of the completion of {contract.Title}!");
+            if (contract.FundsCompletion != 0)
+            {
+                ns.AddToStory($" The √{contract.FundsCompletion} will be most welcome to bankroll future endeavours.");
+            }
+            FileHeadline(ns);
         }
 
         public void EventContractAccepted(Contract contract)
         {
+            if (contract.AutoAccept) return;
+            NewsStory ns = new NewsStory(HeadlineScope.FEATURE, "Challenge Accepted!");
+            ns.AddToStory($"Multiple reports covering the pledge to complete {contract.Title} by {KSPUtil.PrintDate(contract.DateExpire, false, false)}.");
+            if (contract.FundsAdvance != 0)
+            {
+                ns.AddToStory($" A sum of √{contract.FundsAdvance} was advanced to help in this commitment.");
+            }
 
+            if (contract.ReputationCompletion != 0 & _reputationManager.CurrentReputation() != 0)
+            {
+                ns.AddToStory($" {Math.Round(100*(contract.ReputationCompletion/_reputationManager.CurrentReputation()), MidpointRounding.AwayFromZero)}% of the program's reputation may be at stake.");
+            }
+            FileHeadline(ns);
+            
         }
 
         #region Debris

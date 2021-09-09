@@ -242,7 +242,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.Box($"Program Dashboard (Staff: {storyEngine.GUIAverageProfile()})");
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Reputation:", GUILayout.Width(100));
+            GUILayout.Label($"Credibility:", GUILayout.Width(100));
             GUILayout.Label($"{storyEngine.GUIValuation()}", GUILayout.Width(100));
             GUILayout.Label($"Overvaluation:", GUILayout.Width(100));
             GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine._reputationManager.Hype(), MidpointRounding.ToEven)})", GUILayout.Width(100));
@@ -307,8 +307,7 @@ namespace RPStoryteller.source.GUI
                     else UnityEngine.GUI.contentColor = Color.red;
                     
                     GUILayout.BeginHorizontal();
-                    //GUILayout.Button("Pledge");
-                    GUILayout.Label($"{myContract.Title} ({(int)Math.Ceiling(100f*ratio)}%)" );
+                    GUILayout.Label($"{myContract.Title} (Cred: {myContract.ReputationCompletion}, {(int)Math.Ceiling(100f*ratio)}%)" );
                     GUILayout.EndHorizontal();
                 }
                 
