@@ -16,6 +16,7 @@ namespace RPStoryteller.source.GUI
     {
         private StoryEngine storyEngine;
         private ReputationManager RepMgr;
+        private ProgramManager PrgMgr;
         private static ApplicationLauncherButton stockButton;
 
         public bool _isDisplayed = false;
@@ -228,13 +229,27 @@ namespace RPStoryteller.source.GUI
         {
             storyEngine = StoryEngine.Instance;
             RepMgr = storyEngine._reputationManager;
+            PrgMgr = storyEngine._programManager;
             
             GUILayout.BeginVertical();
+            DrawProgramManager();
             DrawProgramStats();
             DrawContracts();
             DrawPressGallery();
             DrawImpact();
             GUILayout.EndVertical();
+        }
+
+        private void DrawProgramManager()
+        {
+            peopleManager = storyEngine.GetPeopleManager();
+            
+            GUILayout.Box($"Program status: ${PrgMgr.ControlLevel().ToString()}");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Manager: {PrgMgr.ManagerName()}", GUILayout.Width(200));
+            GUILayout.Label($"Profile: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile()).Substring(1)}", GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            GUILayout.Space(10);
         }
 
         private void DrawProgramStats()

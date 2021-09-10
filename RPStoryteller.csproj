@@ -73,12 +73,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="source\ContractManager.cs" />
     <Compile Include="source\Emissions\Emissions.cs" />
     <Compile Include="source\Emissions\NewsStory.cs" />
     <Compile Include="source\GUI\HeadlinesGUIManager.cs" />
     <Compile Include="source\HiddenMarkovProcess.cs" />
     <Compile Include="source\PeopleManager.cs" />
+    <Compile Include="source\ProgramManager.cs" />
     <Compile Include="source\ReputationManager.cs" />
     <Compile Include="source\StoryEngine.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

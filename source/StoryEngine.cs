@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Contracts;
 using Expansions.Missions.Editor;
 using FinePrint;
@@ -47,6 +48,8 @@ namespace RPStoryteller
         private PeopleManager _peopleManager;
 
         public ReputationManager _reputationManager = new ReputationManager();
+
+        public ProgramManager _programManager = null;
         
         // Terrible hack
         private int updateIndex = 0;
@@ -146,6 +149,9 @@ namespace RPStoryteller
             InitializePeopleManager();
             SchedulerCacheNextTime();
 
+            // Initialize the program manager
+            _programManager = new ProgramManager(this, _peopleManager);
+
             // Event Catching
             GameEvents.OnReputationChanged.Add(EventReputationChanged);
             GameEvents.OnScienceChanged.Add(EventScienceChanged);
@@ -222,7 +228,6 @@ namespace RPStoryteller
             double triggertime;
             HiddenState stateToSave;
             ConfigNode temporaryNode = new ConfigNode();
-
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
             {
                 triggertime = kvp.Value;
@@ -237,28 +242,24 @@ namespace RPStoryteller
 
                 hmmSet.AddNode("hmm", temporaryNode);
             }
-
             node.AddNode(hmmSet);
 
             ConfigNode headlineFeed = new ConfigNode("HEADLINESFEED");
-
             foreach (NewsStory ns in headlines)
             {
                 headlineFeed.AddNode("headline", ns.AsConfigNode());
             }
-            
             node.AddNode(headlineFeed);
 
             ConfigNode visitingEndTimes = new ConfigNode("VISITINGSCHOLAR");
-
             foreach (double time in visitingScholarEndTimes)
             {
                 visitingEndTimes.AddValue("time", time);
             }
-
             node.AddNode(visitingEndTimes);
             
             node.AddNode(_reputationManager.AsConfigNode());
+            node.AddNode(_programManager.AsConfigNode());
         }
 
         public override void OnLoad(ConfigNode node)
@@ -303,6 +304,14 @@ namespace RPStoryteller
                 
             }
             */
+            
+            Debug("Loading PROGRAMMANAGER");
+            ConfigNode pmNode = node.GetNode("PROMGRAMMANAGER");
+            if (pmNode != null)
+            {
+                _programManager.FromConfigNode(pmNode);
+            }
+            
             Debug("Loading HIDDENMODELS");
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
             if (hmNode != null)

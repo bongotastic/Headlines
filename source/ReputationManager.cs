@@ -11,7 +11,7 @@ namespace RPStoryteller.source
     
     public class ReputationManager
     {
-        public static string[] renownLevels = new[] { "underdog", "renowned", "leader", "excellent", "legendary"};
+        public static string[] renownLevels = new[] { "startup", "underdog", "renowned", "leader", "excellent"};
         
         public MediaRelationMode currentMode = MediaRelationMode.LOWPROFILE;
         
