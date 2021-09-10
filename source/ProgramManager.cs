@@ -77,6 +77,23 @@ namespace RPStoryteller.source
             return controlLevel;
         }
 
+        public string ControlLevelQualitative()
+        {
+            switch (controlLevel)
+            {
+                case ProgramControlLevel.CHAOS:
+                    return "In chaos";
+                case ProgramControlLevel.WEAK:
+                    return "Underperforming";
+                case ProgramControlLevel.NOMINAL:
+                    return "Nominal";
+                case ProgramControlLevel.HIGH:
+                    return "Inspired";
+            }
+
+            return "";
+        }
+
         #endregion
 
         #region ManagerRole

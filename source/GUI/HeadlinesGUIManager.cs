@@ -47,7 +47,7 @@ namespace RPStoryteller.source.GUI
         private string feedFilterLabel = "";
 
         private static string[] feedFilter = new[] { "All", "Chatter", "Feature stories", "Headlines"};
-        private static string[] tabs = new[] { "Program", "Feed", "Personnel", "Recruit","Story"};
+        private static string[] tabs = new[] { "Program", "Media", "Feed", "Personnel", "Recruit","Story"};
         
         private int mediaInvitationDelay = 1;
 
@@ -187,24 +187,27 @@ namespace RPStoryteller.source.GUI
         /// <param name="windowID"></param>
         public void DrawWindow(int windowID)
         {
-            SwitchTab(GUILayout.SelectionGrid(_activeTabIndex, tabs, 5, GUILayout.Width(400)));
+            SwitchTab(GUILayout.SelectionGrid(_activeTabIndex, tabs, 3, GUILayout.Width(400)));
 
             switch (_activeTabIndex)
             {
                 case 0:
                     DrawProgramDashboard(windowID);
                     break;
-                case 2:
+                case 3:
                     DrawPersonelPanel();
                     break;
-                case 3:
+                case 4:
                     DrawRecruitmentPanel();
                     break;
-                case 1:
+                case 2:
                     DrawProgramFeed();
                     break;
-                case 4:
+                case 5:
                     DrawStoryPanel();
+                    break;
+                case 1:
+                    DrawPressRoom();
                     break;
             }
 
@@ -234,8 +237,6 @@ namespace RPStoryteller.source.GUI
             GUILayout.BeginVertical();
             DrawProgramManager();
             DrawProgramStats();
-            DrawContracts();
-            DrawPressGallery();
             DrawImpact();
             GUILayout.EndVertical();
         }
@@ -244,7 +245,7 @@ namespace RPStoryteller.source.GUI
         {
             peopleManager = storyEngine.GetPeopleManager();
             
-            GUILayout.Box($"Program status: ${PrgMgr.ControlLevel().ToString()}");
+            GUILayout.Box($"Program status: {PrgMgr.ControlLevelQualitative()}");
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Manager: {PrgMgr.ManagerName()}", GUILayout.Width(200));
             GUILayout.Label($"Profile: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile()).Substring(1)}", GUILayout.Width(200));
@@ -448,6 +449,15 @@ namespace RPStoryteller.source.GUI
         }
         
         #endregion
+
+        /// <summary>
+        /// Draw panel to manage media and reputation
+        /// </summary>
+        public void DrawPressRoom()
+        {
+            DrawContracts();
+            DrawPressGallery();
+        }
         
         /// <summary>
         /// Top-level UI for the Crew panel of the main UI
