@@ -2555,6 +2555,22 @@ namespace RPStoryteller
         {
             return 40000;
         }
+
+        /// <summary>
+        /// How difficult it is for the program manager to do their job.
+        /// </summary>
+        /// <returns>A difficulty for a SkillCheck</returns>
+        public int GetProgramComplexity()
+        {
+            double level = 0;
+            level += GetFacilityLevel(SpaceCenterFacility.MissionControl) * 2;
+            level += GetFacilityLevel(SpaceCenterFacility.AstronautComplex) * 2;
+            level += GetFacilityLevel(SpaceCenterFacility.ResearchAndDevelopment);
+            level += GetFacilityLevel(SpaceCenterFacility.VehicleAssemblyBuilding);
+            level /= 6;
+
+            return (int) Math.Round(level, MidpointRounding.AwayFromZero);
+        }
         #endregion
 
         #region RP1
@@ -2635,6 +2651,16 @@ namespace RPStoryteller
             {
                 CancelInfluence(kvp.Value);
             }
+        }
+
+        public int GetFacilityLevel(SpaceCenterFacility facility)
+        {
+            foreach (var building in KCTGameStates.ActiveKSC.KSCTech)
+            {
+                if (building.FacilityType == facility) return building.CurrentLevel;
+            }
+
+            return -1;
         }
         
         #endregion

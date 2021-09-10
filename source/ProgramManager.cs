@@ -14,7 +14,7 @@ namespace RPStoryteller.source
     {
         private PersonnelFile managerRole;
         private string npcManagerRoleName = "Laura Kerman";
-        private int npcManagerProfile = 3;
+        private int npcManagerProfile = 4;
 
         /// <summary>
         /// The internal state of this program.

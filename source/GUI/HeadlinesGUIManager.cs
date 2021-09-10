@@ -248,8 +248,10 @@ namespace RPStoryteller.source.GUI
             GUILayout.Box($"Program status: {PrgMgr.ControlLevelQualitative()}");
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Manager: {PrgMgr.ManagerName()}", GUILayout.Width(200));
-            GUILayout.Label($"Profile: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile()).Substring(1)}", GUILayout.Width(200));
+            GUILayout.Label($"Profile: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile())}", GUILayout.Width(200));
             GUILayout.EndHorizontal();
+            GUILayout.Label($"Suitability: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile()-storyEngine.GetProgramComplexity())} ({storyEngine.GetProgramComplexity()})", GUILayout.Width(200));
+            
             GUILayout.Space(10);
         }
 
