@@ -32,7 +32,7 @@ namespace RPStoryteller.source
             _storyEngine = storyEngine;
             _peopleManager = peopleManager;
 
-            managerRole = null;
+            managerRole = _peopleManager.GetProgramManager();
 
             controlLevel = ProgramControlLevel.NOMINAL;
         }
@@ -97,11 +97,6 @@ namespace RPStoryteller.source
         #endregion
 
         #region ManagerRole
-
-        public void AssignManagerRole(PersonnelFile newManager = null)
-        {
-            managerRole = newManager;
-        }
 
         public string ManagerName()
         {

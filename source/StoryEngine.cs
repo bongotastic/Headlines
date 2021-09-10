@@ -2655,12 +2655,7 @@ namespace RPStoryteller
 
         public int GetFacilityLevel(SpaceCenterFacility facility)
         {
-            foreach (var building in KCTGameStates.ActiveKSC.KSCTech)
-            {
-                if (building.FacilityType == facility) return building.CurrentLevel;
-            }
-
-            return -1;
+            return Utilities.GetBuildingUpgradeLevel(facility);
         }
         
         #endregion

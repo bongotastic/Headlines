@@ -29,6 +29,9 @@ namespace RPStoryteller
         // Prospective crew members
         public Dictionary<string, PersonnelFile> applicantFolders = new Dictionary<string, PersonnelFile>();
         
+        // Program manager(s)
+        public Dictionary<string, PersonnelFile> managerFolders = new Dictionary<string, PersonnelFile>();
+        
         // Job Search
         [KSPField(isPersistant = true)] public bool seekingPilot = false;
         [KSPField(isPersistant = true)] public bool seekingScientist = false;
@@ -63,6 +66,12 @@ namespace RPStoryteller
             }
             node.AddNode("APPLICANTFILES", appfolders);
             
+            ConfigNode mngrfolders = new ConfigNode();
+            foreach (KeyValuePair<string, PersonnelFile> kvp in managerFolders)
+            {
+                mngrfolders.AddNode("File", kvp.Value.AsConfigNode());
+            }
+            node.AddNode("MANAGERFILES", mngrfolders);
         }
 
         public override void OnLoad(ConfigNode node)
@@ -97,6 +106,21 @@ namespace RPStoryteller
                     {
                         temporaryFile = new PersonnelFile(kerbalFile);
                         applicantFolders.Add(temporaryFile.UniqueName(), temporaryFile);
+                    }
+                }
+            }
+            
+            folder = node.GetNode("MANAGERFILES");
+            if (folder != null)
+            {
+                PersonnelFile temporaryFile;
+            
+                foreach (ConfigNode kerbalFile in folder.GetNodes())
+                {
+                    if (managerFolders.ContainsKey(kerbalFile.GetValue("kerbalName")) == false)
+                    {
+                        temporaryFile = new PersonnelFile(kerbalFile);
+                        managerFolders.Add(temporaryFile.UniqueName(), temporaryFile);
                     }
                 }
             }
@@ -242,6 +266,19 @@ namespace RPStoryteller
         }
 
         /// <summary>
+        /// Create a non-flight manager to run the place in absence of a high profile Project Manager
+        /// </summary>
+        /// <param name="level"></param>
+        /// <returns></returns>
+        public PersonnelFile GenerateDefaultProgramManager(int level = 0)
+        {
+            ProtoCrewMember newpcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Tourist);
+            PersonnelFile newFile = GetFile(newpcm.name);
+            newFile.Randomize(level);
+            return newFile;
+        }
+
+        /// <summary>
         /// Moves from applicants to personnel or create the file
         /// </summary>
         /// <param name="apcm">PCM from event</param>
@@ -314,7 +351,24 @@ namespace RPStoryteller
             return null;
         }
 
+        /// <summary>
+        /// Assumes that if there are more than 1 manager, 1 is default and the other is the right one.
+        /// </summary>
+        /// <returns></returns>
+        public PersonnelFile GetProgramManager()
+        {
+            bool getDefault = managerFolders.Count == 1;
+            ProtoCrewMember.KerbalType managerType;
+            foreach (KeyValuePair<string, PersonnelFile> kvp in managerFolders)
+            {
+                managerType = kvp.Value.GetKSPData().type;
+                if (getDefault & managerType == ProtoCrewMember.KerbalType.Tourist) return kvp.Value;
+                if (managerType == ProtoCrewMember.KerbalType.Crew) return kvp.Value;
+            }
 
+            return null;
+        }
+        
         /// <summary>
         /// Needed by the GUI to build a roster selector
         /// </summary>
