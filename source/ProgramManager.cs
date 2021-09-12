@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using CommNet.Network;
+using Expansions.Missions;
 using Smooth.Collections;
 
 namespace RPStoryteller.source
@@ -216,6 +217,10 @@ namespace RPStoryteller.source
 
         #region Processes
 
+        public void RegisterLaunch(Vessel vessel)
+        {
+            GetProgramManagerRecord().launches++;
+        }
         public void RegisterProgramCheck(SkillCheckOutcome outcome)
         {
             switch (outcome)
@@ -279,6 +284,17 @@ namespace RPStoryteller.source
         public void AssignProgramManager(string pmName)
         {
             managerKey = pmName;
+            CrewReactToAppointment();
+        }
+
+        public void AssignProgramManager(PersonnelFile crew)
+        {
+            if (!_record.ContainsKey(crew.UniqueName()))
+            {
+                ProgramManagerRecord newRecord = new ProgramManagerRecord(crew);
+                _record.Add(crew.UniqueName(), newRecord);
+            }
+            AssignProgramManager(crew.UniqueName());
         }
         
         public string ManagerName()
@@ -352,7 +368,7 @@ namespace RPStoryteller.source
 
         private void GenerateDefaultProgramManager()
         {
-            string name = "Larry Kerman";
+            string name = "Leslie Kerman";
             Random rnd = new Random();
             string background = new List<string>() {"Neutral", "Pilot", "Engineer", "Scientist"}[rnd.Next(3)];
             
@@ -360,6 +376,34 @@ namespace RPStoryteller.source
             _record.Add(pmRecord.name, pmRecord);
             AssignProgramManager(pmRecord.name);
         }
+
+        #endregion
+
+        #region People
+
+        /// <summary>
+        /// Cycle through the staff to react to the newly appointment PM
+        /// </summary>
+        public void CrewReactToAppointment()
+        {
+            int reaction;
+            foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.applicantFolders)
+            {
+                // People don't like change 
+                reaction = (GetProgramManagerRecord().personality == "inspiring") ? 0 : 1;
+                
+                if (kvp.Value.Specialty() == GetProgramManagerRecord().background)
+                {
+                    reaction -= 2;
+                }
+
+                if (kvp.Value.IsCollaborator(GetProgramManagerRecord().name)) reaction -= 2;
+                if (kvp.Value.IsFeuding(GetProgramManagerRecord().name)) reaction += 2;
+                
+                kvp.Value.AdjustDiscontent(reaction);
+            }
+        }
+        
 
         #endregion
     }

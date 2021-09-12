@@ -606,6 +606,8 @@ namespace RPStoryteller
 
     public class PersonnelFile
     {
+        #region fields
+        
         private static System.Random randomNG = new System.Random();
         
         public static List<string>attributes = new List<string>() {"stubborn","genial","inspiring","charming","scrapper","bland"};
@@ -650,6 +652,8 @@ namespace RPStoryteller
         private ProtoCrewMember pcm;
 
         private int _cachedEffectiveness = 0; 
+        
+        #endregion
         
         /// <summary>
         /// Constructor used to generate a brand new file from a protocrewember
@@ -961,9 +965,9 @@ namespace RPStoryteller
             return pcm.inactiveTimeEnd;
         }
         
-        public bool IsFeuding(PersonnelFile candidate)
+        public bool IsFeuding(string candidate)
         {
-            return feuds.Contains(candidate.UniqueName()) ;
+            return feuds.Contains(candidate) ;
         }
         
         /// <summary>

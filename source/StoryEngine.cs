@@ -591,6 +591,8 @@ namespace RPStoryteller
         {
             foreach (Vessel vessel in newLaunch)
             {
+                _programManager.RegisterLaunch(vessel);
+                
                 // get crew
                 List<ProtoCrewMember> inFlight = vessel.GetVesselCrew();
 
@@ -1065,7 +1067,7 @@ namespace RPStoryteller
             }
             ns.SpecifyOtherCrew(collaborator.DisplayName(), emitData);
             
-            if (personnelFile.IsFeuding(collaborator))
+            if (personnelFile.IsFeuding(collaborator.UniqueName()))
             {
                 if (personnelFile.UnsetFeuding(collaborator))
                 {
