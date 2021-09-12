@@ -272,7 +272,7 @@ namespace RPStoryteller
         /// <returns></returns>
         public PersonnelFile GenerateDefaultProgramManager(int level = 0)
         {
-            ProtoCrewMember newpcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Tourist);
+            ProtoCrewMember newpcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Unowned);
             PersonnelFile newFile = GetFile(newpcm.name);
             newFile.Randomize(level);
             return newFile;
@@ -352,18 +352,19 @@ namespace RPStoryteller
         }
 
         /// <summary>
-        /// Assumes that if there are more than 1 manager, 1 is default and the other is the right one.
+        /// Returns the program manager or null
         /// </summary>
         /// <returns></returns>
         public PersonnelFile GetProgramManager()
         {
-            bool getDefault = managerFolders.Count == 1;
-            ProtoCrewMember.KerbalType managerType;
+            if (managerFolders.Count == 0)
+            {
+                return null;
+            }
+
             foreach (KeyValuePair<string, PersonnelFile> kvp in managerFolders)
             {
-                managerType = kvp.Value.GetKSPData().type;
-                if (getDefault & managerType == ProtoCrewMember.KerbalType.Tourist) return kvp.Value;
-                if (managerType == ProtoCrewMember.KerbalType.Crew) return kvp.Value;
+                return kvp.Value;
             }
 
             return null;
@@ -1208,12 +1209,19 @@ namespace RPStoryteller
             {
                 discontent = Math.Max(0, discontent + difference);
             }
-            
+
+            personality = GetRandomPersonality();
+        }
+
+        public static string GetRandomPersonality()
+        {
             if (randomNG.NextDouble() < 0.5)
             {
                 int attributeIndex = randomNG.Next(0, attributes.Count);
-                personality = attributes[attributeIndex];
+               return attributes[attributeIndex];
             }
+
+            return "";
         }
 
         public void RandomizeType()

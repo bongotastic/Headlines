@@ -250,8 +250,18 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"Manager: {PrgMgr.ManagerName()}", GUILayout.Width(200));
             GUILayout.Label($"Profile: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile())}", GUILayout.Width(200));
             GUILayout.EndHorizontal();
-            GUILayout.Label($"Suitability: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile()-storyEngine.GetProgramComplexity())} ({storyEngine.GetProgramComplexity()})", GUILayout.Width(200));
-            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Suitability: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile()-storyEngine.GetProgramComplexity())}", GUILayout.Width(200));
+            string qualifier = PrgMgr.ManagerLaunches() <= 2 ? "[GREEN]" : PrgMgr.ManagerLaunches() >= 8 ? "[VETERAN]" : "";
+            GUILayout.Label($"Launches: {PrgMgr.ManagerLaunches()} {qualifier}", GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            if (PrgMgr.ManagerPersonality() != "")
+            {
+                GUILayout.Label($"Trait: {PrgMgr.ManagerPersonality()}", GUILayout.Width(200));
+            }
+            GUILayout.Label($"Background: {PrgMgr.ManagerPersonality()}", GUILayout.Width(200));
+            GUILayout.EndHorizontal();
             GUILayout.Space(10);
         }
 
