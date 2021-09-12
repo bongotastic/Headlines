@@ -49,7 +49,7 @@ namespace RPStoryteller
 
         public ReputationManager _reputationManager = new ReputationManager();
 
-        public ProgramManager _programManager = null;
+        public ProgramManager _programManager = new ProgramManager();
         
         // Terrible hack
         private int updateIndex = 0;
@@ -129,7 +129,6 @@ namespace RPStoryteller
         public override void OnAwake()
         {
             base.OnAwake();
-            //_reputationManager = new ReputationManager();
         }
 
         /// <summary>
@@ -145,12 +144,10 @@ namespace RPStoryteller
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
             InitializeHMM("position_search");
+            InitializeHMM("program_manager");
 
             InitializePeopleManager();
             SchedulerCacheNextTime();
-
-            // Initialize the program manager
-            _programManager = new ProgramManager(this, _peopleManager);
 
             // Event Catching
             GameEvents.OnReputationChanged.Add(EventReputationChanged);
@@ -175,6 +172,8 @@ namespace RPStoryteller
             // Shameless hack.
             if (updateIndex < 10)
             {
+                _programManager.SetStoryEngine(this);
+                
                 if (updateIndex == 9)
                 {
                     // if the mod is installed in a new career (less than an hour), randomize crew specialty
@@ -306,12 +305,13 @@ namespace RPStoryteller
             */
             
             Debug("Loading PROGRAMMANAGER");
-            ConfigNode pmNode = node.GetNode("PROMGRAMMANAGER");
+            ConfigNode pmNode = node.GetNode("PROGRAMMANAGER");
             if (pmNode != null)
             {
+                Debug("Node found");
                 _programManager.FromConfigNode(pmNode);
             }
-            
+
             Debug("Loading HIDDENMODELS");
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
             if (hmNode != null)
@@ -1835,6 +1835,9 @@ namespace RPStoryteller
                 case "debris_conclude":
                     DebrisConclude();
                     break;
+                case "program_check":
+                    ProgramCheck();
+                    break;
                 default:
                     Debug( $"[Emission] {eventName} is not implemented yet.");
                     break;
@@ -2050,6 +2053,29 @@ namespace RPStoryteller
                     FileHeadline(new NewsStory(em, Headline:"Hype deflates", generateStory:true));
                 }
             }
+        }
+
+        /// <summary>
+        /// Heartbeat of the program manager
+        /// </summary>
+        public void ProgramCheck()
+        {
+            SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()), GetProgramComplexity());
+
+            if (outcome == SkillCheckOutcome.CRITICAL & _programManager.ControlLevel() != ProgramControlLevel.HIGH)
+            {
+                NewsStory ns = new NewsStory(HeadlineScope.FEATURE, "KSC in high-gear");
+                ns.AddToStory($"Your program is experiencing a golden age of productivity due to the leadership from {_programManager.ManagerName()}.");
+                FileHeadline(ns);
+            }
+            if (outcome == SkillCheckOutcome.FUMBLE & _programManager.ControlLevel() != ProgramControlLevel.CHAOS)
+            {
+                NewsStory ns = new NewsStory(HeadlineScope.FEATURE, "KSC in chaos");
+                ns.AddToStory($"A few blunders from {_programManager.ManagerName()} sends your program into chaos.");
+                FileHeadline(ns);
+            }
+            
+            _programManager.RegisterProgramCheck(outcome);
         }
 
         #region Death
@@ -2318,13 +2344,13 @@ namespace RPStoryteller
 
         public int GUIVABEnhancement()
         {
-            return _peopleManager.KSCImpact("Engineer");
+            return _peopleManager.KSCImpact("Engineer") + _programManager.GetVABInfluence();
 
         }
 
         public int GUIRnDEnhancement()
         {
-            return _peopleManager.KSCImpact("Scientist");
+            return _peopleManager.KSCImpact("Scientist") + _programManager.GetRnDInfluence();
         }
 
         #endregion
@@ -2571,6 +2597,22 @@ namespace RPStoryteller
 
             return (int) Math.Round(level, MidpointRounding.AwayFromZero);
         }
+
+        public int GetProbabilisticLevel(double level, bool deterministic = true)
+        {
+            if (deterministic)
+            {
+                return (int)Math.Round(level, MidpointRounding.AwayFromZero);
+            }
+            
+            int output = (int) Math.Floor(level);
+            if (storytellerRand.NextDouble() <= level - Math.Floor(level))
+            {
+                output += 1;
+            }
+
+            return output;
+        }
         #endregion
 
         #region RP1
@@ -2591,6 +2633,18 @@ namespace RPStoryteller
         public int GetVABPoints()
         {
             return Utilities.GetSpentUpgradesFor(SpaceCenterFacility.VehicleAssemblyBuilding);
+        }
+
+        public int UpgradeIncrementVAB()
+        {
+            int purchased = GetVABPoints() - GUIVABEnhancement();
+            return Math.Max(1, GetProbabilisticLevel((double)purchased * 0.05));
+        }
+        
+        public int UpgradeIncrementRnD()
+        {
+            int purchased = GetRnDPoints() - GUIRnDEnhancement();
+            return Math.Max(1, GetProbabilisticLevel((double)purchased * 0.05));
         }
 
         /// <summary>

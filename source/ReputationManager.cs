@@ -33,7 +33,6 @@ namespace RPStoryteller.source
 
         public void FromConfigNode(ConfigNode node)
         {
-            HeadlinesUtil.Report(1, "[REPMANAGER] Entering config node");
             currentMode = (MediaRelationMode)int.Parse(node.GetValue("currentMode"));
 
             programHype = SafeRead(node,"programHype");

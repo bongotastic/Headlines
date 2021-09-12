@@ -13,7 +13,7 @@ namespace RPStoryteller.source
     public class ProgramManagerRecord
     {
         public string name, background, personality;
-        public int launches;
+        public int launches = 0;
         public double managerSkill;
         public bool isNPC = true;
 
@@ -21,7 +21,6 @@ namespace RPStoryteller.source
         {
             name = _name;
             background = _background;
-            launches = 0;
             managerSkill = 4;
             personality = _personality;
         }
@@ -30,7 +29,6 @@ namespace RPStoryteller.source
         {
             name = crewMember.UniqueName();
             background = crewMember.Specialty();
-            launches = 0;
             managerSkill = crewMember.Effectiveness(deterministic:true);
             personality = crewMember.personality;
             isNPC = false;
@@ -73,6 +71,9 @@ namespace RPStoryteller.source
     {
         private string managerKey;
         private Dictionary<string, ProgramManagerRecord> _record = new Dictionary<string, ProgramManagerRecord>();
+        
+        int influenceVAB = 0;
+        int influenceRnD = 0;
 
         /// <summary>
         /// The internal state of this program.
@@ -85,22 +86,38 @@ namespace RPStoryteller.source
         private StoryEngine _storyEngine;
         private PeopleManager _peopleManager;
 
-        public ProgramManager(StoryEngine storyEngine, PeopleManager peopleManager)
+        public ProgramManager()
         {
-            _storyEngine = storyEngine;
-            _peopleManager = peopleManager;
-
-            controlLevel = ProgramControlLevel.NOMINAL;
-
-            GenerateDefaultProgramManager();
+            KSPLog.print("instanciating a new ProgramManager");
+            controlLevel = ProgramControlLevel.WEAK;
         }
 
+        public void SetStoryEngine(StoryEngine storyEngine)
+        {
+            _storyEngine = storyEngine;
+            _peopleManager = _storyEngine.GetPeopleManager();
+        }
+
+        public int GetVABInfluence()
+        {
+            return influenceVAB;
+        }
+
+        public int GetRnDInfluence()
+        {
+            return influenceRnD;
+        }
+        
         #region serialization
 
         public void FromConfigNode(ConfigNode node)
         {
+            KSPLog.print($"reading {node}");
             controlLevel = (ProgramControlLevel) int.Parse(node.GetValue("controlLevel"));
             managerKey = node.GetValue("managerKey");
+            
+            influenceVAB = int.Parse(node.GetValue("influenceVAB"));
+            influenceRnD = int.Parse(node.GetValue("influenceRnD"));
 
             _record.Clear();
             foreach (ConfigNode pmnode in node.GetNodes("PMRECORD"))
@@ -108,6 +125,7 @@ namespace RPStoryteller.source
                 ProgramManagerRecord pmRecord = new ProgramManagerRecord(pmnode);
                 _record.Add(pmRecord.name, pmRecord);
             }
+            KSPLog.print("Done reading");
 
         }
 
@@ -117,6 +135,8 @@ namespace RPStoryteller.source
 
             node.AddValue("controlLevel", (int)controlLevel);
             node.AddValue("managerKey", managerKey);
+            node.AddValue("influenceVAB", influenceVAB);
+            node.AddValue("influenceRnD", influenceRnD);
 
             foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
             {
@@ -152,6 +172,106 @@ namespace RPStoryteller.source
             return "";
         }
 
+        public void CancelInfluence()
+        {
+            _storyEngine.AdjustVAB(-1 * influenceVAB);
+            influenceVAB = 0;
+            _storyEngine.AdjustRnD(-1 * influenceRnD);
+            influenceRnD = 0;
+        }
+
+        public void ApplyInfluence()
+        {
+            switch (GetProgramManagerRecord().background)
+            {
+                case "Neutral":
+                    ApplyInfluence(0,0);
+                    break;
+                case "Pilot":
+                    ApplyInfluence(2, -1);
+                    break;
+                case "Engineer":
+                    ApplyInfluence(1, 0);
+                    break;
+                case "Scientist":
+                    ApplyInfluence(0,1);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Pilots are looking for a maximal launch tempo at the detriment to research and development.
+        /// </summary>
+        public void ApplyInfluence(int VAB, int RnD)
+        {
+            CancelInfluence();
+            influenceVAB = VAB * _storyEngine.UpgradeIncrementVAB();
+            _storyEngine.AdjustVAB(influenceVAB);
+
+            influenceRnD = RnD * _storyEngine.UpgradeIncrementRnD();
+            _storyEngine.AdjustRnD(influenceRnD);
+        }
+        
+        #endregion
+
+        #region Processes
+
+        public void RegisterProgramCheck(SkillCheckOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case SkillCheckOutcome.FUMBLE:
+                    RegisterProgramCheckFumble();
+                    break;
+                case SkillCheckOutcome.FAILURE:
+                    RegisterProgramCheckFailure();
+                    break;
+                case SkillCheckOutcome.SUCCESS:
+                    RegisterProgramCheckSuccess();
+                    break;
+                case SkillCheckOutcome.CRITICAL:
+                    RegisterProgramCheckCritical();
+                    break;
+            }
+        }
+
+        private void RegisterProgramCheckFumble()
+        {
+            CancelInfluence();
+            controlLevel = ProgramControlLevel.CHAOS;
+        }
+
+        private void RegisterProgramCheckFailure()
+        {
+            if (controlLevel == ProgramControlLevel.CHAOS) return;
+            CancelInfluence();
+            controlLevel = ProgramControlLevel.WEAK;
+        }
+
+        private void RegisterProgramCheckSuccess()
+        {
+            if (controlLevel >= ProgramControlLevel.NOMINAL) return;
+            if (controlLevel == ProgramControlLevel.CHAOS)
+            {
+                controlLevel = ProgramControlLevel.WEAK;
+                RegisterProgramCheckFailure();
+                return;
+            }
+            ApplyInfluence();
+            controlLevel = ProgramControlLevel.NOMINAL;
+        }
+
+        private void RegisterProgramCheckCritical()
+        {
+            if (controlLevel == ProgramControlLevel.CHAOS)
+            {
+                RegisterProgramCheckSuccess();
+                return;
+            }
+            ApplyInfluence();
+            controlLevel = ProgramControlLevel.HIGH;
+        }
+
         #endregion
 
         #region ManagerRole
@@ -163,7 +283,7 @@ namespace RPStoryteller.source
         
         public string ManagerName()
         {
-            return managerKey;
+            return GetProgramManagerRecord().name;
         }
 
         /// <summary>
@@ -172,6 +292,8 @@ namespace RPStoryteller.source
         /// <returns></returns>
         public double ManagerProfile(bool deterministic = false)
         {
+            if (_peopleManager == null) _storyEngine.GetPeopleManager();
+            
             ProgramManagerRecord pmRecord = GetProgramManagerRecord();
             
             double output = pmRecord.managerSkill;
@@ -221,14 +343,15 @@ namespace RPStoryteller.source
 
         private ProgramManagerRecord GetProgramManagerRecord()
         {
+            if (_record.Count == 0)
+            {
+                GenerateDefaultProgramManager();
+            }
             return _record[managerKey];
         }
 
         private void GenerateDefaultProgramManager()
         {
-            _record.Clear();
-            managerKey = "";
-
             string name = "Larry Kerman";
             Random rnd = new Random();
             string background = new List<string>() {"Neutral", "Pilot", "Engineer", "Scientist"}[rnd.Next(3)];

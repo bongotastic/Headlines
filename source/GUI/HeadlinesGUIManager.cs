@@ -260,7 +260,7 @@ namespace RPStoryteller.source.GUI
             {
                 GUILayout.Label($"Trait: {PrgMgr.ManagerPersonality()}", GUILayout.Width(200));
             }
-            GUILayout.Label($"Background: {PrgMgr.ManagerPersonality()}", GUILayout.Width(200));
+            GUILayout.Label($"Background: {PrgMgr.ManagerBackground()}", GUILayout.Width(200));
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
         }
