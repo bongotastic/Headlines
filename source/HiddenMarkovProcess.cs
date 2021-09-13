@@ -301,7 +301,12 @@ namespace HiddenMarkovProcess
             
         }
         #endregion
+
+        #region Filters
         
+        public void ApplyFilter(){}
+
+        #endregion
 
     }
 }
