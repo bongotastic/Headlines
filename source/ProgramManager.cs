@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using CommNet.Network;
 using Expansions.Missions;
+using HiddenMarkovProcess;
 using Smooth.Collections;
 
 namespace RPStoryteller.source
@@ -11,6 +12,15 @@ namespace RPStoryteller.source
     /// </summary>
     public enum ProgramControlLevel { CHAOS, WEAK, NOMINAL, HIGH}
 
+    /// <summary>
+    /// Possible priority management states
+    /// </summary>
+    public enum ProgramPriority { NONE, REPUTATION, PRODUCTION, CAPACITY }
+    
+    /// <summary>
+    /// Data structure to store and serialize the data related to program managers. Since not all PM are KSP crew members, it is best to keep this
+    /// data separate.
+    /// </summary>
     public class ProgramManagerRecord
     {
         public string name, background, personality;
@@ -80,6 +90,8 @@ namespace RPStoryteller.source
         /// The internal state of this program.
         /// </summary>
         private ProgramControlLevel controlLevel = ProgramControlLevel.NOMINAL;
+
+        private ProgramPriority programPriority = ProgramPriority.NONE;
         
         /// <summary>
         /// Instances to work with
@@ -91,6 +103,7 @@ namespace RPStoryteller.source
         {
             KSPLog.print("instanciating a new ProgramManager");
             controlLevel = ProgramControlLevel.WEAK;
+            programPriority = ProgramPriority.NONE;
         }
 
         public void SetStoryEngine(StoryEngine storyEngine)
@@ -115,6 +128,7 @@ namespace RPStoryteller.source
         {
             KSPLog.print($"reading {node}");
             controlLevel = (ProgramControlLevel) int.Parse(node.GetValue("controlLevel"));
+            programPriority = (ProgramPriority) int.Parse(node.GetValue("programPriority"));
             managerKey = node.GetValue("managerKey");
             
             influenceVAB = int.Parse(node.GetValue("influenceVAB"));
@@ -135,6 +149,7 @@ namespace RPStoryteller.source
             ConfigNode node = new ConfigNode("PROGRAMMANAGER");
 
             node.AddValue("controlLevel", (int)controlLevel);
+            node.AddValue("programPriority", (int)programPriority);
             node.AddValue("managerKey", managerKey);
             node.AddValue("influenceVAB", influenceVAB);
             node.AddValue("influenceRnD", influenceRnD);
@@ -145,6 +160,38 @@ namespace RPStoryteller.source
             }
             
             return node;
+        }
+
+        #endregion
+
+        #region Priority
+
+        public ProgramPriority GetPriority()
+        {
+            return programPriority;
+        }
+
+        public string GetPriorityAsString()
+        {
+            switch (programPriority)
+            {
+                case ProgramPriority.REPUTATION:
+                    return "Reputation";
+                case ProgramPriority.PRODUCTION:
+                    return "Production";
+                case ProgramPriority.CAPACITY:
+                    return "Growth";
+                default:
+                    return "Balanced";
+            }
+        }
+        
+        
+
+        public void OrderNewPriority(ProgramPriority newPriority)
+        {
+            if (newPriority == programPriority) return;
+            programPriority = newPriority;
         }
 
         #endregion
@@ -375,6 +422,31 @@ namespace RPStoryteller.source
             ProgramManagerRecord pmRecord = new ProgramManagerRecord(name, background, PersonnelFile.GetRandomPersonality());
             _record.Add(pmRecord.name, pmRecord);
             AssignProgramManager(pmRecord.name);
+        }
+
+        #endregion
+
+        #region HMM modifiers
+
+        public void ModifyEmissionProgramManager(HiddenState hmm)
+        {
+            // todo implement 
+        }
+        
+        public void ModifyEmissionControl(HiddenState hmm)
+        {
+            if (controlLevel >= ProgramControlLevel.NOMINAL)
+            {
+                if (GetProgramManagerRecord().personality == "genial")
+                {
+                    hmm.AdjustEmission("synergy", 1.5f);
+                }
+            }
+        }
+        
+        public void ModifyEmissionPriority(HiddenState hmm)
+        {
+            // todo implement 
         }
 
         #endregion

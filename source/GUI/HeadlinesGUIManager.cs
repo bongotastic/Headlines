@@ -26,6 +26,7 @@ namespace RPStoryteller.source.GUI
         private int _activeTabIndex = 0;
         private int _selectedCrew = 0;
         private int _currentActivity = 0;
+        private int _priority = 0;
 
         private PeopleManager peopleManager;
         private List<string> crewRoster;
@@ -48,6 +49,7 @@ namespace RPStoryteller.source.GUI
 
         private static string[] feedFilter = new[] { "All", "Chatter", "Feature stories", "Headlines"};
         private static string[] tabs = new[] { "Program", "Media", "Feed", "Personnel", "Recruit","Story"};
+        private static string[] priorities = new[] { "Balanced", "Reputation", "Production", "Growth"};
         
         private int mediaInvitationDelay = 1;
 
@@ -262,6 +264,17 @@ namespace RPStoryteller.source.GUI
             }
             GUILayout.Label($"Background: {PrgMgr.ManagerBackground()}", GUILayout.Width(200));
             GUILayout.EndHorizontal();
+            GUILayout.Space(10);
+            
+            DrawProgramManagerPriority();
+            
+            
+        }
+
+        private void DrawProgramManagerPriority()
+        {
+            GUILayout.Box("Program Priority");
+            OrderNewPriority(GUILayout.SelectionGrid(_priority, priorities,4 ));
             GUILayout.Space(10);
         }
 
@@ -919,6 +932,27 @@ namespace RPStoryteller.source.GUI
             }
 
             return null;
+        }
+
+        private void OrderNewPriority(int buttonClicked)
+        {
+            if (buttonClicked == _priority) return;
+            _priority = buttonClicked;
+            ProgramPriority pp = ProgramPriority.NONE;
+            
+            switch (buttonClicked)
+            {
+                case 1:
+                    pp = ProgramPriority.REPUTATION;
+                    break;
+                case 2:
+                    pp = ProgramPriority.PRODUCTION;
+                    break;
+                case 3:
+                    pp = ProgramPriority.CAPACITY;
+                    break;
+            }
+            PrgMgr.OrderNewPriority(pp);
         }
         
         #endregion

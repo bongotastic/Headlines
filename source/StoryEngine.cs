@@ -1499,47 +1499,30 @@ namespace RPStoryteller
 
         }
 
-        public void ApplyPersonality(HiddenState newState)
+        public void ApplyCrewPersonality(HiddenState newState)
         {
             // People manager may not be loaded
             if (_peopleManager.applicantFolders.Count + _peopleManager.personnelFolders.Count == 0) return;
             
-            newState._personalityApplied = true;
             // Personality
             if (newState.kerbalName != "")
             {
                 PersonnelFile pf = _peopleManager.GetFile(newState.kerbalName);
-                float tempVal = 0;
-                bool recompute = false;
-                
+
                 // This crew member is a social butterfly
                 if (pf.HasAttribute("genial"))
                 {
-                    tempVal = newState.GetEmissionProbability("synergy");
-                    if (tempVal != 0) newState.SpecifyEmission("synergy", tempVal*1.5f);
-                    
-                    tempVal = newState.GetEmissionProbability("reconcile");
-                    if (tempVal != 0) newState.SpecifyEmission("reconcile", tempVal*1.5f);
-                    
-                    tempVal = newState.GetEmissionProbability("feud");
-                    if (tempVal != 0) newState.SpecifyEmission("feud", tempVal*0.5f);
-
-                    recompute = true;
+                    newState.AdjustEmission("synergy", 1.5f);
+                    newState.AdjustEmission("reconcile", 1.5f);
+                    newState.AdjustEmission("feud", 0.5f);
                 }
 
                 // This one is not
                 if (pf.HasAttribute("scrapper"))
                 {
-                    tempVal = newState.GetEmissionProbability("reconcile");
-                    if (tempVal != 0) newState.SpecifyEmission("reconcile", tempVal*0.75f);
-                    
-                    tempVal = newState.GetEmissionProbability("feud");
-                    if (tempVal != 0) newState.SpecifyEmission("feud", tempVal*1.5f);
-                    
-                    recompute = true;
+                    newState.AdjustEmission("reconcile", 0.5f);
+                    newState.AdjustEmission("feud", 1.5f);
                 }
-                
-                if (recompute) newState.Recompute();
             }
         }
         
@@ -1559,6 +1542,28 @@ namespace RPStoryteller
             {
                 InitializeHMM("kerbal_"+personnelFile.kerbalProductiveState, kerbalName:personnelFile.UniqueName());
             }
+        }
+
+        /// <summary>
+        /// Makes sure that the emission probabilities of a HMM reflect the current cirsumstances.
+        /// </summary>
+        /// <param name="hmm"></param>
+        public void ContextualizeHMM(HiddenState hmm)
+        {
+            // Clean slate
+            hmm.LoadTemplate();
+            
+            // Program Manager
+            _programManager.ModifyEmissionProgramManager(hmm);
+            
+            // Control status
+            _programManager.ModifyEmissionControl(hmm);
+            
+            // Priorities
+            _programManager.ModifyEmissionPriority(hmm);
+            
+            // Personality
+            ApplyCrewPersonality(hmm);
         }
 
         /// <summary>
@@ -1732,6 +1737,9 @@ namespace RPStoryteller
                     Debug($"{registeredStateName} schedule, but doesn't exist");
                     continue;
                 }
+                
+                // Makes sure that Emissions are reflecting game state
+                ContextualizeHMM(_liveProcesses[registeredStateName]);
 
                 // HMM emission call
                 emittedEvent = _liveProcesses[registeredStateName].Emission();
