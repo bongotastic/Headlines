@@ -547,8 +547,18 @@ namespace RPStoryteller.source.GUI
             {
                 personality = $" ({focusCrew.personality})";
             }
+
+            double effectiveness = focusCrew.Effectiveness(deterministic: true);
+            if (focusCrew.UniqueName() == PrgMgr.ManagerName())
+            {
+                effectiveness -= storyEngine.GetProgramComplexity();
+                GUILayout.Box($"{peopleManager.QualitativeEffectiveness(effectiveness)} Program Manager ({focusCrew.Specialty()}, {personality.Substring(1,personality.Length-2)})");
+            }
+            else
+            {
+                GUILayout.Box($"{peopleManager.QualitativeEffectiveness(effectiveness)} {focusCrew.Specialty().ToLower()}{personality}");
+            }
             
-            GUILayout.Box($"{peopleManager.QualitativeEffectiveness(focusCrew.Effectiveness(deterministic:true))} {focusCrew.Specialty().ToLower()}{personality}");
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Charisma: {focusCrew.EffectivenessLikability(true)}", GUILayout.Width(133));
             GUILayout.Label($"Training: {focusCrew.trainingLevel}", GUILayout.Width(133));
@@ -595,16 +605,30 @@ namespace RPStoryteller.source.GUI
             }
             else
             {
-                if (focusCrew.Effectiveness(deterministic: true) > PrgMgr.ManagerProfile())
+                if (PrgMgr.ManagerName() != focusCrew.UniqueName())
+                {
+                    if (focusCrew.Effectiveness(deterministic: true) > PrgMgr.ManagerProfile())
+                    {
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label("", GUILayout.Width(50));
+                        if (GUILayout.Button("Promote to Program Manager"))
+                        {
+                            storyEngine.KerbalAppointProgramManager(focusCrew);
+                        }
+                        GUILayout.EndHorizontal();
+                    }
+                }
+                else
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("", GUILayout.Width(50));
-                    if (GUILayout.Button("Promote to Program Manager"))
+                    if (GUILayout.Button("Dismiss as Program Manager"))
                     {
-                        storyEngine.KerbalAppointProgramManager(focusCrew);
+                        storyEngine.KerbalAppointProgramManager(null);
                     }
                     GUILayout.EndHorizontal();
                 }
+                
             }
             GUILayout.Space(10);
             
@@ -647,31 +671,34 @@ namespace RPStoryteller.source.GUI
             }
             
             // Activity controls
-            if (focusCrew.IsInactive())
+            if (focusCrew.UniqueName() != PrgMgr.ManagerName())
             {
-                double deltaTime = focusCrew.InactiveDeadline() - HeadlinesUtil.GetUT();
-                GUILayout.Box($"Activity (inactive)");
-                GUILayout.Label($"Earliest possible return: {KSPUtil.PrintDateDelta(deltaTime,false, false)}");
-            }
-            else if (PrgMgr.ControlLevel() >= ProgramControlLevel.NOMINAL)
-            {
-                BuildActivityLabels(focusCrew.Specialty()); // inefficient
-                GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
-                _currentActivity = activityLabels.IndexOf(focusCrew.kerbalTask);
-                _currentActivity = GUILayout.SelectionGrid(_currentActivity, activityLabels.ToArray(), 2);
-                if (_currentActivity != activityLabels.IndexOf(focusCrew.kerbalTask))
+                if (focusCrew.IsInactive())
                 {
-                    storyEngine.KerbalOrderTask(focusCrew, activityLabels[_currentActivity]);
+                    double deltaTime = focusCrew.InactiveDeadline() - HeadlinesUtil.GetUT();
+                    GUILayout.Box($"Activity (inactive)");
+                    GUILayout.Label($"Earliest possible return: {KSPUtil.PrintDateDelta(deltaTime,false, false)}");
                 }
+                else if (PrgMgr.ControlLevel() >= ProgramControlLevel.NOMINAL)
+                {
+                    BuildActivityLabels(focusCrew.Specialty()); // inefficient
+                    GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
+                    _currentActivity = activityLabels.IndexOf(focusCrew.kerbalTask);
+                    _currentActivity = GUILayout.SelectionGrid(_currentActivity, activityLabels.ToArray(), 2);
+                    if (_currentActivity != activityLabels.IndexOf(focusCrew.kerbalTask))
+                    {
+                        storyEngine.KerbalOrderTask(focusCrew, activityLabels[_currentActivity]);
+                    }
 
-                focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
+                    focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
+                }
+                else
+                {
+                    GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
+                    GUILayout.Label($"{PrgMgr.ManagerName()} needs to have at least nominal control to micromanage crew.");
+                }
             }
-            else
-            {
-                GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
-                GUILayout.Label($"{PrgMgr.ManagerName()} needs to have at least nominal control to micromanage crew.");
-            }
-            
+
             GUILayout.Space(10);
             GUILayout.Box("News feed");
             DrawFeedSection(true);

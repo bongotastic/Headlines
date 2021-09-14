@@ -1450,10 +1450,25 @@ namespace RPStoryteller
 
         public void KerbalAppointProgramManager(PersonnelFile newManager)
         {
-            _programManager.AssignProgramManager(newManager);
-            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"{newManager.UniqueName()} as Program Manager");
-            ns.AddToStory($"The news comes at a delight to the {newManager.Specialty()}s.");
+            string initialName = _programManager.ManagerName();
+            if (newManager != null)
+            {
+                _programManager.AssignProgramManager(newManager);
+            }
+            else
+            {
+                // revert to default PM
+                _programManager.RevertToDefaultProgramManager();
+            }
+            string finalName = _programManager.ManagerName();
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"{finalName} as Program Manager");
+            ns.AddToStory($"{finalName} replaces {initialName} as program manager.");
+            if (_programManager.ManagerBackground() != "Neutral")
+            {
+                ns.AddToStory($" The news comes as a delight to {_programManager.ManagerBackground()}s.");
+            }
             FileHeadline(ns);
+            
         }
         #endregion
 

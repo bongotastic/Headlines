@@ -353,6 +353,12 @@ namespace RPStoryteller.source
 
         public void AssignProgramManager(string pmName)
         {
+            if (!GetProgramManagerRecord().isNPC)
+            {
+                PersonnelFile oldManager = _peopleManager.GetFile(managerKey);
+                oldManager.isProgramManager = false;
+            }
+            
             managerKey = pmName;
             HeadlinesUtil.Report(1, $"Assigning {managerKey} as PM.");
             CrewReactToAppointment();
@@ -394,7 +400,7 @@ namespace RPStoryteller.source
             
             if (!pmRecord.isNPC)
             {
-                PersonnelFile crew = _peopleManager.GetProgramManager();
+                PersonnelFile crew = _peopleManager.GetFile(managerKey);
                 if (crew == null)
                 {
                     HeadlinesUtil.Report(1,"PM not retrieved from PeopleManager.");
@@ -459,6 +465,11 @@ namespace RPStoryteller.source
                 return GetDefaultProgramManagerRecord();
             }
             
+        }
+
+        public void RevertToDefaultProgramManager()
+        {
+            AssignProgramManager(GetDefaultProgramManagerRecord().name);
         }
 
         private ProgramManagerRecord GetDefaultProgramManagerRecord()

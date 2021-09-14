@@ -355,7 +355,6 @@ namespace RPStoryteller
         {
             managerFolders.Clear();
             managerFolders.Add(newManager.UniqueName(), newManager);
-            HeadlinesUtil.Report(1, $"Manager added: managerFolder length {managerFolders.Count}.", "PM");
         }
         
         /// <summary>
@@ -650,6 +649,9 @@ namespace RPStoryteller
         public string kerbalProductiveState;
         public string kerbalTask;
         
+        // Program Manager
+        public bool isProgramManager = false;
+        
         // relationships
         public List<string> collaborators = new List<string>();
         public List<string> feuds = new List<string>();
@@ -713,6 +715,7 @@ namespace RPStoryteller
             discontent = int.Parse(node.GetValue("discontent"));
             lifetimeHype = int.Parse(node.GetValue("lifetimeHype"));
             personality = node.GetValue("personality");
+            isProgramManager = Boolean.Parse(node.GetValue("isProgramManager"));
             
             ConfigNode people = node.GetNode("people");
             
@@ -742,6 +745,7 @@ namespace RPStoryteller
             outputNode.AddValue("discontent", this.discontent);
             outputNode.AddValue("lifetimeHype", lifetimeHype);
             outputNode.AddValue("personality", personality);
+            outputNode.AddValue("isProgramManager", isProgramManager);
 
             ConfigNode people = new ConfigNode();
 
