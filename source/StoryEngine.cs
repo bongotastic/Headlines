@@ -1448,6 +1448,13 @@ namespace RPStoryteller
             }
         }
 
+        public void KerbalAppointProgramManager(PersonnelFile newManager)
+        {
+            _programManager.AssignProgramManager(newManager);
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"{newManager.UniqueName()} as Program Manager");
+            ns.AddToStory($"The news comes at a delight to the {newManager.Specialty()}s.");
+            FileHeadline(ns);
+        }
         #endregion
 
         #region HMM Logic

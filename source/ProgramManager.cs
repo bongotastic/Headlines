@@ -80,8 +80,8 @@ namespace RPStoryteller.source
     /// </summary>
     public class ProgramManager
     {
-        private string managerKey;
-        private Dictionary<string, ProgramManagerRecord> _record = new Dictionary<string, ProgramManagerRecord>();
+        private string managerKey = "";
+        public Dictionary<string, ProgramManagerRecord> _record = new Dictionary<string, ProgramManagerRecord>();
         
         int influenceVAB = 0;
         int influenceRnD = 0;
@@ -354,6 +354,7 @@ namespace RPStoryteller.source
         public void AssignProgramManager(string pmName)
         {
             managerKey = pmName;
+            HeadlinesUtil.Report(1, $"Assigning {managerKey} as PM.");
             CrewReactToAppointment();
         }
 
@@ -363,6 +364,7 @@ namespace RPStoryteller.source
             {
                 ProgramManagerRecord newRecord = new ProgramManagerRecord(crew);
                 _record.Add(crew.UniqueName(), newRecord);
+                HeadlinesUtil.Report(1, $"Adding {newRecord.name} to PM records.");
             }
             AssignProgramManager(crew.UniqueName());
         }
@@ -381,13 +383,26 @@ namespace RPStoryteller.source
             if (_peopleManager == null) _storyEngine.GetPeopleManager();
             
             ProgramManagerRecord pmRecord = GetProgramManagerRecord();
+
+            if (pmRecord == null)
+            {
+                HeadlinesUtil.Report(1, $"{managerKey}, {_record.Count}");
+                return 0;
+            }
             
             double output = pmRecord.managerSkill;
             
             if (!pmRecord.isNPC)
             {
                 PersonnelFile crew = _peopleManager.GetProgramManager();
-                output = crew.Effectiveness(deterministic);
+                if (crew == null)
+                {
+                    HeadlinesUtil.Report(1,"PM not retrieved from PeopleManager.");
+                }
+                else
+                {
+                    output = crew.Effectiveness(deterministic);
+                }
             }
             
             if (pmRecord.personality == "inspiring")
@@ -433,7 +448,29 @@ namespace RPStoryteller.source
             {
                 GenerateDefaultProgramManager();
             }
-            return _record[managerKey];
+
+            if (_record.ContainsKey(managerKey))
+            {
+                return _record[managerKey];
+            }
+            else
+            {
+                HeadlinesUtil.Report(1, $"[PROGRAMMANAGER] PM key not found: {managerKey}");
+                return GetDefaultProgramManagerRecord();
+            }
+            
+        }
+
+        private ProgramManagerRecord GetDefaultProgramManagerRecord()
+        {
+            foreach (KeyValuePair<string, ProgramManagerRecord> pmr in _record)
+            {
+                if (pmr.Value.isNPC) return pmr.Value;
+            }
+            
+            // Something weird is going on
+            GenerateDefaultProgramManager();
+            return GetDefaultProgramManagerRecord();
         }
 
         private void GenerateDefaultProgramManager()
@@ -523,6 +560,8 @@ namespace RPStoryteller.source
             int reaction;
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.applicantFolders)
             {
+                if (kvp.Value.UniqueName() == managerKey) continue;
+                
                 // People don't like change 
                 reaction = (GetProgramManagerRecord().personality == "inspiring") ? 0 : 1;
                 

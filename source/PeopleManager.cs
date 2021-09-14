@@ -351,12 +351,20 @@ namespace RPStoryteller
             return null;
         }
 
+        public void AssignProgramManager(PersonnelFile newManager)
+        {
+            managerFolders.Clear();
+            managerFolders.Add(newManager.UniqueName(), newManager);
+            HeadlinesUtil.Report(1, $"Manager added: managerFolder length {managerFolders.Count}.", "PM");
+        }
+        
         /// <summary>
         /// Returns the program manager or null
         /// </summary>
         /// <returns></returns>
         public PersonnelFile GetProgramManager()
         {
+            HeadlinesUtil.Report(1, $"managerFolder length {managerFolders.Count}.");
             if (managerFolders.Count == 0)
             {
                 return null;

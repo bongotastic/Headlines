@@ -22,6 +22,7 @@ namespace RPStoryteller.source.GUI
         public bool _isDisplayed = false;
         public bool _showAutoAcceptedContracts = false;
         public bool _reducedMessage = false;
+        public bool _showDebug = false;
         
         private int _activeTabIndex = 0;
         private int _selectedCrew = 0;
@@ -237,8 +238,8 @@ namespace RPStoryteller.source.GUI
             PrgMgr = storyEngine._programManager;
             
             GUILayout.BeginVertical();
-            DrawProgramManager();
             DrawProgramStats();
+            DrawProgramManager();
             DrawImpact();
             GUILayout.EndVertical();
         }
@@ -275,6 +276,30 @@ namespace RPStoryteller.source.GUI
         {
             GUILayout.Box("Program Priority");
             OrderNewPriority(GUILayout.SelectionGrid(_priority, priorities,4 ));
+            string UIhint = "";
+            string verb = "is";
+            if (PrgMgr.ControlLevel() <= ProgramControlLevel.WEAK)
+            {
+                UIhint = $"{PrgMgr.ManagerName()} lacks focus and the program is running as balanced. ";
+                verb = "should be";
+            }
+
+            switch (PrgMgr.GetPriority())
+            {
+                case ProgramPriority.NONE:
+                    UIhint += "A balanced program requires everyone to pursue their personal goals and do their best.";
+                    break;
+                case ProgramPriority.REPUTATION:
+                    UIhint += "The focus {verb} on building reputation at the expense of other KSC activities.";
+                    break;
+                case ProgramPriority.PRODUCTION:
+                    UIhint += "The focus {verb} on research and vehicle assembly at the expense of medium- and long-term activities..";
+                    break;
+                case ProgramPriority.CAPACITY:
+                    UIhint += $"{PrgMgr.ManagerName()} {verb} focussing on capacity building for the future.";
+                    break;
+            }
+            GUILayout.Label(UIhint);
             GUILayout.Space(10);
         }
 
@@ -536,7 +561,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(133));
-            GUILayout.Label($"Nation: {focusCrew.GetCulture()}");
+            GUILayout.Label($"Nation: {focusCrew.GetCulture()}", GUILayout.Width(133));
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
             
@@ -567,6 +592,19 @@ namespace RPStoryteller.source.GUI
                     }
                 }
                 GUILayout.EndHorizontal();
+            }
+            else
+            {
+                if (focusCrew.Effectiveness(deterministic: true) > PrgMgr.ManagerProfile())
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("", GUILayout.Width(50));
+                    if (GUILayout.Button("Promote to Program Manager"))
+                    {
+                        storyEngine.KerbalAppointProgramManager(focusCrew);
+                    }
+                    GUILayout.EndHorizontal();
+                }
             }
             GUILayout.Space(10);
             
@@ -615,7 +653,7 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Box($"Activity (inactive)");
                 GUILayout.Label($"Earliest possible return: {KSPUtil.PrintDateDelta(deltaTime,false, false)}");
             }
-            else
+            else if (PrgMgr.ControlLevel() >= ProgramControlLevel.NOMINAL)
             {
                 BuildActivityLabels(focusCrew.Specialty()); // inefficient
                 GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
@@ -627,6 +665,11 @@ namespace RPStoryteller.source.GUI
                 }
 
                 focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
+            }
+            else
+            {
+                GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
+                GUILayout.Label($"{PrgMgr.ManagerName()} needs to have at least nominal control to micromanage crew.");
             }
             
             GUILayout.Space(10);
@@ -768,50 +811,63 @@ namespace RPStoryteller.source.GUI
         public void DrawStoryPanel()
         {
             double clock = HeadlinesUtil.GetUT();
-            
+
             GUILayout.BeginVertical();
             GUILayout.Box("Story Elements");
             if (GUILayout.Button("Possible debris falling in populated area"))
             {
                 storyEngine.DebrisOverLand(true);
             }
+
             if (GUILayout.Button("Possible debris fallout over land"))
             {
                 storyEngine.DebrisOverLand();
             }
+
             GUILayout.Space(10);
-            
-            GUILayout.Box("Beta testing");
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Add 5 Hype"))
+            if (_showDebug)
             {
-                storyEngine._reputationManager.AdjustHype(5);
+                
+                GUILayout.Box("Beta testing");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Add 5 Hype"))
+                {
+                    storyEngine._reputationManager.AdjustHype(5);
+                }
+
+                if (GUILayout.Button("Add 5 Reputation"))
+                {
+                    RepMgr.AdjustCredibility(5, reason: TransactionReasons.None);
+                }
+
+                GUILayout.EndHorizontal();
+                if (GUILayout.Button("Trigger Decay"))
+                {
+                    storyEngine.DecayReputation();
+                }
+
+                if (GUILayout.Button("Reality Check"))
+                {
+                    storyEngine.RealityCheck();
+                }
+
+                if (GUILayout.Button("New Applicant"))
+                {
+                    storyEngine.NewRandomApplicant();
+                }
+
+                GUILayout.Space(10);
+                GUILayout.Box("Random processes");
+                scrollHMMView = GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(200));
+                foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
+                {
+                    GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value - clock, true, false)} - {kvp.Key}");
+                }
+
+                GUILayout.EndScrollView();
             }
-            if (GUILayout.Button("Add 5 Reputation"))
-            {
-                RepMgr.AdjustCredibility(5, reason:TransactionReasons.None);
-            }
-            GUILayout.EndHorizontal();
-            if (GUILayout.Button("Trigger Decay"))
-            {
-                storyEngine.DecayReputation();
-            }
-            if (GUILayout.Button("Reality Check"))
-            {
-                storyEngine.RealityCheck();
-            }
-            if (GUILayout.Button("New Applicant"))
-            {
-                storyEngine.NewRandomApplicant();
-            }
-            GUILayout.Space(10);
-            GUILayout.Box("Random processes");
-            scrollHMMView = GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(300));
-            foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
-            {
-                GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value-clock, true, false)} - {kvp.Key}");
-            }
-            GUILayout.EndScrollView();
+
+            _showDebug = GUILayout.Toggle(_showDebug, "Show debug controls");
             GUILayout.EndVertical();
         }
 
