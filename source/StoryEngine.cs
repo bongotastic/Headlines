@@ -1785,6 +1785,10 @@ namespace RPStoryteller
                         PersonnelFile personnelFile =
                             _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
                         if (personnelFile.IsInactive()) continue;
+                        // Program managers don't generate speciality-specific events.
+                        if (registeredStateName.Contains(personnelFile.Specialty()) &
+                            personnelFile.UniqueName() == _programManager.ManagerName()) continue;
+                        
                         if (personnelFile.coercedTask)
                         {
                             EmitEvent(personnelFile.kerbalTask, personnelFile);
