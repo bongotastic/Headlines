@@ -735,7 +735,18 @@ namespace RPStoryteller
                 return;
             }
 
-            SkillCheckOutcome successLevel = SkillCheck(kerbalFile.Effectiveness(isMedia));
+            int skillLevel = kerbalFile.Effectiveness(isMedia);
+            int difficulty = GetProgramComplexity();
+            if (_programManager.ControlLevel() == ProgramControlLevel.HIGH)
+            {
+                difficulty -= 1;
+            }
+            else if (_programManager.ControlLevel() == ProgramControlLevel.CHAOS)
+            {
+                difficulty += 1;
+            }
+            
+            SkillCheckOutcome successLevel = SkillCheck(skillLevel, difficulty);
 
             // In case of inquiry, immediate impact vanishes.
             if (ongoingInquiry &

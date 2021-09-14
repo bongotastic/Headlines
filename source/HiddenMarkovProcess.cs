@@ -314,7 +314,7 @@ namespace HiddenMarkovProcess
         #region Filters
         
         /// <summary>
-        /// Modify one emission probability by a factor. 
+        /// Modify one emission probability by a factor. This emission must be already present to be modified.
         /// </summary>
         /// <remarks>Must be used in conjuction with setting a filter label with RegisterFilter().</remarks>
         /// <param name="emissionName"></param>

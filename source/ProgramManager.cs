@@ -198,11 +198,19 @@ namespace RPStoryteller.source
         
         #region Control
 
+        /// <summary>
+        /// Obtain the internal state related to control level
+        /// </summary>
+        /// <returns></returns>
         public ProgramControlLevel ControlLevel()
         {
             return controlLevel;
         }
 
+        /// <summary>
+        /// Convenience method to get a human readable control level for the UI.
+        /// </summary>
+        /// <returns></returns>
         public string ControlLevelQualitative()
         {
             switch (controlLevel)
@@ -220,6 +228,9 @@ namespace RPStoryteller.source
             return "";
         }
 
+        /// <summary>
+        /// Cancel all influence accrued by the program manager.
+        /// </summary>
         public void CancelInfluence()
         {
             _storyEngine.AdjustVAB(-1 * influenceVAB);
@@ -228,6 +239,9 @@ namespace RPStoryteller.source
             influenceRnD = 0;
         }
 
+        /// <summary>
+        /// Standard impact of a program manager on a program when in control.
+        /// </summary>
         public void ApplyInfluence()
         {
             switch (GetProgramManagerRecord().background)
@@ -248,9 +262,9 @@ namespace RPStoryteller.source
         }
 
         /// <summary>
-        /// Pilots are looking for a maximal launch tempo at the detriment to research and development.
+        /// Generic method to affect influence for the program manager
         /// </summary>
-        public void ApplyInfluence(int VAB, int RnD)
+        private void ApplyInfluence(int VAB, int RnD)
         {
             CancelInfluence();
             influenceVAB = VAB * _storyEngine.UpgradeIncrementVAB();
@@ -264,10 +278,19 @@ namespace RPStoryteller.source
 
         #region Processes
 
+        /// <summary>
+        /// Routine to process a new launch
+        /// </summary>
+        /// <param name="vessel"></param>
         public void RegisterLaunch(Vessel vessel)
         {
             GetProgramManagerRecord().launches++;
         }
+        
+        /// <summary>
+        /// Handles the dispatching based on a Program manager skill check outcome.
+        /// </summary>
+        /// <param name="outcome"></param>
         public void RegisterProgramCheck(SkillCheckOutcome outcome)
         {
             switch (outcome)
@@ -433,6 +456,10 @@ namespace RPStoryteller.source
             // todo implement 
         }
         
+        /// <summary>
+        /// Priority-independent effect that is based on control
+        /// </summary>
+        /// <param name="hmm"></param>
         public void ModifyEmissionControl(HiddenState hmm)
         {
             if (controlLevel >= ProgramControlLevel.NOMINAL)
@@ -442,11 +469,46 @@ namespace RPStoryteller.source
                     hmm.AdjustEmission("synergy", 1.5f);
                 }
             }
+            else
+            {
+                if (GetProgramManagerRecord().personality == "scrapper")
+                {
+                    hmm.AdjustEmission("feud", 1.5f);
+                }
+            }
         }
         
         public void ModifyEmissionPriority(HiddenState hmm)
         {
-            // todo implement 
+            if (controlLevel >= ProgramControlLevel.NOMINAL)
+            {
+                if (programPriority == ProgramPriority.REPUTATION)
+                {
+                    hmm.AdjustEmission("media_blitz", 2f);
+                    hmm.AdjustEmission("accelerate_research", 0.5f);
+                    hmm.AdjustEmission("accelerate_assembly", 0.5f);
+                }
+                
+                if (programPriority == ProgramPriority.PRODUCTION)
+                {
+                    hmm.AdjustEmission("accelerate_research", 2f);
+                    hmm.AdjustEmission("accelerate_assembly", 2f);
+                    hmm.AdjustEmission("media_training", 2f);
+                }
+
+                if (programPriority == ProgramPriority.CAPACITY)
+                {
+                    hmm.AdjustEmission("mentor_peer", 2f);
+                    hmm.AdjustEmission("study_leave", 2f);
+                    hmm.AdjustEmission("scout_talents", 2f);
+                    hmm.AdjustEmission("fundraise", 2f);
+                    hmm.AdjustEmission("media_blitz", 0.2f);
+                    if (controlLevel == ProgramControlLevel.HIGH)
+                    {
+                        hmm.AdjustEmission("legacy_impact", 1.5f);
+                    }
+                }
+            }
         }
 
         #endregion
