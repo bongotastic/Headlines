@@ -414,7 +414,6 @@ namespace RPStoryteller
                 _reputationManager.IgnoreLastCredibilityChange();
                 return;
             }
-
             
             _reputationManager.HighjackCredibility(newReputation, reason);
 
@@ -2216,13 +2215,22 @@ namespace RPStoryteller
 
         public void EventContractCompleted(Contract contract)
         {
-            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "Breaking!");
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"{contract.Title}");
             ns.AddToStory($"Multiple reports of the completion of {contract.Title}!");
             if (contract.FundsCompletion != 0)
             {
                 ns.AddToStory($" The √{contract.FundsCompletion} will be most welcome to bankroll future endeavours.");
             }
-            FileHeadline(ns);
+
+            ns.reputationValue += contract.ReputationCompletion;
+            if (_reputationManager.currentMode != MediaRelationMode.LOWPROFILE)
+            {
+                FileHeadline(ns);
+            }
+            else
+            {
+                _reputationManager.FilePressRelease(ns);
+            }
         }
 
         public void EventContractAccepted(Contract contract)
@@ -2583,6 +2591,12 @@ namespace RPStoryteller
                 }
                 FileHeadline(ns);
             }
+        }
+
+        public void IssuePressRelease(NewsStory ns)
+        {
+            _reputationManager.IssuePressReleaseFor(ns);
+            FileHeadline(ns);
         }
 
         /// <summary>

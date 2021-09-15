@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using Contracts;
 using KSP.UI;
+using RPStoryteller.source.Emissions;
 using UnityEngine;
 
 namespace RPStoryteller.source
@@ -22,12 +25,17 @@ namespace RPStoryteller.source
         private double lastScoreTimeStamp = 0;
         private double lastKnownCredibility = 0;
 
+        // Media event
         public double airTimeStarts = 0;
         public double airTimeEnds = 0;
         private double mediaOpsTarget = 0;
         private double mediaInitialHype = 0;
+        //public List<Contract> mediaContracts = new List<Contract>();
 
         private bool announcedSuccess = false;
+
+        public List<NewsStory> shelvedAchievements = new List<NewsStory>();
+        private int issueAllowed = 0;
 
         #region Serialization
 
@@ -46,6 +54,18 @@ namespace RPStoryteller.source
             airTimeEnds = SafeRead(node,"airTimeEnds");
             mediaOpsTarget = SafeRead(node,"mediaOpsTarget");
             mediaInitialHype = SafeRead(node,"mediaInitialHype");
+            /*
+            ConfigNode mdC = node.GetNode("PLEDGEDCONTRACTS");
+            mediaContracts.Clear();
+            foreach (string scnt in node.GetValues("item"))
+            {
+                mediaContracts.Add(ContractSystem.Instance.GetContractByGuid(Guid.Parse(scnt)));
+            }
+            */
+            foreach (ConfigNode ShA in node.GetNodes("SHELVEDACHIEVEMENTS"))
+            {
+                shelvedAchievements.Add(new NewsStory(ShA));
+            }
         }
 
         /// <summary>
@@ -81,6 +101,24 @@ namespace RPStoryteller.source
             output.AddValue("airTimeEnds", airTimeEnds);
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
             output.AddValue("mediaInitialHype", mediaInitialHype);
+
+            /*
+            ConfigNode node = new ConfigNode("PLEDGEDCONTRACTS");
+            foreach (Contract contract in mediaContracts)
+            {
+                node.AddValue("item", contract.ContractGuid.ToString());
+            }
+
+            output.AddNode(node);
+            */
+            
+            ConfigNode ShA = new ConfigNode("SHELVEDACHIEVEMENTS");
+            foreach (NewsStory ns in shelvedAchievements)
+            {
+                ShA.AddNode(ns.AsConfigNode());
+            }
+
+            output.AddNode(ShA);
 
             return output;
         }
@@ -229,6 +267,22 @@ namespace RPStoryteller.source
         public void HighjackCredibility(double newCredibility, TransactionReasons reason)
         {
             KSPLog.print($"Highjacking rep new:{newCredibility}, old:{lastKnownCredibility}");
+            
+            // LOW Profile mode cause a cancellation of credibility unless allowed through
+            if (currentMode == MediaRelationMode.LOWPROFILE)
+            {
+                if (issueAllowed == 0)
+                {
+                    IgnoreLastCredibilityChange();
+                    return;
+                }
+                else
+                {
+                    issueAllowed -= 1;
+                }
+                
+            }
+            
             // During a campaign, legit credibility is converted to hype. 
             if (currentMode == MediaRelationMode.CAMPAIGN)
             {
@@ -459,6 +513,40 @@ namespace RPStoryteller.source
             return output;
         }
 
+        public void FilePressRelease(NewsStory ns)
+        {
+            shelvedAchievements.Add(ns);
+        }
+        
+        public void IssuePressReleaseFor(NewsStory ns)
+        {
+            issueAllowed += 1;
+            shelvedAchievements.Remove(ns);
+            AdjustCredibility(ns.reputationValue);
+        }
+
+        /*
+        public void AttachContractToMediaEvent(Contract contract)
+        {
+            mediaContracts.Add(contract);
+        }
+
+        public void WithdrawContractFromMediaEvent(Contract contract)
+        {
+            mediaContracts.Remove(contract);
+        }
+
+        public float GetMediaEventWager()
+        {
+            float wager = 0;
+            foreach (Contract contract in mediaContracts)
+            {
+                wager += contract.ReputationCompletion;
+            }
+
+            return wager;
+        }
+        */
         #endregion
 
         #endregion

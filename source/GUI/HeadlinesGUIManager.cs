@@ -42,6 +42,7 @@ namespace RPStoryteller.source.GUI
 
         private Vector2 scrollFeedView = new Vector2(0,0);
         private Vector2 scrollHMMView = new Vector2(0,0);
+        private Vector2 scrollReleases = new Vector2(0, 0);
         
 
         //private bool feedChatter = true;
@@ -340,7 +341,7 @@ namespace RPStoryteller.source.GUI
         public void DrawContracts()
         {
             float ratio = 0f;
-
+            
             Color originalColor = UnityEngine.GUI.contentColor;
 
             GUILayout.Box("Contracts (% hyped)");
@@ -349,9 +350,32 @@ namespace RPStoryteller.source.GUI
             {
                 if (myContract.ContractState == Contract.State.Active)
                 {
+                    /*
+                    // Do no show pledged contracts
+                    if (RepMgr.currentMode != MediaRelationMode.LOWPROFILE & RepMgr.mediaContracts.Contains(myContract)) continue;
+                    
                     // Skip autoaccepted contracts 
                     if (myContract.AutoAccept & !_showAutoAcceptedContracts) continue;
-                    
+
+                    GUILayout.BeginHorizontal();
+                    if (RepMgr.currentMode == MediaRelationMode.LOWPROFILE)
+                    {
+                        if (RepMgr.mediaContracts.Contains(myContract))
+                        {
+                            if (GUILayout.Button("-", GUILayout.Width(20)))
+                            {
+                                RepMgr.WithdrawContractFromMediaEvent(myContract);
+                            }
+                        }
+                        else
+                        {
+                            if (GUILayout.Button("+", GUILayout.Width(20)))
+                            {
+                                RepMgr.AttachContractToMediaEvent(myContract);
+                            }
+                        }
+                    }
+                    */
                     if (myContract.ReputationCompletion > 0)
                     {
                         ratio = (float)storyEngine._reputationManager.Hype() / myContract.ReputationCompletion;
@@ -372,17 +396,43 @@ namespace RPStoryteller.source.GUI
                     }
                     else UnityEngine.GUI.contentColor = Color.red;
                     
-                    GUILayout.BeginHorizontal();
                     GUILayout.Label($"{myContract.Title} (Cred: {myContract.ReputationCompletion}, {(int)Math.Ceiling(100f*ratio)}%)" );
+                    UnityEngine.GUI.contentColor = originalColor;
+                    
                     GUILayout.EndHorizontal();
                 }
                 
             }
             
-            UnityEngine.GUI.contentColor = originalColor;
+            
             _showAutoAcceptedContracts = GUILayout.Toggle(_showAutoAcceptedContracts, "Show all contracts");
 
             GUILayout.Space(20);
+        }
+
+        public void DrawPressReleases()
+        {
+            if (RepMgr.shelvedAchievements.Count != 0)
+            {
+                GUILayout.Box("Secret achievements");
+                GUILayout.BeginScrollView(scrollReleases, GUILayout.Width(400), GUILayout.Height(Math.Min(100, RepMgr.shelvedAchievements.Count*20)));
+                foreach (NewsStory ns in RepMgr.shelvedAchievements.OrderByDescending(x=>x.reputationValue))
+                {
+                    DrawUnreleasedNews(ns);
+                }
+                GUILayout.EndScrollView();
+            }
+        }
+
+        public void DrawUnreleasedNews(NewsStory ns)
+        {
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Release", GUILayout.Width(60)))
+            {
+                storyEngine.IssuePressRelease(ns);
+            }
+            GUILayout.Label($"{ns.headline} ({ns.reputationValue})", GUILayout.Width(320));
+            GUILayout.EndHorizontal();
         }
 
         public void DrawPressGallery()
@@ -399,6 +449,7 @@ namespace RPStoryteller.source.GUI
                     DrawPressGalleryLive();
                     break;
             }
+            DrawPressGalleryContractList();
             
             GUILayout.Space(20);
         }
@@ -480,6 +531,29 @@ namespace RPStoryteller.source.GUI
             }
         }
 
+        public void DrawPressGalleryContractList()
+        {
+            /*
+            if (RepMgr.mediaContracts.Count == 0) return;
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("", GUILayout.Width(20));
+            GUILayout.Box($"Pledged objectives: {RepMgr.GetMediaEventWager()} reputation");
+            GUILayout.EndHorizontal();
+            foreach (Contract contract in RepMgr.mediaContracts.OrderByDescending(c=>c.ReputationCompletion))
+            {
+                DrawPressGalleryContractItem(contract);
+            }
+            */
+        }
+        public void DrawPressGalleryContractItem(Contract contract)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("", GUILayout.Width(20));
+            GUILayout.Toggle(contract.ReputationCompletion >= RepMgr.CampaignHype(), $"{contract.Title} ({contract.ReputationCompletion})", GUILayout.Width(380));
+            GUILayout.EndHorizontal();
+        }
+
         public void DrawImpact()
         {
             GUILayout.Box("Impact");
@@ -505,8 +579,10 @@ namespace RPStoryteller.source.GUI
         /// </summary>
         public void DrawPressRoom()
         {
-            DrawContracts();
             DrawPressGallery();
+            DrawPressReleases();
+            DrawContracts();
+            
         }
         
         /// <summary>
