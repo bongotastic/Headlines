@@ -487,12 +487,12 @@ namespace RPStoryteller.source.GUI
                 storyEngine.InvitePress(GUILayout.Button($"Invite Press (√{cost})", GUILayout.Width(200)), mediaInvitationDelay);
             }
             GUILayout.Label("  in ", GUILayout.Width(25));
-            mediaInvitationDelay = Int32.Parse(GUILayout.TextField($"{mediaInvitationDelay}", GUILayout.Width(40)));
+            mediaInvitationDelay = Math.Max(Int32.Parse(GUILayout.TextField($"{mediaInvitationDelay}", GUILayout.Width(40))), 1);
             GUILayout.Label("  days");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             Indent();
-            GUILayout.Label($"  NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.Hype(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.");
+            GUILayout.Label($"NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.Hype(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.");
             GUILayout.EndHorizontal();
             
         }
@@ -577,7 +577,7 @@ namespace RPStoryteller.source.GUI
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label("", GUILayout.Width(20));
-            GUILayout.Toggle(contract.ReputationCompletion >= RepMgr.Hype(), $"   {contract.Title} ({contract.ReputationCompletion})", GUILayout.Width(380));
+            GUILayout.Toggle(contract.ReputationCompletion <= RepMgr.Hype(), $"   {contract.Title} ({contract.ReputationCompletion})", GUILayout.Width(380));
             GUILayout.EndHorizontal();
         }
 

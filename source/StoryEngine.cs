@@ -175,7 +175,7 @@ namespace RPStoryteller
                 _programManager.SetStoryEngine(this);
                 
                 _reputationManager.ReattemptLoadContracts();
-                
+
                 if (updateIndex == 9)
                 {
                     // if the mod is installed in a new career (less than an hour), randomize crew specialty

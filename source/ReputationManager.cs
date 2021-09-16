@@ -452,7 +452,6 @@ namespace RPStoryteller.source
             KSPLog.print($"[MEDIA] Targeting credibility of {mediaOpsTarget}.");
             KSPLog.print($"[MEDIA] Going live at {KSPUtil.PrintDate(airTimeStarts, true, false)}.");
             KSPLog.print($"[MEDIA] Going dark at {KSPUtil.PrintDate(airTimeEnds, true, false)}.");
-            //KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Going Live!", airTimeStarts);
         }
         
         /// <summary>

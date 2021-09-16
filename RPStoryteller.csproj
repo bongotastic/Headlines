@@ -38,6 +38,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\RP-1 TF\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="KerbalAlarmClock, Version=3.13.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\..\..\..\..\KSP dev\RP1play\GameData\TriggerTech\KerbalAlarmClock\KerbalAlarmClock.dll</HintPath>
+    </Reference>
     <Reference Include="Renamer, Version=1.4.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\..\..\..\..\KSP dev\RP1play\GameData\KerbalRenamer\plugins\Renamer.dll</HintPath>
     </Reference>
