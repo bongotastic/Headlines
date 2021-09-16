@@ -981,9 +981,9 @@ namespace RPStoryteller.source.GUI
                     storyEngine.RealityCheck();
                 }
 
-                if (GUILayout.Button("New Applicant"))
+                if (GUILayout.Button("Daylight"))
                 {
-                    storyEngine.NewRandomApplicant();
+                    RepMgr.DaylightAtKSC();
                 }
 
                 GUILayout.Space(10);

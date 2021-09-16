@@ -172,7 +172,7 @@ namespace RPStoryteller.source
 
         public double Hype()
         {
-            return programHype;
+            return programHype * DaylightAtKSC();
         }
 
         /// <summary>
@@ -417,6 +417,38 @@ namespace RPStoryteller.source
         public string QualitativeReputation()
         {
             return renownLevels[GetReputationLevel()];
+        }
+        
+        public double DaylightAtKSC()
+        {
+            Vector3d kscVectorPosition =
+                ((FlagPoleFacility)SpaceCenter.FindObjectOfType(typeof(FlagPoleFacility)))
+                .transform
+                .position;
+
+            Vector3d earthVectorPosition = Planetarium.fetch.Home.transform.position;
+            Vector3d sunVectorPosition = Planetarium.fetch.Sun.transform.position;
+
+            Vector3d earthKSC = kscVectorPosition - earthVectorPosition;
+            Vector3d earthSun = sunVectorPosition - earthVectorPosition;
+
+            double angle = Vector3d.Angle(earthSun, earthKSC);
+            if (angle <= 70)
+            {
+                return 1.2;
+            }
+
+            if (angle <= 80)
+            {
+                return 1;
+            }
+
+            if (angle <= 90)
+            {
+                return 0.9;
+            }
+
+            return 0.8;
         }
 
         #region Score
