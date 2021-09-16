@@ -2652,7 +2652,7 @@ namespace RPStoryteller
 
         public double HiringRebate()
         {
-            return 40000;
+            return 10000;
         }
 
         /// <summary>
