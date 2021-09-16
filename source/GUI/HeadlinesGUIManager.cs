@@ -981,11 +981,6 @@ namespace RPStoryteller.source.GUI
                     storyEngine.RealityCheck();
                 }
 
-                if (GUILayout.Button("Daylight"))
-                {
-                    RepMgr.DaylightAtKSC();
-                }
-
                 GUILayout.Space(10);
                 GUILayout.Box("Random processes");
                 scrollHMMView = GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(200));
