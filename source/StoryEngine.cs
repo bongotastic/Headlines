@@ -1590,6 +1590,9 @@ namespace RPStoryteller
             // Program Manager
             _programManager.ModifyEmissionProgramManager(hmm);
             
+            // Media mode
+            _programManager.ModifyEmissionMediaMode(hmm, _reputationManager.currentMode);
+            
             // Control status
             _programManager.ModifyEmissionControl(hmm);
             
@@ -2233,7 +2236,6 @@ namespace RPStoryteller
             {
                 _reputationManager.FilePressRelease(ns);
             }
-            FileHeadline(ns, false);
         }
 
         public void EventContractAccepted(Contract contract)
@@ -2631,11 +2633,17 @@ namespace RPStoryteller
         /// <returns></returns>
         public bool KerbalProtectReputationDecay()
         {
+            // Step 1: the program manager
+            SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()) );
+            if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
+            
+            // Step 2: Any crew in media_relation mode
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
             {
-                if (kvp.Value.IsInactive()) continue;
+                if (kvp.Value.IsInactive() || kvp.Value.isProgramManager) continue;
+                if (kvp.Value.kerbalTask != "media_blitz") continue;
 
-                SkillCheckOutcome outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true));
+                outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true));
                 if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
             }
 

@@ -499,6 +499,14 @@ namespace RPStoryteller.source
 
         #region HMM modifiers
 
+        public void ModifyEmissionMediaMode(HiddenState hmm, MediaRelationMode mediaMode)
+        {
+            if (mediaMode == MediaRelationMode.LOWPROFILE)
+            {
+                hmm.AdjustEmission("media_blitz", 0.2f);
+            }
+        }
+
         public void ModifyEmissionProgramManager(HiddenState hmm)
         {
             // todo implement 

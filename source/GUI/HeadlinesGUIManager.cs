@@ -492,7 +492,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             Indent();
-            GUILayout.Label($"NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.Hype(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.");
+            GUILayout.Label($"NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.GetMediaEventWager(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.");
             GUILayout.EndHorizontal();
             
         }
