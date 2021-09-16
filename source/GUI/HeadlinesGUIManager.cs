@@ -162,7 +162,22 @@ namespace RPStoryteller.source.GUI
         
         #endregion
 
-        #region Drawing
+        #region Styling
+
+        private readonly int widthUI = 400;
+        private readonly int widthMargin = 20;
+
+        private GUILayoutOption FullWidth() => GUILayout.Width(widthUI);
+        private GUILayoutOption ThirdWidth() => GUILayout.Width(widthUI/3);
+
+        private void Indent()
+        {
+            GUILayout.Label("", GUILayout.Width(widthMargin));
+        }
+
+        #endregion
+        
+        #region Panels
 
         /// <summary>
         /// Store the tab to display
@@ -350,7 +365,7 @@ namespace RPStoryteller.source.GUI
             {
                 if (myContract.ContractState == Contract.State.Active)
                 {
-                    /*
+                    
                     // Do no show pledged contracts
                     if (RepMgr.currentMode != MediaRelationMode.LOWPROFILE & RepMgr.mediaContracts.Contains(myContract)) continue;
                     
@@ -375,7 +390,7 @@ namespace RPStoryteller.source.GUI
                             }
                         }
                     }
-                    */
+                    
                     if (myContract.ReputationCompletion > 0)
                     {
                         ratio = (float)storyEngine._reputationManager.Hype() / myContract.ReputationCompletion;
@@ -415,7 +430,7 @@ namespace RPStoryteller.source.GUI
             if (RepMgr.shelvedAchievements.Count != 0)
             {
                 GUILayout.Box("Secret achievements");
-                GUILayout.BeginScrollView(scrollReleases, GUILayout.Width(400), GUILayout.Height(Math.Min(100, RepMgr.shelvedAchievements.Count*20)));
+                GUILayout.BeginScrollView(scrollReleases, GUILayout.Width(380), GUILayout.Height(100));
                 foreach (NewsStory ns in RepMgr.shelvedAchievements.OrderByDescending(x=>x.reputationValue))
                 {
                     DrawUnreleasedNews(ns);
@@ -456,38 +471,38 @@ namespace RPStoryteller.source.GUI
 
         public void DrawPressGalleryLowProfile()
         {
-            GUILayout.Box("Media relation");
-            if ((int)RepMgr.Hype() >= (int)RepMgr.MinimumHypeForInvite())
+            GUILayout.Box("Plan Media campaign [Status: Low Profile]");
+            
+            double cost = RepMgr.MediaCampaignCost(mediaInvitationDelay);
+            
+            GUILayout.BeginHorizontal();
+            Indent();
+            if (cost > Funding.Instance.Funds)
             {
-                double cost = RepMgr.MediaCampaignCost(mediaInvitationDelay);
-                
-                GUILayout.BeginHorizontal();
-                if (cost > Funding.Instance.Funds)
-                {
-                    mediaInvitationDelay -= 1;
-                    GUILayout.Button($"Insufficient fund for ", GUILayout.Width(200));
-                }
-                else
-                {
-                    storyEngine.InvitePress(GUILayout.Button($"Invite Press (√{cost})", GUILayout.Width(200)), mediaInvitationDelay);
-                }
-                GUILayout.Label("  in ", GUILayout.Width(25));
-                mediaInvitationDelay = Int32.Parse(GUILayout.TextField($"{mediaInvitationDelay}", GUILayout.Width(40)));
-                GUILayout.Label("  days");
-                GUILayout.EndHorizontal();
-                GUILayout.Label($"  NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.Hype(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.");
+                mediaInvitationDelay -= 1;
+                GUILayout.Button($"Insufficient fund for ", GUILayout.Width(200));
             }
             else
             {
-                GUILayout.Label($"Right now, even if lunch is provided, no outlet cares enough to come.\nPress will come only if your hype is at least {(int)RepMgr.MinimumHypeForInvite()}.");
+                storyEngine.InvitePress(GUILayout.Button($"Invite Press (√{cost})", GUILayout.Width(200)), mediaInvitationDelay);
             }
+            GUILayout.Label("  in ", GUILayout.Width(25));
+            mediaInvitationDelay = Int32.Parse(GUILayout.TextField($"{mediaInvitationDelay}", GUILayout.Width(40)));
+            GUILayout.Label("  days");
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            Indent();
+            GUILayout.Label($"  NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.Hype(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.");
+            GUILayout.EndHorizontal();
+            
         }
         
         public void DrawPressGalleryCampaign()
         {
-            GUILayout.Box("Media campaign ongoing");
+            GUILayout.Box("Media campaign");
             double timeToLive = RepMgr.airTimeStarts - HeadlinesUtil.GetUT();
             GUILayout.BeginHorizontal();
+            Indent();
             GUILayout.Label("", GUILayout.Width(10));
             GUILayout.Label("Public Event in", GUILayout.Width(100));
             GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(150));
@@ -496,7 +511,10 @@ namespace RPStoryteller.source.GUI
 
             if (GUILayout.Button("Cancel Media Event"))
             {
+                GUILayout.BeginHorizontal();
+                Indent();
                 RepMgr.CancelMediaEvent();
+                GUILayout.EndHorizontal();
             }
 
         }
@@ -506,6 +524,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.Box("Media relation: We're live!");
             double timeToLive = RepMgr.airTimeEnds - HeadlinesUtil.GetUT();
             GUILayout.BeginHorizontal();
+            Indent();
             GUILayout.Label("", GUILayout.Width(10));
             GUILayout.Label("Live for ", GUILayout.Width(100));
             GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(150));
@@ -516,24 +535,32 @@ namespace RPStoryteller.source.GUI
             {
                 if (GUILayout.Button("Call successful media debrief"))
                 {
+                    GUILayout.BeginHorizontal();
+                    Indent();
                     RepMgr.CallMediaDebrief();
-                    //storyEngine.MediaEventUpdate();
+                    GUILayout.EndHorizontal();
                 }
             }
             else
             {
+                GUILayout.BeginHorizontal();
+                Indent();
                 GUILayout.Label($"Awaiting {Math.Round(RepMgr.WageredCredibilityToGo(),MidpointRounding.AwayFromZero) } additional reputation points to be satisfied.", GUILayout.Width(380));
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                Indent();
                 if (GUILayout.Button("Dismiss the press gallery in shame"))
                 {
                     RepMgr.CallMediaDebrief();
-                    //storyEngine.MediaEventUpdate();
+
                 }
+                GUILayout.EndHorizontal();
             }
         }
 
         public void DrawPressGalleryContractList()
         {
-            /*
+            
             if (RepMgr.mediaContracts.Count == 0) return;
             
             GUILayout.BeginHorizontal();
@@ -544,13 +571,13 @@ namespace RPStoryteller.source.GUI
             {
                 DrawPressGalleryContractItem(contract);
             }
-            */
+            
         }
         public void DrawPressGalleryContractItem(Contract contract)
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label("", GUILayout.Width(20));
-            GUILayout.Toggle(contract.ReputationCompletion >= RepMgr.CampaignHype(), $"{contract.Title} ({contract.ReputationCompletion})", GUILayout.Width(380));
+            GUILayout.Toggle(contract.ReputationCompletion >= RepMgr.Hype(), $"   {contract.Title} ({contract.ReputationCompletion})", GUILayout.Width(380));
             GUILayout.EndHorizontal();
         }
 
@@ -977,22 +1004,7 @@ namespace RPStoryteller.source.GUI
         public void DrawProgramFeed()
         {
             FeedThreshold(GUILayout.SelectionGrid(feedThreshold, feedFilter, 4, GUILayout.Width(400)));
-
             DrawFeedSection();
-            /*
-            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(430));
-            if (storyEngine.headlines.Count == 0)
-            {
-                GUILayout.Label("This is soon to become a busy feed. Enjoy the silence while it lasts.");
-            }
-            foreach (NewsStory ns in storyEngine.headlines.Reverse())
-            {
-                if ((int)ns.scope < feedThreshold + 1) continue;
-                DrawHeadline(ns);
-                GUILayout.Space(5);
-            }
-            GUILayout.EndScrollView();
-            */
             GUILayout.Space(10);
 
             _reducedMessage = GUILayout.Toggle(storyEngine.notificationThreshold != HeadlineScope.NEWSLETTER,

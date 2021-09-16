@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Contracts;
 using KSP.UI;
+using RP0;
 using RPStoryteller.source.Emissions;
 using UnityEngine;
 
@@ -30,7 +31,8 @@ namespace RPStoryteller.source
         public double airTimeEnds = 0;
         private double mediaOpsTarget = 0;
         private double mediaInitialHype = 0;
-        //public List<Contract> mediaContracts = new List<Contract>();
+        public List<Contract> mediaContracts = new List<Contract>();
+        private List<string> _contractNames = new List<string>();
 
         private bool announcedSuccess = false;
 
@@ -54,18 +56,41 @@ namespace RPStoryteller.source
             airTimeEnds = SafeRead(node,"airTimeEnds");
             mediaOpsTarget = SafeRead(node,"mediaOpsTarget");
             mediaInitialHype = SafeRead(node,"mediaInitialHype");
-            /*
-            ConfigNode mdC = node.GetNode("PLEDGEDCONTRACTS");
+            
+            ConfigNode nodePledged = node.GetNode("PLEDGED");
             mediaContracts.Clear();
-            foreach (string scnt in node.GetValues("item"))
+            foreach (string title in nodePledged.GetValues("item"))
             {
-                mediaContracts.Add(ContractSystem.Instance.GetContractByGuid(Guid.Parse(scnt)));
+                Contract cnt = GetContractFromTitle(title);
+                if (cnt != null)
+                {
+                    mediaContracts.Add(cnt);
+                }
+                else
+                {
+                    // Long sigh of horror... KSP hasn't loaded the contracts yet.
+                    _contractNames.Add(title);
+                    HeadlinesUtil.Report(1,$"Unable to locate contract {title}");
+                }
+                
             }
-            */
-            foreach (ConfigNode ShA in node.GetNodes("SHELVEDACHIEVEMENTS"))
+
+            ConfigNode nodeShelved = node.GetNode("SHELVEDACHIEVEMENTS");
+            foreach (ConfigNode ShA in nodeShelved.GetNodes("newsstory"))
             {
                 shelvedAchievements.Add(new NewsStory(ShA));
             }
+        }
+
+        private Contract GetContractFromTitle(string title)
+        {
+            foreach (Contract contract in ContractSystem.Instance.GetCurrentContracts<Contract>())
+            {
+                HeadlinesUtil.Report(1, $"Trying {contract.Title} == {title}");
+                if (contract.Title == title) return contract;
+            }
+            
+            return null;
         }
 
         /// <summary>
@@ -102,20 +127,20 @@ namespace RPStoryteller.source
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
             output.AddValue("mediaInitialHype", mediaInitialHype);
 
-            /*
-            ConfigNode node = new ConfigNode("PLEDGEDCONTRACTS");
+            
+            ConfigNode nodePledged = new ConfigNode("PLEDGED");
             foreach (Contract contract in mediaContracts)
             {
-                node.AddValue("item", contract.ContractGuid.ToString());
+                nodePledged.AddValue("item", contract.Title);
             }
 
-            output.AddNode(node);
-            */
+            output.AddNode(nodePledged);
+            
             
             ConfigNode ShA = new ConfigNode("SHELVEDACHIEVEMENTS");
             foreach (NewsStory ns in shelvedAchievements)
             {
-                ShA.AddNode(ns.AsConfigNode());
+                ShA.AddNode("newsstory", ns.AsConfigNode());
             }
 
             output.AddNode(ShA);
@@ -419,7 +444,7 @@ namespace RPStoryteller.source
         public void LaunchCampaign(double goLiveTime)
         {
             currentMode = MediaRelationMode.CAMPAIGN;
-            mediaOpsTarget = CurrentReputation();
+            mediaOpsTarget = Credibility() + GetMediaEventWager();
             mediaInitialHype = Hype();
             airTimeStarts = goLiveTime;
             airTimeEnds = goLiveTime + (3600*24*2);
@@ -427,6 +452,7 @@ namespace RPStoryteller.source
             KSPLog.print($"[MEDIA] Targeting credibility of {mediaOpsTarget}.");
             KSPLog.print($"[MEDIA] Going live at {KSPUtil.PrintDate(airTimeStarts, true, false)}.");
             KSPLog.print($"[MEDIA] Going dark at {KSPUtil.PrintDate(airTimeEnds, true, false)}.");
+            //KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Going Live!", airTimeStarts);
         }
         
         /// <summary>
@@ -434,6 +460,7 @@ namespace RPStoryteller.source
         /// </summary>
         public void GoLIVE()
         {
+            TimeWarp.SetRate(1, false, true);
             currentMode = MediaRelationMode.LIVE;
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
             announcedSuccess = false;
@@ -471,11 +498,6 @@ namespace RPStoryteller.source
         public bool EventSuccess()
         {
             return Credibility() >= mediaOpsTarget;
-        }
-
-        public double MinimumHypeForInvite()
-        {
-            return Math.Max(1, Credibility() * 0.05);
         }
 
         public double WageredCredibilityToGo()
@@ -525,7 +547,7 @@ namespace RPStoryteller.source
             AdjustCredibility(ns.reputationValue);
         }
 
-        /*
+        
         public void AttachContractToMediaEvent(Contract contract)
         {
             mediaContracts.Add(contract);
@@ -546,7 +568,7 @@ namespace RPStoryteller.source
 
             return wager;
         }
-        */
+        
         #endregion
 
         #endregion
@@ -574,5 +596,20 @@ namespace RPStoryteller.source
         }
 
         #endregion
+
+        public void ReattemptLoadContracts()
+        {
+            bool success = false;
+            foreach (string contractName in _contractNames)
+            {
+                Contract cnt = GetContractFromTitle(contractName);
+                if (cnt != null)
+                {
+                    mediaContracts.Add(cnt);
+                    success = true;
+                }
+            }
+            if (success) _contractNames.Clear();
+        }
     }
 }
