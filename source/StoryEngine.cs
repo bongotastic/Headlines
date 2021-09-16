@@ -373,7 +373,7 @@ namespace RPStoryteller
             GameEvents.onGUIAstronautComplexSpawn.Remove(EventAstronautComplexSpawn);
             GameEvents.onGUIAstronautComplexDespawn.Remove(EventAstronautComplexDespawn);
             GameEvents.Contract.onCompleted.Remove(EventContractCompleted);
-            GameEvents.Contract.onCompleted.Remove(EventContractAccepted);
+            GameEvents.Contract.onAccepted.Remove(EventContractAccepted);
         }
 
         /// <summary>
@@ -1984,11 +1984,11 @@ namespace RPStoryteller
         /// Provide message UI and file away in the queue.
         /// </summary>
         /// <param name="newsStory"></param>
-        public void FileHeadline(NewsStory newsStory)
+        public void FileHeadline(NewsStory newsStory, bool fileMessage = true)
         {
             if (!logDebug && newsStory.scope == HeadlineScope.DEBUG) return;
             
-            HeadlinesUtil.Report(newsStory, notificationThreshold);
+            HeadlinesUtil.Report(newsStory, notificationThreshold, fileMessage);
             if (newsStory.scope != HeadlineScope.DEBUG)
             {
                 headlines.Enqueue(newsStory);
@@ -2227,17 +2227,19 @@ namespace RPStoryteller
             ns.reputationValue += contract.ReputationCompletion;
             if (_reputationManager.currentMode != MediaRelationMode.LOWPROFILE)
             {
-                FileHeadline(ns);
+                FileHeadline(ns, false);
             }
             else
             {
                 _reputationManager.FilePressRelease(ns);
             }
+            FileHeadline(ns, false);
         }
 
         public void EventContractAccepted(Contract contract)
         {
             if (contract.AutoAccept) return;
+
             NewsStory ns = new NewsStory(HeadlineScope.FEATURE, "Challenge Accepted!");
             ns.AddToStory($"Multiple reports covering the pledge to complete {contract.Title} by {KSPUtil.PrintDate(contract.DateExpire, false, false)}.");
             if (contract.FundsAdvance != 0)
@@ -2249,7 +2251,7 @@ namespace RPStoryteller
             {
                 ns.AddToStory($" {Math.Round(100*(contract.ReputationCompletion/_reputationManager.CurrentReputation()), MidpointRounding.AwayFromZero)}% of the program's reputation may be at stake.");
             }
-            FileHeadline(ns);
+            FileHeadline(ns, false);
             
         }
 

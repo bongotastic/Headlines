@@ -18,7 +18,7 @@ namespace RPStoryteller.source
             Report(ns, HeadlineScope.FEATURE);
         }
 
-        public static void Report(NewsStory newStory, HeadlineScope notificationThreshold = HeadlineScope.FEATURE)
+        public static void Report(NewsStory newStory, HeadlineScope notificationThreshold = HeadlineScope.FEATURE, bool fileMessage = true)
         {
             switch (newStory.scope)
             {
@@ -33,7 +33,7 @@ namespace RPStoryteller.source
                 case HeadlineScope.FEATURE:
                 case HeadlineScope.FRONTPAGE:
                     KSPLog.print($"[Headlines][{newStory.scope}] {newStory.headline}");
-                    if (notificationThreshold <= newStory.scope)
+                    if (notificationThreshold <= newStory.scope & fileMessage)
                     {
                         CreateMessage(newStory.story, newStory.headline);
                     }
