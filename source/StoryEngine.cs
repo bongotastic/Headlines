@@ -2592,7 +2592,7 @@ namespace RPStoryteller
                 }
                 else
                 {
-                    ns.AddToStory($"The media crews are leaving impressed. (Hype: {_reputationManager.Hype()})");
+                    ns.AddToStory($"The media crews are leaving impressed. (Hype: {Math.Round(_reputationManager.Hype(),2)})");
                     ns.headline = "Media debrief: Success";
                 }
                 FileHeadline(ns);

@@ -107,10 +107,10 @@ namespace RPStoryteller.source.GUI
                     null,
                     null,
                     null,
-                    ApplicationLauncher.AppScenes.SPACECENTER | ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.SPH,
+                    ApplicationLauncher.AppScenes.SPACECENTER | ApplicationLauncher.AppScenes.FLIGHT,
                     GameDatabase.Instance.GetTexture("Headlines/artwork/icons/crowdwatching28mask2", false)
                 );
-                //ApplicationLauncher.Instance.AddOnHideCallback(HideButton);
+
                 GameEvents.onGameSceneLoadRequested.Add(OnSceneChange);
                 GameEvents.onGameSceneSwitchRequested.Add(OnSceneChange);
             }
