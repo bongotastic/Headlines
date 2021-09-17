@@ -467,7 +467,7 @@ namespace RPStoryteller.source.GUI
             if (RepMgr.shelvedAchievements.Count != 0)
             {
                 GUILayout.Box("Secret achievements");
-                GUILayout.BeginScrollView(scrollReleases, GUILayout.Width(380), GUILayout.Height(100));
+                scrollReleases = GUILayout.BeginScrollView(scrollReleases, GUILayout.Width(400), GUILayout.Height(100));
                 foreach (NewsStory ns in RepMgr.shelvedAchievements.OrderByDescending(x=>x.reputationValue))
                 {
                     DrawUnreleasedNews(ns);
@@ -546,13 +546,14 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"    Hype:{Math.Round(RepMgr.CampaignHype(), MidpointRounding.AwayFromZero)}");
             GUILayout.EndHorizontal();
 
+            GUILayout.BeginHorizontal();
+            Indent();
             if (GUILayout.Button("Cancel Media Event"))
             {
-                GUILayout.BeginHorizontal();
-                Indent();
+                
                 RepMgr.CancelMediaEvent();
-                GUILayout.EndHorizontal();
             }
+            GUILayout.EndHorizontal();
 
         }
         
@@ -564,8 +565,15 @@ namespace RPStoryteller.source.GUI
             Indent();
             GUILayout.Label("", GUILayout.Width(10));
             GUILayout.Label("Live for ", GUILayout.Width(100));
-            GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(150));
-            GUILayout.Label($"  Cred. Target:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}");
+            GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, false)}", GUILayout.Width(150));
+            if (RepMgr.WageredCredibilityToGo() > 0)
+            {
+                GUILayout.Label($"  Cred. Target:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}");
+            }
+            else
+            {
+                GUILayout.Label($"  Exceeded by:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}");
+            }
             GUILayout.EndHorizontal();
             
             if (RepMgr.EventSuccess())

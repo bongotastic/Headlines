@@ -580,7 +580,7 @@ namespace RPStoryteller.source
                 wager += contract.ReputationCompletion;
             }
 
-            return wager;
+            return Math.Max(wager, 1f);
         }
         
         #endregion

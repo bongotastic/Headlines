@@ -1006,7 +1006,7 @@ namespace RPStoryteller
             // A leave is always good for the soul.
             personnelFile.AdjustDiscontent(-1);
 
-            SkillCheckOutcome outcome = SkillCheck(5, personnelFile.Effectiveness());
+            SkillCheckOutcome outcome = SkillCheck(5, difficulty);
 
             if (outcome == SkillCheckOutcome.SUCCESS)
             {
