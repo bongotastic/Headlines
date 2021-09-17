@@ -197,7 +197,7 @@ namespace RPStoryteller.source
         {
             if (CurrentReputation() > 0)
             {
-                return programHype / CurrentReputation();
+                return Hype() / CurrentReputation();
             }
 
             return 1;
@@ -223,8 +223,6 @@ namespace RPStoryteller.source
         /// <param name="reason"></param>
         public void AdjustCredibility(double scalar = 0, TransactionReasons reason = TransactionReasons.None)
         {
-            UpdateHeadlinesScore();
-
             if (scalar != 0)
             {
                 Reputation.Instance.AddReputation((float) scalar, reason);
@@ -451,22 +449,6 @@ namespace RPStoryteller.source
             return 0.8;
         }
 
-        #region Score
-
-        public double GetScore()
-        {
-            return headlinesScore;
-        }
-
-        private void UpdateHeadlinesScore()
-        {
-            double timestamp = HeadlinesUtil.GetUT();
-            headlinesScore += ((timestamp - lastScoreTimeStamp) / (3600 * 24 * 365)) * lastKnownCredibility;
-            lastScoreTimeStamp = timestamp;
-        }
-
-        #endregion
-
         #region Media Ops
 
         /// <summary>
@@ -493,6 +475,7 @@ namespace RPStoryteller.source
         {
             TimeWarp.SetRate(1, false, true);
             currentMode = MediaRelationMode.LIVE;
+            mediaOpsTarget = Credibility() + GetMediaEventWager();
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
             announcedSuccess = false;
         }

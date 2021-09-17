@@ -254,7 +254,12 @@ namespace RPStoryteller.source.GUI
         {
             storyEngine = StoryEngine.Instance;
             RepMgr = storyEngine._reputationManager;
-            PrgMgr = storyEngine._programManager;
+            if (PrgMgr == null)
+            {
+                PrgMgr = storyEngine._programManager;
+                InitializePriority();
+            }
+            
             
             GUILayout.BeginVertical();
             DrawProgramStats();
@@ -346,10 +351,6 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Label($"{storyEngine.ongoingInquiry}");
                 GUILayout.EndHorizontal();
             }
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Headlines score:", GUILayout.Width(200));
-            GUILayout.Label($"{Math.Round(storyEngine._reputationManager.GetScore(),2)} Rep * year");
-            GUILayout.EndHorizontal();
             GUILayout.Space(20);
         }
 
@@ -1137,6 +1138,25 @@ namespace RPStoryteller.source.GUI
                     break;
             }
             PrgMgr.OrderNewPriority(pp);
+        }
+
+        private void InitializePriority()
+        {
+            switch (PrgMgr.GetPriority())
+            {
+                case ProgramPriority.NONE:
+                    _priority = 0;
+                    break;
+                case ProgramPriority.REPUTATION:
+                    _priority = 1;
+                    break;
+                case ProgramPriority.PRODUCTION:
+                    _priority = 2;
+                    break;
+                case ProgramPriority.CAPACITY:
+                    _priority = 3;
+                    break;
+            }
         }
         
         #endregion
