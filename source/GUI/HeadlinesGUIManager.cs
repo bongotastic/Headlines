@@ -14,6 +14,8 @@ namespace RPStoryteller.source.GUI
     [KSPAddon(KSPAddon.Startup.FlightEditorAndKSC, false)]
     public class HeadlinesGUIManager : MonoBehaviour
     {
+        #region declarations
+        
         private StoryEngine storyEngine;
         private ReputationManager RepMgr;
         private ProgramManager PrgMgr;
@@ -54,6 +56,7 @@ namespace RPStoryteller.source.GUI
         private static string[] priorities = new[] { "Balanced", "Reputation", "Production", "Growth"};
         
         private int mediaInvitationDelay = 1;
+        #endregion
 
         #region Unity stuff
         
@@ -350,7 +353,40 @@ namespace RPStoryteller.source.GUI
             GUILayout.Space(20);
         }
 
+        public void DrawImpact()
+        {
+            GUILayout.Box("Impact");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(200));
+            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%");
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(200));
+            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}");
+            GUILayout.EndHorizontal();
+            if (storyEngine.visitingScholarEndTimes.Count != 0)
+            {
+                GUILayout.Label($"There are {storyEngine.visitingScholarEndTimes.Count} visiting scholar(s) in residence providing a science bonus of {Math.Round(storyEngine.VisitingScienceBonus()*100f)}% on new science data.");
+            }
+            GUILayout.Space(20);
+        }
+        
+        #endregion
+
+        #region Media tab
+
         /// <summary>
+        /// Draw panel to manage media and reputation
+        /// </summary>
+        public void DrawPressRoom()
+        {
+            DrawPressGallery();
+            DrawPressReleases();
+            DrawContracts();
+            
+        }
+        
+         /// <summary>
         /// Contract view and controls for the program view.
         /// </summary>
         public void DrawContracts()
@@ -581,37 +617,10 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndHorizontal();
         }
 
-        public void DrawImpact()
-        {
-            GUILayout.Box("Impact");
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(200));
-            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%");
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(200));
-            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}");
-            GUILayout.EndHorizontal();
-            if (storyEngine.visitingScholarEndTimes.Count != 0)
-            {
-                GUILayout.Label($"There are {storyEngine.visitingScholarEndTimes.Count} visiting scholar(s) in residence providing a science bonus of {Math.Round(storyEngine.VisitingScienceBonus()*100f)}% on new science data.");
-            }
-            GUILayout.Space(20);
-        }
-        
         #endregion
 
-        /// <summary>
-        /// Draw panel to manage media and reputation
-        /// </summary>
-        public void DrawPressRoom()
-        {
-            DrawPressGallery();
-            DrawPressReleases();
-            DrawContracts();
-            
-        }
-        
+        #region Personnel
+
         /// <summary>
         /// Top-level UI for the Crew panel of the main UI
         /// </summary>
@@ -833,7 +842,69 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.EndHorizontal();
         }
+        
+        #endregion
+        
+        #region Feed
 
+        public void DrawProgramFeed()
+        {
+            FeedThreshold(GUILayout.SelectionGrid(feedThreshold, feedFilter, 4, GUILayout.Width(400)));
+            DrawFeedSection();
+            GUILayout.Space(10);
+
+            _reducedMessage = GUILayout.Toggle(storyEngine.notificationThreshold != HeadlineScope.NEWSLETTER,
+                "Fewer messages");
+            if (_reducedMessage) storyEngine.notificationThreshold = HeadlineScope.FEATURE;
+            else storyEngine.notificationThreshold = HeadlineScope.NEWSLETTER;
+            GUILayout.Space(20);
+        }
+
+        private void DrawFeedSection(bool crewSpecific = false)
+        {
+            int height = crewSpecific ? 100 : 430;
+            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(height));
+            if (storyEngine.headlines.Count == 0)
+            {
+                GUILayout.Label("This is soon to become a busy feed. Enjoy the silence while it lasts.");
+            }
+            foreach (NewsStory ns in storyEngine.headlines.Reverse())
+            {
+                if (crewSpecific)
+                {
+                    if (ns.HasActor(crewRoster[_selectedCrew]))
+                    {
+                        DrawHeadline(ns);
+                    }
+                }
+                else
+                {
+                    if ((int)ns.scope < feedThreshold + 1) continue;
+                    DrawHeadline(ns);
+                }
+            }
+            GUILayout.EndScrollView();
+        }
+
+        private void DrawHeadline(NewsStory ns)
+        {
+            if (ns.headline == "")
+            {
+                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.story}",GUILayout.Width(370));
+            }
+            else
+            {
+                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.headline}");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("", GUILayout.Width(10));
+                GUILayout.TextArea(ns.story, GUILayout.Width(360));
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.Space(5);
+        }
+        
+        #endregion
+        
         public void DrawRecruitmentPanel()
         {
             peopleManager = PeopleManager.Instance;
@@ -996,61 +1067,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndVertical();
         }
 
-        public void DrawProgramFeed()
-        {
-            FeedThreshold(GUILayout.SelectionGrid(feedThreshold, feedFilter, 4, GUILayout.Width(400)));
-            DrawFeedSection();
-            GUILayout.Space(10);
-
-            _reducedMessage = GUILayout.Toggle(storyEngine.notificationThreshold != HeadlineScope.NEWSLETTER,
-                "Fewer messages");
-            if (_reducedMessage) storyEngine.notificationThreshold = HeadlineScope.FEATURE;
-            else storyEngine.notificationThreshold = HeadlineScope.NEWSLETTER;
-            GUILayout.Space(20);
-        }
-
-        private void DrawFeedSection(bool crewSpecific = false)
-        {
-            int height = crewSpecific ? 100 : 430;
-            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(height));
-            if (storyEngine.headlines.Count == 0)
-            {
-                GUILayout.Label("This is soon to become a busy feed. Enjoy the silence while it lasts.");
-            }
-            foreach (NewsStory ns in storyEngine.headlines.Reverse())
-            {
-                if (crewSpecific)
-                {
-                    if (ns.HasActor(crewRoster[_selectedCrew]))
-                    {
-                        DrawHeadline(ns);
-                    }
-                }
-                else
-                {
-                    if ((int)ns.scope < feedThreshold + 1) continue;
-                    DrawHeadline(ns);
-                }
-            }
-            GUILayout.EndScrollView();
-        }
-
-        private void DrawHeadline(NewsStory ns)
-        {
-            if (ns.headline == "")
-            {
-                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.story}",GUILayout.Width(370));
-            }
-            else
-            {
-                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.headline}");
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("", GUILayout.Width(10));
-                GUILayout.TextArea(ns.story, GUILayout.Width(360));
-                GUILayout.EndHorizontal();
-            }
-            GUILayout.Space(5);
-        }
+        
         #endregion
 
         #region Logic
