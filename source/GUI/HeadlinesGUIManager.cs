@@ -807,6 +807,7 @@ namespace RPStoryteller.source.GUI
                 else
                 {
                     GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
+                    GUILayout.Label($"Busy with {focusCrew.kerbalTask}.");
                     GUILayout.Label($"{PrgMgr.ManagerName()} needs to have at least nominal control to micromanage crew.");
                 }
             }
