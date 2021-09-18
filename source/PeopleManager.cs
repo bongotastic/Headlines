@@ -347,7 +347,8 @@ namespace RPStoryteller
                 }
                 return applicantFolders[kerbalName];
             }
- 
+            
+            // if we get there, we have a rogue kerbal that doesn't exit
             return null;
         }
 
