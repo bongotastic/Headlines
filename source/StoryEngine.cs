@@ -1126,7 +1126,7 @@ namespace RPStoryteller
         {
             Debug($"Kerbal resignation for {personnelFile.DisplayName()}");
             HeadlinesUtil.Report(2, $"BREAKING: {personnelFile.DisplayName()} resigns!");
-            TimeWarp.SetRate(1,false);
+            TimeWarp.SetRate(0,false);
             
             // Message
             if (!trajedy)
@@ -1345,7 +1345,7 @@ namespace RPStoryteller
             
             if (_peopleManager.EndWarp(newApplicant))
             {
-                TimeWarp.SetRate(1,false);
+                TimeWarp.SetRate(0,false);
             }
         }
 
@@ -2095,7 +2095,7 @@ namespace RPStoryteller
             
             if (_peopleManager.ShouldNotify(pf.Specialty()))
             {
-                TimeWarp.SetRate(1,false);
+                TimeWarp.SetRate(0,false);
             }
         }
 
