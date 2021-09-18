@@ -541,7 +541,7 @@ namespace RPStoryteller
                 CancelInfluence(personnelFile, leaveKSC: true);
 
                 // HMMs
-                RemoveHMM(personnelFile);
+                RemoveKerbalHMM(personnelFile.UniqueName());
 
                 // Make it happen
                 _peopleManager.RemoveKerbal(personnelFile);
@@ -1151,7 +1151,7 @@ namespace RPStoryteller
             CancelInfluence(personnelFile, leaveKSC: true);
 
             // HMMs
-            RemoveHMM(personnelFile);
+            RemoveKerbalHMM(personnelFile.UniqueName());
 
             // Reputation
             _reputationManager.AdjustCredibility(-1 * personnelFile.Effectiveness(deterministic:true));
@@ -1166,7 +1166,7 @@ namespace RPStoryteller
             CancelInfluence(personnelFile, leaveKSC: true);
 
             // HMMs
-            RemoveHMM(personnelFile);
+            RemoveKerbalHMM(personnelFile.UniqueName());
             
             // reputation
             _reputationManager.AdjustCredibility(-1*personnelFile.Effectiveness());
@@ -1560,18 +1560,19 @@ namespace RPStoryteller
             if (_hmmScheduler.ContainsKey(registeredStateIdentity)) _hmmScheduler.Remove(registeredStateIdentity);
             if (_liveProcesses.ContainsKey(registeredStateIdentity)) _liveProcesses.Remove(registeredStateIdentity);
         }
-
+        
+        
         /// <summary>
-        /// Removes HMMs associated with a specific file
+        /// Delete all HMM associated to a certain name
         /// </summary>
-        /// <param name="personnelFile">the file of a crew member</param>
-        private void RemoveHMM(PersonnelFile personnelFile)
+        /// <param name="kerbalName">a unique name</param>
+        private void RemoveKerbalHMM(string kerbalName)
         {
-            Debug( $"Removing HMM for {personnelFile.UniqueName()}", "HMM");
+            Debug( $"Removing HMM for {kerbalName}", "HMM");
             List<string> choppingBlock = new List<string>();
             foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
             {
-                if (kvp.Value.kerbalName == personnelFile.UniqueName())
+                if (kvp.Value.kerbalName == kerbalName)
                 {
                     choppingBlock.Add(kvp.Key);
                 }
@@ -1732,6 +1733,12 @@ namespace RPStoryteller
                     {
                         PersonnelFile personnelFile =
                             _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
+                        if (personnelFile == null)
+                        {
+                            // We have a ghost (simulation artifact in an edge case)
+                            RemoveKerbalHMM(_liveProcesses[registeredStateName].kerbalName);
+                            continue;
+                        }
                         if (personnelFile.IsInactive()) continue;
                         if (personnelFile.coercedTask)
                         {
