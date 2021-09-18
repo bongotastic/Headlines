@@ -45,6 +45,7 @@ namespace RPStoryteller.source.GUI
         private Vector2 scrollFeedView = new Vector2(0,0);
         private Vector2 scrollHMMView = new Vector2(0,0);
         private Vector2 scrollReleases = new Vector2(0, 0);
+        private Vector2 scrollRelationships = new Vector2(0, 0);
         
 
         //private bool feedChatter = true;
@@ -777,9 +778,14 @@ namespace RPStoryteller.source.GUI
             GUILayout.Space(20);
             
             // Relationships
-            if (focusCrew.feuds.Count + focusCrew.collaborators.Count != 0)
+            int nLines = focusCrew.feuds.Count + focusCrew.collaborators.Count;
+            if (nLines != 0)
             {
                 GUILayout.Box($"Relationships");
+                if (nLines >= 3)
+                {
+                    scrollRelationships = GUILayout.BeginScrollView(scrollRelationships, GUILayout.Width(400), GUILayout.Height(100));
+                }
                 foreach (string otherCrew in focusCrew.collaborators)
                 {
                     DrawRelationship(peopleManager.GetFile(otherCrew), isFeud:false);
@@ -787,6 +793,11 @@ namespace RPStoryteller.source.GUI
                 foreach (string otherCrew in focusCrew.feuds)
                 {
                     DrawRelationship(peopleManager.GetFile(otherCrew), isFeud:true);
+                }
+
+                if (nLines >= 3)
+                {
+                    GUILayout.EndScrollView();
                 }
                 GUILayout.Space(20);
             }
