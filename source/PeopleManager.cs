@@ -716,6 +716,7 @@ namespace RPStoryteller
             lifetimeHype = int.Parse(node.GetValue("lifetimeHype"));
             personality = node.GetValue("personality");
             isProgramManager = Boolean.Parse(node.GetValue("isProgramManager"));
+            nationality = node.GetValue("nationality");
             
             ConfigNode people = node.GetNode("people");
             
@@ -746,6 +747,7 @@ namespace RPStoryteller
             outputNode.AddValue("lifetimeHype", lifetimeHype);
             outputNode.AddValue("personality", personality);
             outputNode.AddValue("isProgramManager", isProgramManager);
+            outputNode.AddValue("nationality", nationality);
 
             ConfigNode people = new ConfigNode();
 
