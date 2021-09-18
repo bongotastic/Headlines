@@ -473,7 +473,7 @@ namespace RPStoryteller.source
         /// </summary>
         public void GoLIVE()
         {
-            TimeWarp.SetRate(1, false, true);
+            TimeWarp.SetRate(0, false, true);
             currentMode = MediaRelationMode.LIVE;
             mediaOpsTarget = Credibility() + GetMediaEventWager();
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
