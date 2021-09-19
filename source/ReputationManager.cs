@@ -158,7 +158,7 @@ namespace RPStoryteller.source
         /// <returns></returns>
         public double CurrentReputation()
         {
-            return Reputation.CurrentRep + programHype;
+            return Reputation.CurrentRep + Hype();
         }
 
         /// <summary>
