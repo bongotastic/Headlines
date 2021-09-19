@@ -37,7 +37,7 @@ namespace RPStoryteller.source
         private bool announcedSuccess = false;
 
         public List<NewsStory> shelvedAchievements = new List<NewsStory>();
-        private int issueAllowed = 0;
+        private int credibilityGainAllowed = 0;
 
         private double _daylight = 0;
         private double _lastDaylight = 0;
@@ -302,14 +302,14 @@ namespace RPStoryteller.source
             // LOW Profile mode cause a cancellation of credibility unless allowed through
             if (currentMode == MediaRelationMode.LOWPROFILE)
             {
-                if (issueAllowed == 0)
+                if (credibilityGainAllowed == 0)
                 {
                     IgnoreLastCredibilityChange();
                     return;
                 }
                 else
                 {
-                    issueAllowed -= 1;
+                    credibilityGainAllowed -= 1;
                 }
                 
             }
@@ -349,11 +349,6 @@ namespace RPStoryteller.source
                     HeadlinesUtil.Report(2, $"BREAKING NEWS: Media event is a success!");
                 }
             }
-        }
-
-        public double InferredCredibilityEarnings()
-        {
-            return Credibility() - lastKnownCredibility;
         }
 
         /// <summary>
@@ -519,7 +514,7 @@ namespace RPStoryteller.source
                 AdjustCredibility(credibilityLoss);
                 return credibilityLoss;
             }
-            AdjustHype(10);
+            AdjustHype(5);
             announcedSuccess = false;
 
             airTimeEnds = HeadlinesUtil.GetUT() - 1;
@@ -582,7 +577,7 @@ namespace RPStoryteller.source
         
         public void IssuePressReleaseFor(NewsStory ns)
         {
-            issueAllowed += 1;
+            credibilityGainAllowed += 1;
             shelvedAchievements.Remove(ns);
             AdjustCredibility(ns.reputationValue);
         }
