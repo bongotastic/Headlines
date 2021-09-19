@@ -827,8 +827,7 @@ namespace RPStoryteller.source.GUI
                 else
                 {
                     GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
-                    GUILayout.Label($"Busy with {focusCrew.kerbalTask}.");
-                    GUILayout.Label($"{PrgMgr.ManagerName()} needs to have at least nominal control to micromanage crew.");
+                    GUILayout.Label($"Busy with {focusCrew.kerbalTask}. {PrgMgr.ManagerName()} needs to have at least nominal control to micromanage crew.", FullWidth());
                 }
             }
 
@@ -849,17 +848,17 @@ namespace RPStoryteller.source.GUI
             if (isFeud == true)
             {
                 UnityEngine.GUI.contentColor = Color.red;
-                GUILayout.Label("[FEUD]", GUILayout.Width(50));
+                GUILayout.Label("[FEUD]", GUILayout.Width(40));
             }
             else
             {
                 UnityEngine.GUI.contentColor = Color.green;
-                GUILayout.Label("[COLL]", GUILayout.Width(50));
+                GUILayout.Label("[COLL]", GUILayout.Width(40));
             }
             UnityEngine.GUI.contentColor = oldColor;
             
             GUILayout.Label($"{crewMember.DisplayName()}", GUILayout.Width(160));
-            GUILayout.Label($"{crewMember.Specialty()} ({peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))})", GUILayout.Width(120));
+            GUILayout.Label($"{peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))} {crewMember.Specialty()}", GUILayout.Width(200));
             
             GUILayout.EndHorizontal();
         }

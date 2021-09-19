@@ -250,7 +250,7 @@ namespace RPStoryteller.source
         /// </summary>
         /// <param name="scalar"></param>
         /// <param name="factor"></param>
-        /// <returns></returns>
+        /// <returns>the effective delta in hype</returns>
         public double AdjustHype(double scalar = 0, double factor = 1)
         {
             double initHype = programHype;
@@ -260,6 +260,7 @@ namespace RPStoryteller.source
                 if (scalar > 0) scalar *= 2;
                 if (factor > 1) factor = 1 + (1-factor)*2;
             }
+            
             programHype += scalar;
             programHype *= factor;
             programHype = Math.Max(0, programHype);
