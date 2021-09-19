@@ -111,6 +111,8 @@ namespace RPStoryteller
 
         // Launch detection
         private List<Vessel> newLaunch = new List<Vessel>();
+        [KSPField(isPersistant = true)] public string _lastLaunch = "";
+        [KSPField(isPersistant = true)] public double _lastLaunchTime = 0;
         
         // New Game flag
         [KSPField(isPersistant = true)] public bool hasnotvisitedAstronautComplex = true;
@@ -581,7 +583,14 @@ namespace RPStoryteller
         {
             if (ev.from == Vessel.Situations.PRELAUNCH && ev.host == FlightGlobals.ActiveVessel)
             {
-                newLaunch.Add(ev.host);
+                // Same name vessels within the same day are ignored. KSP weirdness.
+                if (ev.host.name == _lastLaunch && (HeadlinesUtil.GetUT() - _lastLaunchTime) < 24*3600) return;
+                
+                // newLaunch might as well be a pointer
+                if (newLaunch.Count == 0)
+                {
+                    newLaunch.Add(ev.host);
+                }
             }
         }
 
@@ -592,6 +601,9 @@ namespace RPStoryteller
         {
             foreach (Vessel vessel in newLaunch)
             {
+                _lastLaunch = vessel.name;
+                _lastLaunchTime = HeadlinesUtil.GetUT();
+                
                 _programManager.RegisterLaunch(vessel);
                 
                 // get crew

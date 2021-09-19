@@ -39,6 +39,9 @@ namespace RPStoryteller.source
         public List<NewsStory> shelvedAchievements = new List<NewsStory>();
         private int issueAllowed = 0;
 
+        private double _daylight = 0;
+        private double _lastDaylight = 0;
+
         #region Serialization
 
         public void FromConfigNode(ConfigNode node)
@@ -418,8 +421,17 @@ namespace RPStoryteller.source
             return renownLevels[GetReputationLevel()];
         }
         
+        /// <summary>
+        /// Compute daylight hype modifier at the KSC.
+        /// </summary>
+        /// <returns></returns>
         public double DaylightAtKSC()
         {
+            // Avoid the very expensive computation most of the time
+            if (HeadlinesUtil.GetUT() - _lastDaylight < 360 || _daylight != 0)
+            {
+                return _daylight;
+            }
             Vector3d kscVectorPosition =
                 ((FlagPoleFacility)SpaceCenter.FindObjectOfType(typeof(FlagPoleFacility)))
                 .transform
@@ -432,22 +444,27 @@ namespace RPStoryteller.source
             Vector3d earthSun = sunVectorPosition - earthVectorPosition;
 
             double angle = Vector3d.Angle(earthSun, earthKSC);
+            double output = 1;
             if (angle <= 70)
             {
-                return 1.2;
+                output = 1.2;
             }
-
-            if (angle <= 80)
+            else if (angle <= 80)
             {
-                return 1;
+                output = 1;
             }
-
-            if (angle <= 90)
+            else if (angle <= 90)
             {
-                return 0.9;
+                output = 0.9;
+            }
+            else
+            {
+                output = 0.8;
             }
 
-            return 0.8;
+            _daylight = output;
+            _lastDaylight = HeadlinesUtil.GetUT();
+            return output;
         }
 
         #region Media Ops

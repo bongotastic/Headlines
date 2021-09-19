@@ -848,12 +848,12 @@ namespace RPStoryteller.source.GUI
             if (isFeud == true)
             {
                 UnityEngine.GUI.contentColor = Color.red;
-                GUILayout.Label("[FEUD]", GUILayout.Width(40));
+                GUILayout.Label("[FEUD]", GUILayout.Width(50));
             }
             else
             {
                 UnityEngine.GUI.contentColor = Color.green;
-                GUILayout.Label("[COLL]", GUILayout.Width(40));
+                GUILayout.Label("[COLL]", GUILayout.Width(50));
             }
             UnityEngine.GUI.contentColor = oldColor;
             
