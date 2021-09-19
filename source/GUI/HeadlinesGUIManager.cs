@@ -54,6 +54,7 @@ namespace RPStoryteller.source.GUI
 
         private static string[] feedFilter = new[] { "All", "Chatter", "Feature stories", "Headlines"};
         private static string[] tabs = new[] { "Program", "Media", "Feed", "Personnel", "Recruit","Story"};
+        private static string[] flightTabs = new[] { "Program", "Media", "Story"};
         private static string[] priorities = new[] { "Balanced", "Reputation", "Production", "Growth"};
         
         private int mediaInvitationDelay = 1;
@@ -173,6 +174,7 @@ namespace RPStoryteller.source.GUI
 
         private GUILayoutOption FullWidth() => GUILayout.Width(widthUI);
         private GUILayoutOption ThirdWidth() => GUILayout.Width(widthUI/3);
+        private void GUIPad() => GUILayout.Space(5);
 
         private void Indent()
         {
@@ -210,33 +212,51 @@ namespace RPStoryteller.source.GUI
         /// <param name="windowID"></param>
         public void DrawWindow(int windowID)
         {
-            SwitchTab(GUILayout.SelectionGrid(_activeTabIndex, tabs, 3, GUILayout.Width(400)));
-
-            switch (_activeTabIndex)
+            if (!HighLogic.LoadedSceneIsFlight)
             {
-                case 0:
-                    DrawProgramDashboard(windowID);
-                    break;
-                case 3:
-                    DrawPersonelPanel();
-                    break;
-                case 4:
-                    DrawRecruitmentPanel();
-                    break;
-                case 2:
-                    DrawProgramFeed();
-                    break;
-                case 5:
-                    DrawStoryPanel();
-                    break;
-                case 1:
-                    DrawPressRoom();
-                    break;
+                SwitchTab(GUILayout.SelectionGrid(_activeTabIndex, tabs, 3, GUILayout.Width(400)));
+                switch (_activeTabIndex)
+                {
+                    case 0:
+                        DrawProgramDashboard(windowID);
+                        break;
+                    case 1:
+                        DrawPressRoom();
+                        break;
+                    case 2:
+                        DrawProgramFeed();
+                        break;
+                    case 3:
+                        DrawPersonelPanel();
+                        break;
+                    case 4:
+                        DrawRecruitmentPanel();
+                        break;
+                    case 5:
+                        DrawStoryPanel();
+                        break;
+                }
+            }
+            else
+            {
+                SwitchTab(GUILayout.SelectionGrid(_activeTabIndex, flightTabs, 3, GUILayout.Width(400)));
+                switch (_activeTabIndex)
+                {
+                    case 0:
+                        DrawProgramDashboard(windowID);
+                        break;
+                    case 1:
+                        DrawPressRoom();
+                        break;
+                    case 2:
+                        DrawStoryPanel();
+                        break;
+                }
             }
 
             GUILayout.FlexibleSpace();
             
-            if (GUILayout.Button("Close"))
+            if (GUILayout.Button("Close", FullWidth()))
             {
                 //HideWindow();
                 stockButton.SetFalse();
@@ -264,8 +284,11 @@ namespace RPStoryteller.source.GUI
             
             GUILayout.BeginVertical();
             DrawProgramStats();
-            DrawProgramManager();
-            DrawImpact();
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                DrawProgramManager();
+                DrawImpact();
+            }
             GUILayout.EndVertical();
         }
 
@@ -290,7 +313,7 @@ namespace RPStoryteller.source.GUI
             }
             GUILayout.Label($"Background: {PrgMgr.ManagerBackground()}", GUILayout.Width(200));
             GUILayout.EndHorizontal();
-            GUILayout.Space(10);
+            GUIPad();
             
             DrawProgramManagerPriority();
             
@@ -300,7 +323,7 @@ namespace RPStoryteller.source.GUI
         private void DrawProgramManagerPriority()
         {
             GUILayout.Box("Program Priority");
-            OrderNewPriority(GUILayout.SelectionGrid(_priority, priorities,4 ));
+            OrderNewPriority(GUILayout.SelectionGrid(_priority, priorities,4 , FullWidth()));
             string UIhint = "";
             string verb = "is";
             if (PrgMgr.ControlLevel() <= ProgramControlLevel.WEAK)
@@ -324,8 +347,8 @@ namespace RPStoryteller.source.GUI
                     UIhint += $"{PrgMgr.ManagerName()} {verb} focussing on capacity building for the future.";
                     break;
             }
-            GUILayout.Label(UIhint);
-            GUILayout.Space(10);
+            GUILayout.Label(UIhint, FullWidth());
+            GUIPad();
         }
 
         private void DrawProgramStats()
@@ -333,16 +356,16 @@ namespace RPStoryteller.source.GUI
             GUILayout.Box($"Program Dashboard (Staff: {storyEngine.GUIAverageProfile()})");
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Credibility:", GUILayout.Width(100));
+            GUILayout.Label($"Credibility:", GUILayout.Width(80));
             GUILayout.Label($"{storyEngine.GUIValuation()}", GUILayout.Width(100));
-            GUILayout.Label($"Overvaluation:", GUILayout.Width(100));
+            GUILayout.Label($"Overvaluation:", GUILayout.Width(80));
             GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine._reputationManager.Hype(), MidpointRounding.ToEven)})", GUILayout.Width(100));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Peak:", GUILayout.Width(100));
+            GUILayout.Label($"Peak:", GUILayout.Width(80));
             GUILayout.Label($"{storyEngine.GUIRelativeToPeak()}", GUILayout.Width(100));
-            GUILayout.Label($"Space Craze:", GUILayout.Width(100));
+            GUILayout.Label($"Space Craze:", GUILayout.Width(80));
             GUILayout.Label($"{storyEngine.GUISpaceCraze()}", GUILayout.Width(100));
             GUILayout.EndHorizontal();
             if (storyEngine.ongoingInquiry)
@@ -352,7 +375,7 @@ namespace RPStoryteller.source.GUI
                 GUILayout.Label($"{storyEngine.ongoingInquiry}");
                 GUILayout.EndHorizontal();
             }
-            GUILayout.Space(20);
+            GUIPad();
         }
 
         public void DrawImpact()
@@ -360,17 +383,17 @@ namespace RPStoryteller.source.GUI
             GUILayout.Box("Impact");
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(200));
-            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%");
+            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%", GUILayout.Width(200));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(200));
-            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}");
+            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}", GUILayout.Width(200));
             GUILayout.EndHorizontal();
             if (storyEngine.visitingScholarEndTimes.Count != 0)
             {
-                GUILayout.Label($"There are {storyEngine.visitingScholarEndTimes.Count} visiting scholar(s) in residence providing a science bonus of {Math.Round(storyEngine.VisitingScienceBonus()*100f)}% on new science data.");
+                GUILayout.Label($"There are {storyEngine.visitingScholarEndTimes.Count} visiting scholar(s) in residence providing a science bonus of {Math.Round(storyEngine.VisitingScienceBonus()*100f)}% on new science data.", FullWidth());
             }
-            GUILayout.Space(20);
+            GUIPad();
         }
         
         #endregion
@@ -449,7 +472,7 @@ namespace RPStoryteller.source.GUI
                     }
                     else UnityEngine.GUI.contentColor = Color.red;
                     
-                    GUILayout.Label($"{myContract.Title} (Cred: {myContract.ReputationCompletion}, {(int)Math.Ceiling(100f*ratio)}%)" );
+                    GUILayout.Label($"{myContract.Title} (Cred: {myContract.ReputationCompletion}, {(int)Math.Ceiling(100f*ratio)}%)" , GUILayout.Width(380));
                     UnityEngine.GUI.contentColor = originalColor;
                     
                     GUILayout.EndHorizontal();
@@ -460,7 +483,7 @@ namespace RPStoryteller.source.GUI
             
             _showAutoAcceptedContracts = GUILayout.Toggle(_showAutoAcceptedContracts, "Show all contracts");
 
-            GUILayout.Space(20);
+            GUIPad();
         }
 
         public void DrawPressReleases()
@@ -504,7 +527,7 @@ namespace RPStoryteller.source.GUI
             }
             DrawPressGalleryContractList();
             
-            GUILayout.Space(20);
+            GUIPad();
         }
 
         public void DrawPressGalleryLowProfile()
@@ -530,7 +553,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             Indent();
-            GUILayout.Label($"NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.GetMediaEventWager(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.");
+            GUILayout.Label($"NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.GetMediaEventWager(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.", GUILayout.Width(380));
             GUILayout.EndHorizontal();
             
         }
@@ -544,7 +567,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label("", GUILayout.Width(10));
             GUILayout.Label("Public Event in", GUILayout.Width(100));
             GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(150));
-            GUILayout.Label($"    Hype:{Math.Round(RepMgr.CampaignHype(), MidpointRounding.AwayFromZero)}");
+            GUILayout.Label($"    Hype:{Math.Round(RepMgr.CampaignHype(), MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
@@ -569,23 +592,23 @@ namespace RPStoryteller.source.GUI
             GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, false)}", GUILayout.Width(150));
             if (RepMgr.WageredCredibilityToGo() > 0)
             {
-                GUILayout.Label($"  Cred. Target:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}");
+                GUILayout.Label($"  Cred. Target:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
             }
             else
             {
-                GUILayout.Label($"  Exceeded by:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}");
+                GUILayout.Label($"  Exceeded by:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
             }
             GUILayout.EndHorizontal();
             
             if (RepMgr.EventSuccess())
             {
-                if (GUILayout.Button("Call successful media debrief"))
+                GUILayout.BeginHorizontal();
+                Indent();
+                if (GUILayout.Button("Call successful media debrief", GUILayout.Width(380)))
                 {
-                    GUILayout.BeginHorizontal();
-                    Indent();
                     RepMgr.CallMediaDebrief();
-                    GUILayout.EndHorizontal();
                 }
+                GUILayout.EndHorizontal();
             }
             else
             {
@@ -643,13 +666,13 @@ namespace RPStoryteller.source.GUI
             GUILayout.BeginVertical();
             GUILayout.Box("Active crew");
             
-            SwitchCrew(GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3));
+            SwitchCrew(GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3, FullWidth()));
             if (_selectedCrew >= crewRoster.Count)
             {
                 _selectedCrew = 0;
             }
             
-            GUILayout.Space(10);
+            GUIPad();
             DrawCrew();
             GUILayout.EndVertical();
         }
@@ -682,20 +705,20 @@ namespace RPStoryteller.source.GUI
             }
             
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Charisma: {focusCrew.EffectivenessLikability(true)}", GUILayout.Width(133));
-            GUILayout.Label($"Training: {focusCrew.trainingLevel}", GUILayout.Width(133));
-            GUILayout.Label($"Experience: {focusCrew.EffectivenessExperience()}", GUILayout.Width(133));
+            GUILayout.Label($"Charisma: {focusCrew.EffectivenessLikability(true)}", GUILayout.Width(130));
+            GUILayout.Label($"Training: {focusCrew.trainingLevel}", GUILayout.Width(130));
+            GUILayout.Label($"Experience: {focusCrew.EffectivenessExperience()}", GUILayout.Width(130));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Personality: {focusCrew.EffectivenessPersonality()}", GUILayout.Width(133));
-            GUILayout.Label($"Peers: {focusCrew.EffectivenessHumanFactors()}", GUILayout.Width(133));
-            GUILayout.Label($"Mood: {focusCrew.EffectivenessMood()}", GUILayout.Width(133));
+            GUILayout.Label($"Personality: {focusCrew.EffectivenessPersonality()}", GUILayout.Width(130));
+            GUILayout.Label($"Peers: {focusCrew.EffectivenessHumanFactors()}", GUILayout.Width(130));
+            GUILayout.Label($"Mood: {focusCrew.EffectivenessMood()}", GUILayout.Width(130));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(133));
-            GUILayout.Label($"Nation: {focusCrew.GetCulture()}", GUILayout.Width(133));
+            GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(130));
+            GUILayout.Label($"Nation: {focusCrew.GetCulture()}", GUILayout.Width(130));
             GUILayout.EndHorizontal();
-            GUILayout.Space(10);
+            GUIPad();
             
             // If untrained, offers to reassign
             if (focusCrew.trainingLevel + focusCrew.EffectivenessExperience() == 0)
@@ -732,8 +755,8 @@ namespace RPStoryteller.source.GUI
                     if (focusCrew.Effectiveness(deterministic: true) > PrgMgr.ManagerProfile())
                     {
                         GUILayout.BeginHorizontal();
-                        GUILayout.Label("", GUILayout.Width(50));
-                        if (GUILayout.Button("Promote to Program Manager"))
+                        Indent();
+                        if (GUILayout.Button("Promote to Program Manager", GUILayout.Width(380)))
                         {
                             storyEngine.KerbalAppointProgramManager(focusCrew);
                         }
@@ -743,8 +766,8 @@ namespace RPStoryteller.source.GUI
                 else
                 {
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label("", GUILayout.Width(50));
-                    if (GUILayout.Button("Dismiss as Program Manager"))
+                    Indent();
+                    if (GUILayout.Button("Dismiss as Program Manager", GUILayout.Width(380)))
                     {
                         storyEngine.KerbalAppointProgramManager(null);
                     }
@@ -752,7 +775,7 @@ namespace RPStoryteller.source.GUI
                 }
                 
             }
-            GUILayout.Space(10);
+            GUIPad();
             
             // Impact
             if (focusCrew.Specialty() != "Pilot")
@@ -775,7 +798,7 @@ namespace RPStoryteller.source.GUI
             GUILayout.Label($"Scout: {focusCrew.numberScout}", GUILayout.Width(133));
             GUILayout.Label($"Funds: {focusCrew.fundRaised/1000}K", GUILayout.Width(133));
             GUILayout.EndHorizontal();
-            GUILayout.Space(20);
+            GUIPad();
             
             // Relationships
             int nLines = focusCrew.feuds.Count + focusCrew.collaborators.Count;
@@ -799,7 +822,7 @@ namespace RPStoryteller.source.GUI
                 {
                     GUILayout.EndScrollView();
                 }
-                GUILayout.Space(20);
+                GUIPad();
             }
             
             // Activity controls
@@ -831,7 +854,7 @@ namespace RPStoryteller.source.GUI
                 }
             }
 
-            GUILayout.Space(10);
+            GUIPad();
             GUILayout.Box("News feed");
             DrawFeedSection(true);
         }
@@ -858,7 +881,7 @@ namespace RPStoryteller.source.GUI
             UnityEngine.GUI.contentColor = oldColor;
             
             GUILayout.Label($"{crewMember.DisplayName()}", GUILayout.Width(160));
-            GUILayout.Label($"{peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))} {crewMember.Specialty()}", GUILayout.Width(200));
+            GUILayout.Label($"{peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))} {crewMember.Specialty()}", GUILayout.Width(190));
             
             GUILayout.EndHorizontal();
         }
@@ -871,13 +894,13 @@ namespace RPStoryteller.source.GUI
         {
             FeedThreshold(GUILayout.SelectionGrid(feedThreshold, feedFilter, 4, GUILayout.Width(400)));
             DrawFeedSection();
-            GUILayout.Space(10);
+            GUIPad();
 
             _reducedMessage = GUILayout.Toggle(storyEngine.notificationThreshold != HeadlineScope.NEWSLETTER,
                 "Fewer messages");
             if (_reducedMessage) storyEngine.notificationThreshold = HeadlineScope.FEATURE;
             else storyEngine.notificationThreshold = HeadlineScope.NEWSLETTER;
-            GUILayout.Space(20);
+            GUIPad();
         }
 
         private void DrawFeedSection(bool crewSpecific = false)
@@ -992,7 +1015,7 @@ namespace RPStoryteller.source.GUI
 
             if (nApplicant == 0)
             {
-                GUILayout.Space(10);
+                GUIPad();
                 if (storyEngine.hasnotvisitedAstronautComplex)
                 {
                     if (!storyEngine.inAstronautComplex)
@@ -1016,7 +1039,7 @@ namespace RPStoryteller.source.GUI
                 peopleManager.applicantFolders.Remove(oldKey);
             }
             
-            GUILayout.Space(10);
+            GUIPad();
             
             GUILayout.Box("Walk-in applicants notifications");
             GUILayout.BeginHorizontal();
@@ -1024,7 +1047,7 @@ namespace RPStoryteller.source.GUI
             peopleManager.seekingScientist = GUILayout.Toggle(peopleManager.seekingScientist, "Scientists");
             peopleManager.seekingEngineer = GUILayout.Toggle(peopleManager.seekingEngineer, "Engineers");
             GUILayout.EndHorizontal();
-            GUILayout.Space(10);
+            GUIPad();
             
             GUILayout.EndVertical();
         }
@@ -1045,7 +1068,13 @@ namespace RPStoryteller.source.GUI
                 storyEngine.DebrisOverLand();
             }
 
-            GUILayout.Space(10);
+            GUIPad();
+            if (HighLogic.LoadedSceneIsFlight)
+            {
+                GUILayout.EndVertical();
+                return;
+            }
+            
             if (_showDebug)
             {
                 
@@ -1072,7 +1101,7 @@ namespace RPStoryteller.source.GUI
                     storyEngine.RealityCheck();
                 }
 
-                GUILayout.Space(10);
+                GUIPad();
                 GUILayout.Box("Random processes");
                 scrollHMMView = GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(200));
                 foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
