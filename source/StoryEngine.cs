@@ -599,6 +599,7 @@ namespace RPStoryteller
         /// </summary>
         public void CrewedLaunchReputation()
         {
+            HeadlinesUtil.Report(2, $"Launch processing.");
             foreach (Vessel vessel in newLaunch)
             {
                 _lastLaunch = vessel.name;
@@ -616,6 +617,10 @@ namespace RPStoryteller
                 foreach (ProtoCrewMember pcm in inFlight)
                 {
                     pf = _peopleManager.GetFile(pcm.name);
+                    if (pf == null)
+                    {
+                        HeadlinesUtil.Report(1, $"{pcm.name} is not found.");
+                    }
                     individualHype = (float)_reputationManager.AdjustHype(pf.Effectiveness());
                     onboardHype += individualHype;
                     pf.lifetimeHype += (int)individualHype;
@@ -634,7 +639,7 @@ namespace RPStoryteller
                     _reputationManager.AdjustCredibility(onboardHype, reason: TransactionReasons.None);
                 }
             }
-            
+            HeadlinesUtil.Report(2, $"Launch processed.");
             newLaunch.Clear();
         }
 

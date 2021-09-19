@@ -59,6 +59,8 @@ namespace RPStoryteller.source
             airTimeEnds = SafeRead(node,"airTimeEnds");
             mediaOpsTarget = SafeRead(node,"mediaOpsTarget");
             mediaInitialHype = SafeRead(node,"mediaInitialHype");
+
+            _daylight = double.Parse(node.GetValue("_daylight"));
             
             ConfigNode nodePledged = node.GetNode("PLEDGED");
             mediaContracts.Clear();
@@ -129,6 +131,8 @@ namespace RPStoryteller.source
             output.AddValue("airTimeEnds", airTimeEnds);
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
             output.AddValue("mediaInitialHype", mediaInitialHype);
+            
+            output.AddValue("_daylight", _daylight);
 
             
             ConfigNode nodePledged = new ConfigNode("PLEDGED");
@@ -428,18 +432,26 @@ namespace RPStoryteller.source
         public double DaylightAtKSC()
         {
             // Avoid the very expensive computation most of the time
-            if (HeadlinesUtil.GetUT() - _lastDaylight < 360 || _daylight != 0)
+            if (HeadlinesUtil.GetUT() - _lastDaylight < 360 && _daylight != 0)
             {
+                HeadlinesUtil.Report(1, "Using cache Daylight");
                 return _daylight;
             }
+
+            if (HighLogic.LoadedSceneIsFlight) return _daylight;
+            
+            HeadlinesUtil.Report(1, "Flagpole search");
             Vector3d kscVectorPosition =
                 ((FlagPoleFacility)SpaceCenter.FindObjectOfType(typeof(FlagPoleFacility)))
                 .transform
                 .position;
-
+            HeadlinesUtil.Report(1, "Flagpole found");
+            
             Vector3d earthVectorPosition = Planetarium.fetch.Home.transform.position;
             Vector3d sunVectorPosition = Planetarium.fetch.Sun.transform.position;
 
+            HeadlinesUtil.Report(1, "Vectors read");
+            
             Vector3d earthKSC = kscVectorPosition - earthVectorPosition;
             Vector3d earthSun = sunVectorPosition - earthVectorPosition;
 
