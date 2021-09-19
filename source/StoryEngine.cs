@@ -111,9 +111,7 @@ namespace RPStoryteller
 
         // Launch detection
         private List<Vessel> newLaunch = new List<Vessel>();
-        [KSPField(isPersistant = true)] public string _lastLaunch = "";
-        [KSPField(isPersistant = true)] public double _lastLaunchTime = 0;
-        
+
         // New Game flag
         [KSPField(isPersistant = true)] public bool hasnotvisitedAstronautComplex = true;
         public bool inAstronautComplex = false;
@@ -583,9 +581,6 @@ namespace RPStoryteller
         {
             if (ev.from == Vessel.Situations.PRELAUNCH && ev.host == FlightGlobals.ActiveVessel)
             {
-                // Same name vessels within the same day are ignored. KSP weirdness.
-                if (ev.host.name == _lastLaunch && (HeadlinesUtil.GetUT() - _lastLaunchTime) < 24*3600) return;
-                
                 // newLaunch might as well be a pointer
                 if (newLaunch.Count == 0)
                 {
@@ -599,12 +594,8 @@ namespace RPStoryteller
         /// </summary>
         public void CrewedLaunchReputation()
         {
-            HeadlinesUtil.Report(2, $"Launch processing.");
             foreach (Vessel vessel in newLaunch)
             {
-                _lastLaunch = vessel.name;
-                _lastLaunchTime = HeadlinesUtil.GetUT();
-                
                 _programManager.RegisterLaunch(vessel);
                 
                 // get crew
@@ -617,10 +608,6 @@ namespace RPStoryteller
                 foreach (ProtoCrewMember pcm in inFlight)
                 {
                     pf = _peopleManager.GetFile(pcm.name);
-                    if (pf == null)
-                    {
-                        HeadlinesUtil.Report(1, $"{pcm.name} is not found.");
-                    }
                     individualHype = (float)_reputationManager.AdjustHype(pf.Effectiveness());
                     onboardHype += individualHype;
                     pf.lifetimeHype += (int)individualHype;
@@ -639,7 +626,6 @@ namespace RPStoryteller
                     _reputationManager.AdjustCredibility(onboardHype, reason: TransactionReasons.None);
                 }
             }
-            HeadlinesUtil.Report(2, $"Launch processed.");
             newLaunch.Clear();
         }
 

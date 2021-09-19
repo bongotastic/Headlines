@@ -392,7 +392,6 @@ namespace RPStoryteller.source
 
             if (pmRecord == null)
             {
-                HeadlinesUtil.Report(1, $"{managerKey}, {_record.Count}");
                 return 0;
             }
             
