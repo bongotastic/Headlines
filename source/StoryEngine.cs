@@ -176,7 +176,15 @@ namespace RPStoryteller
                 
                 _reputationManager.ReattemptLoadContracts();
 
+                try
+                {
                     KACWrapper.InitKACWrapper();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
 
                 if (updateIndex == 9)
                 {

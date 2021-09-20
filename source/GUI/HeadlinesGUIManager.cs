@@ -358,8 +358,8 @@ namespace RPStoryteller.source.GUI
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Credibility:", GUILayout.Width(80));
             GUILayout.Label($"{storyEngine.GUIValuation()}", GUILayout.Width(100));
-            GUILayout.Label($"Overvaluation:", GUILayout.Width(80));
-            GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine._reputationManager.Hype(), MidpointRounding.ToEven)})", GUILayout.Width(100));
+            GUILayout.Label($"Overvaluation:", GUILayout.Width(85));
+            GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine._reputationManager.Hype(), MidpointRounding.ToEven)})", GUILayout.Width(95));
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
