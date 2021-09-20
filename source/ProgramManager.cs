@@ -245,19 +245,35 @@ namespace RPStoryteller.source
         /// </summary>
         public void ApplyInfluence()
         {
+            int VAB = 0;
+            int RnD = 0;
+
+            // Balancing the KSC
+            if (_storyEngine.GetVABPoints() * 2 < _storyEngine.GetRnDPoints())
+            {
+                VAB += 1;
+                RnD -= 1;
+            }
+
+            if (_storyEngine.GetVABPoints() > _storyEngine.GetRnDPoints())
+            {
+                VAB -= 1;
+                RnD += 1;
+            }
+            
             switch (GetProgramManagerRecord().background)
             {
                 case "Neutral":
-                    ApplyInfluence(0,0);
+                    ApplyInfluence(0 + VAB,0 + RnD);
                     break;
                 case "Pilot":
-                    ApplyInfluence(2, -1);
+                    ApplyInfluence(2 + VAB, -1 + RnD);
                     break;
                 case "Engineer":
-                    ApplyInfluence(1, 0);
+                    ApplyInfluence(1 + VAB, 0 + RnD);
                     break;
                 case "Scientist":
-                    ApplyInfluence(0,1);
+                    ApplyInfluence(0 + VAB,1 + RnD);
                     break;
             }
         }
