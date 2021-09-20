@@ -338,10 +338,10 @@ namespace RPStoryteller.source.GUI
                     UIhint += "A balanced program requires everyone to pursue their personal goals and do their best.";
                     break;
                 case ProgramPriority.REPUTATION:
-                    UIhint += "The focus {verb} on building reputation at the expense of other KSC activities.";
+                    UIhint += $"The focus {verb} on building reputation at the expense of other KSC activities.";
                     break;
                 case ProgramPriority.PRODUCTION:
-                    UIhint += "The focus {verb} on research and vehicle assembly at the expense of medium- and long-term activities..";
+                    UIhint += $"The focus {verb} on research and vehicle assembly at the expense of medium- and long-term activities..";
                     break;
                 case ProgramPriority.CAPACITY:
                     UIhint += $"{PrgMgr.ManagerName()} {verb} focussing on capacity building for the future.";
@@ -491,12 +491,12 @@ namespace RPStoryteller.source.GUI
             if (RepMgr.shelvedAchievements.Count != 0)
             {
                 GUILayout.Box("Secret achievements");
-                scrollReleases = GUILayout.BeginScrollView(scrollReleases, GUILayout.Width(400), GUILayout.Height(100));
+                //scrollReleases = GUILayout.BeginScrollView(scrollReleases, GUILayout.Width(400), GUILayout.Height(100));
                 foreach (NewsStory ns in RepMgr.shelvedAchievements.OrderByDescending(x=>x.reputationValue))
                 {
                     DrawUnreleasedNews(ns);
                 }
-                GUILayout.EndScrollView();
+                //GUILayout.EndScrollView();
             }
         }
 
