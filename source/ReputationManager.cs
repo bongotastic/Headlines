@@ -520,6 +520,9 @@ namespace RPStoryteller.source
                 AdjustCredibility(credibilityLoss);
                 return credibilityLoss;
             }
+            
+            mediaContracts.Clear();
+            
             AdjustHype(5);
             announcedSuccess = false;
 

@@ -596,7 +596,7 @@ namespace RPStoryteller.source.GUI
             }
             else
             {
-                GUILayout.Label($"  Exceeded by:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
+                GUILayout.Label($"  Exceeded by:{Math.Round(RepMgr.WageredCredibilityToGo()*-1, MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
             }
             GUILayout.EndHorizontal();
             
