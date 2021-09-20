@@ -38,9 +38,6 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\RP-1 TF\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="KerbalAlarmClock, Version=3.13.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\..\..\KSP dev\RP1play\GameData\TriggerTech\KerbalAlarmClock\KerbalAlarmClock.dll</HintPath>
-    </Reference>
     <Reference Include="Renamer, Version=1.4.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\..\..\..\..\KSP dev\RP1play\GameData\KerbalRenamer\plugins\Renamer.dll</HintPath>
     </Reference>
@@ -78,6 +75,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="source\Emissions\Emissions.cs" />
     <Compile Include="source\Emissions\NewsStory.cs" />
+    <Compile Include="source\Framework\KACWrapper.cs" />
     <Compile Include="source\GUI\HeadlinesGUIManager.cs" />
     <Compile Include="source\HiddenMarkovProcess.cs" />
     <Compile Include="source\PeopleManager.cs" />
@@ -101,7 +99,6 @@
     <Folder Include="documentation\wiki" />
     <Folder Include="GameData\Headlines\artwork\icons" />
     <Folder Include="GameData\Headlines\Plugins" />
-    <Folder Include="source\Framework" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

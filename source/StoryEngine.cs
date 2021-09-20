@@ -176,6 +176,8 @@ namespace RPStoryteller
                 
                 _reputationManager.ReattemptLoadContracts();
 
+                    KACWrapper.InitKACWrapper();
+
                 if (updateIndex == 9)
                 {
                     // if the mod is installed in a new career (less than an hour), randomize crew specialty
@@ -1391,6 +1393,11 @@ namespace RPStoryteller
             if (storytellerRand.NextDouble() < 0.5) gender = ProtoCrewMember.Gender.Male;
             
             visitingScholarName = CrewGenerator.GetRandomName(gender);
+
+            if (KACWrapper.APIReady)
+            {
+                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.ScienceLab, $"{visitingScholarName} leaves.", expiryDate);
+            }
 
             NewsStory ns = new NewsStory(emitData);
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
