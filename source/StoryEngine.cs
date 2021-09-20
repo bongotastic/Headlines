@@ -1392,7 +1392,9 @@ namespace RPStoryteller
             ProtoCrewMember.Gender gender = ProtoCrewMember.Gender.Female;
             if (storytellerRand.NextDouble() < 0.5) gender = ProtoCrewMember.Gender.Male;
             
-            visitingScholarName = CrewGenerator.GetRandomName(gender);
+            //visitingScholarName = CrewGenerator.GetRandomName(gender);
+            string cultureName = "";
+            KerbalRenamer.RandomName(gender, ref cultureName, ref visitingScholarName);
 
             if (KACWrapper.APIReady)
             {
@@ -1404,7 +1406,7 @@ namespace RPStoryteller
             emitData.AddStoryElement("visiting_name", visitingScholarName);
             ns.headline = "New visiting scientist";
             ns.AddToStory(emitData.GenerateStory());
-            ns.AddToStory($" {visitingScholarName} is expected to be in-residence until {KSPUtil.PrintDate(expiryDate,false, false)}.");
+            ns.AddToStory($" {visitingScholarName} ({cultureName}) is expected to be in-residence until {KSPUtil.PrintDate(expiryDate,false, false)}.");
             FileHeadline(ns);
         }
 

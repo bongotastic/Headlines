@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CommNet.Network;
 using Expansions.Missions;
 using HiddenMarkovProcess;
+using Renamer;
 using Smooth.Collections;
 
 namespace RPStoryteller.source
@@ -485,8 +486,13 @@ namespace RPStoryteller.source
 
         private void GenerateDefaultProgramManager()
         {
-            string name = "Leslie Kerman";
             Random rnd = new Random();
+            string name = "Leslie Kerman";
+            string cultureName = "Unknown";
+            ProtoCrewMember.Gender _gender = rnd.Next()%2 == 0 ? ProtoCrewMember.Gender.Female : ProtoCrewMember.Gender.Male;
+            
+            KerbalRenamer.RandomName(_gender ,ref cultureName, ref name);
+            
             string background = new List<string>() {"Neutral", "Pilot", "Engineer", "Scientist"}[rnd.Next(3)];
             
             ProgramManagerRecord pmRecord = new ProgramManagerRecord(name, background, PersonnelFile.GetRandomPersonality());
