@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using Contracts;
 using KSP.UI;
+using RP0;
+using RPStoryteller.source.Emissions;
 using UnityEngine;
 
 namespace RPStoryteller.source
@@ -11,7 +15,7 @@ namespace RPStoryteller.source
     
     public class ReputationManager
     {
-        public static string[] renownLevels = new[] { "underdog", "renowned", "leader", "excellent", "legendary"};
+        public static string[] renownLevels = new[] { "startup", "underdog", "renowned", "leader", "excellent"};
         
         public MediaRelationMode currentMode = MediaRelationMode.LOWPROFILE;
         
@@ -22,18 +26,26 @@ namespace RPStoryteller.source
         private double lastScoreTimeStamp = 0;
         private double lastKnownCredibility = 0;
 
+        // Media event
         public double airTimeStarts = 0;
         public double airTimeEnds = 0;
         private double mediaOpsTarget = 0;
         private double mediaInitialHype = 0;
+        public List<Contract> mediaContracts = new List<Contract>();
+        private List<string> _contractNames = new List<string>();
 
         private bool announcedSuccess = false;
+
+        public List<NewsStory> shelvedAchievements = new List<NewsStory>();
+        private int credibilityGainAllowed = 0;
+
+        private double _daylight = 0;
+        private double _lastDaylight = 0;
 
         #region Serialization
 
         public void FromConfigNode(ConfigNode node)
         {
-            HeadlinesUtil.Report(1, "[REPMANAGER] Entering config node");
             currentMode = (MediaRelationMode)int.Parse(node.GetValue("currentMode"));
 
             programHype = SafeRead(node,"programHype");
@@ -47,6 +59,43 @@ namespace RPStoryteller.source
             airTimeEnds = SafeRead(node,"airTimeEnds");
             mediaOpsTarget = SafeRead(node,"mediaOpsTarget");
             mediaInitialHype = SafeRead(node,"mediaInitialHype");
+
+            _daylight = double.Parse(node.GetValue("_daylight"));
+            
+            ConfigNode nodePledged = node.GetNode("PLEDGED");
+            mediaContracts.Clear();
+            foreach (string title in nodePledged.GetValues("item"))
+            {
+                Contract cnt = GetContractFromTitle(title);
+                if (cnt != null)
+                {
+                    mediaContracts.Add(cnt);
+                }
+                else
+                {
+                    // Long sigh of horror... KSP hasn't loaded the contracts yet.
+                    _contractNames.Add(title);
+                    HeadlinesUtil.Report(1,$"Unable to locate contract {title}");
+                }
+                
+            }
+
+            ConfigNode nodeShelved = node.GetNode("SHELVEDACHIEVEMENTS");
+            foreach (ConfigNode ShA in nodeShelved.GetNodes("newsstory"))
+            {
+                shelvedAchievements.Add(new NewsStory(ShA));
+            }
+        }
+
+        private Contract GetContractFromTitle(string title)
+        {
+            foreach (Contract contract in ContractSystem.Instance.GetCurrentContracts<Contract>())
+            {
+                HeadlinesUtil.Report(1, $"Trying {contract.Title} == {title}");
+                if (contract.Title == title) return contract;
+            }
+            
+            return null;
         }
 
         /// <summary>
@@ -82,6 +131,26 @@ namespace RPStoryteller.source
             output.AddValue("airTimeEnds", airTimeEnds);
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
             output.AddValue("mediaInitialHype", mediaInitialHype);
+            
+            output.AddValue("_daylight", _daylight);
+
+            
+            ConfigNode nodePledged = new ConfigNode("PLEDGED");
+            foreach (Contract contract in mediaContracts)
+            {
+                nodePledged.AddValue("item", contract.Title);
+            }
+
+            output.AddNode(nodePledged);
+            
+            
+            ConfigNode ShA = new ConfigNode("SHELVEDACHIEVEMENTS");
+            foreach (NewsStory ns in shelvedAchievements)
+            {
+                ShA.AddNode("newsstory", ns.AsConfigNode());
+            }
+
+            output.AddNode(ShA);
 
             return output;
         }
@@ -96,7 +165,7 @@ namespace RPStoryteller.source
         /// <returns></returns>
         public double CurrentReputation()
         {
-            return Reputation.CurrentRep + programHype;
+            return Reputation.CurrentRep + Hype();
         }
 
         /// <summary>
@@ -110,7 +179,7 @@ namespace RPStoryteller.source
 
         public double Hype()
         {
-            return programHype;
+            return programHype * DaylightAtKSC();
         }
 
         /// <summary>
@@ -135,7 +204,7 @@ namespace RPStoryteller.source
         {
             if (CurrentReputation() > 0)
             {
-                return programHype / CurrentReputation();
+                return Hype() / CurrentReputation();
             }
 
             return 1;
@@ -161,8 +230,6 @@ namespace RPStoryteller.source
         /// <param name="reason"></param>
         public void AdjustCredibility(double scalar = 0, TransactionReasons reason = TransactionReasons.None)
         {
-            UpdateHeadlinesScore();
-
             if (scalar != 0)
             {
                 Reputation.Instance.AddReputation((float) scalar, reason);
@@ -190,7 +257,7 @@ namespace RPStoryteller.source
         /// </summary>
         /// <param name="scalar"></param>
         /// <param name="factor"></param>
-        /// <returns></returns>
+        /// <returns>the effective delta in hype</returns>
         public double AdjustHype(double scalar = 0, double factor = 1)
         {
             double initHype = programHype;
@@ -200,6 +267,7 @@ namespace RPStoryteller.source
                 if (scalar > 0) scalar *= 2;
                 if (factor > 1) factor = 1 + (1-factor)*2;
             }
+            
             programHype += scalar;
             programHype *= factor;
             programHype = Math.Max(0, programHype);
@@ -230,6 +298,22 @@ namespace RPStoryteller.source
         public void HighjackCredibility(double newCredibility, TransactionReasons reason)
         {
             KSPLog.print($"Highjacking rep new:{newCredibility}, old:{lastKnownCredibility}");
+            
+            // LOW Profile mode cause a cancellation of credibility unless allowed through
+            if (currentMode == MediaRelationMode.LOWPROFILE)
+            {
+                if (credibilityGainAllowed == 0)
+                {
+                    IgnoreLastCredibilityChange();
+                    return;
+                }
+                else
+                {
+                    credibilityGainAllowed -= 1;
+                }
+                
+            }
+            
             // During a campaign, legit credibility is converted to hype. 
             if (currentMode == MediaRelationMode.CAMPAIGN)
             {
@@ -265,11 +349,6 @@ namespace RPStoryteller.source
                     HeadlinesUtil.Report(2, $"BREAKING NEWS: Media event is a success!");
                 }
             }
-        }
-
-        public double InferredCredibilityEarnings()
-        {
-            return Credibility() - lastKnownCredibility;
         }
 
         /// <summary>
@@ -340,22 +419,56 @@ namespace RPStoryteller.source
         {
             return renownLevels[GetReputationLevel()];
         }
-
-        #region Score
-
-        public double GetScore()
+        
+        /// <summary>
+        /// Compute daylight hype modifier at the KSC.
+        /// </summary>
+        /// <returns></returns>
+        public double DaylightAtKSC()
         {
-            return headlinesScore;
-        }
+            // Avoid the very expensive computation most of the time
+            if (HeadlinesUtil.GetUT() - _lastDaylight < 360 && _daylight != 0)
+            {
+                return _daylight;
+            }
 
-        private void UpdateHeadlinesScore()
-        {
-            double timestamp = HeadlinesUtil.GetUT();
-            headlinesScore += ((timestamp - lastScoreTimeStamp) / (3600 * 24 * 365)) * lastKnownCredibility;
-            lastScoreTimeStamp = timestamp;
-        }
+            if (HighLogic.LoadedSceneIsFlight) return _daylight;
+            
+            Vector3d kscVectorPosition =
+                ((FlagPoleFacility)SpaceCenter.FindObjectOfType(typeof(FlagPoleFacility)))
+                .transform
+                .position;
 
-        #endregion
+            Vector3d earthVectorPosition = Planetarium.fetch.Home.transform.position;
+            Vector3d sunVectorPosition = Planetarium.fetch.Sun.transform.position;
+            
+            
+            Vector3d earthKSC = kscVectorPosition - earthVectorPosition;
+            Vector3d earthSun = sunVectorPosition - earthVectorPosition;
+
+            double angle = Vector3d.Angle(earthSun, earthKSC);
+            double output = 1;
+            if (angle <= 70)
+            {
+                output = 1.2;
+            }
+            else if (angle <= 80)
+            {
+                output = 1;
+            }
+            else if (angle <= 90)
+            {
+                output = 0.9;
+            }
+            else
+            {
+                output = 0.8;
+            }
+
+            _daylight = output;
+            _lastDaylight = HeadlinesUtil.GetUT();
+            return output;
+        }
 
         #region Media Ops
 
@@ -366,7 +479,7 @@ namespace RPStoryteller.source
         public void LaunchCampaign(double goLiveTime)
         {
             currentMode = MediaRelationMode.CAMPAIGN;
-            mediaOpsTarget = CurrentReputation();
+            mediaOpsTarget = Credibility() + GetMediaEventWager();
             mediaInitialHype = Hype();
             airTimeStarts = goLiveTime;
             airTimeEnds = goLiveTime + (3600*24*2);
@@ -374,6 +487,12 @@ namespace RPStoryteller.source
             KSPLog.print($"[MEDIA] Targeting credibility of {mediaOpsTarget}.");
             KSPLog.print($"[MEDIA] Going live at {KSPUtil.PrintDate(airTimeStarts, true, false)}.");
             KSPLog.print($"[MEDIA] Going dark at {KSPUtil.PrintDate(airTimeEnds, true, false)}.");
+
+            if (KACWrapper.APIReady)
+            {
+                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Going Live!", airTimeStarts);
+                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Live event deadline", airTimeEnds);
+            }
         }
         
         /// <summary>
@@ -381,7 +500,9 @@ namespace RPStoryteller.source
         /// </summary>
         public void GoLIVE()
         {
+            TimeWarp.SetRate(0, false, true);
             currentMode = MediaRelationMode.LIVE;
+            mediaOpsTarget = Credibility() + GetMediaEventWager();
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
             announcedSuccess = false;
         }
@@ -399,7 +520,10 @@ namespace RPStoryteller.source
                 AdjustCredibility(credibilityLoss);
                 return credibilityLoss;
             }
-            AdjustHype(10);
+            
+            mediaContracts.Clear();
+            
+            AdjustHype(5);
             announcedSuccess = false;
 
             airTimeEnds = HeadlinesUtil.GetUT() - 1;
@@ -418,11 +542,6 @@ namespace RPStoryteller.source
         public bool EventSuccess()
         {
             return Credibility() >= mediaOpsTarget;
-        }
-
-        public double MinimumHypeForInvite()
-        {
-            return Math.Max(1, Credibility() * 0.05);
         }
 
         public double WageredCredibilityToGo()
@@ -460,6 +579,40 @@ namespace RPStoryteller.source
             return output;
         }
 
+        public void FilePressRelease(NewsStory ns)
+        {
+            shelvedAchievements.Add(ns);
+        }
+        
+        public void IssuePressReleaseFor(NewsStory ns)
+        {
+            credibilityGainAllowed += 1;
+            shelvedAchievements.Remove(ns);
+            AdjustCredibility(ns.reputationValue);
+        }
+
+        
+        public void AttachContractToMediaEvent(Contract contract)
+        {
+            mediaContracts.Add(contract);
+        }
+
+        public void WithdrawContractFromMediaEvent(Contract contract)
+        {
+            mediaContracts.Remove(contract);
+        }
+
+        public float GetMediaEventWager()
+        {
+            float wager = 0;
+            foreach (Contract contract in mediaContracts)
+            {
+                wager += contract.ReputationCompletion;
+            }
+
+            return Math.Max(wager, 1f);
+        }
+        
         #endregion
 
         #endregion
@@ -487,5 +640,20 @@ namespace RPStoryteller.source
         }
 
         #endregion
+
+        public void ReattemptLoadContracts()
+        {
+            bool success = false;
+            foreach (string contractName in _contractNames)
+            {
+                Contract cnt = GetContractFromTitle(contractName);
+                if (cnt != null)
+                {
+                    mediaContracts.Add(cnt);
+                    success = true;
+                }
+            }
+            if (success) _contractNames.Clear();
+        }
     }
 }

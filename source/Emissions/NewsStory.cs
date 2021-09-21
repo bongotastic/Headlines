@@ -26,6 +26,10 @@ namespace RPStoryteller.source.Emissions
         [KSPField]
         public double timestamp = 0;
         
+        // Reputation value
+        [KSPField] 
+        public float reputationValue = 0f;
+        
         // Implicated actors
         public List<string> actors = new List<string>();
 

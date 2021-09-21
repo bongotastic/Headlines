@@ -186,7 +186,7 @@ namespace RPStoryteller.source.Emissions
 
             if (labelNode == null | _recursionDepth > 10)
             {
-                HeadlinesUtil.Report(1,"Recursion depth met with {label}");
+                HeadlinesUtil.Report(1,$"Recursion depth met with {label}", "Emission");
                 _recursionDepth -= 1;
                 return outputText;
             }
@@ -198,6 +198,7 @@ namespace RPStoryteller.source.Emissions
             else
             {
                 _recursionDepth -= 1;
+                HeadlinesUtil.Report(1,$"Text node for {label} does not exist", "Emission");
                 return outputText;
             }
             
@@ -230,21 +231,6 @@ namespace RPStoryteller.source.Emissions
             _recursionDepth -= 1;
             
             return outputText;
-        }
-
-        /// <summary>
-        /// Convenience method that selects 1 of 1+ causes in the config node and returns as string.
-        /// </summary>
-        /// <remarks>This is redundant to the more general GetRandomNodeOfType()</remarks>
-        /// <returns></returns>
-        private string RandomCause()
-        {
-            ConfigNode cfg = GetRandomNodeOfType("cause");
-            if (cfg != null)
-            {
-                return cfg.GetValue("text");
-            }
-            return "";
         }
 
         #endregion

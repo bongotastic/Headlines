@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Contracts;
 using Expansions.Missions.Editor;
 using FinePrint;
@@ -47,6 +48,8 @@ namespace RPStoryteller
         private PeopleManager _peopleManager;
 
         public ReputationManager _reputationManager = new ReputationManager();
+
+        public ProgramManager _programManager = new ProgramManager();
         
         // Terrible hack
         private int updateIndex = 0;
@@ -108,7 +111,7 @@ namespace RPStoryteller
 
         // Launch detection
         private List<Vessel> newLaunch = new List<Vessel>();
-        
+
         // New Game flag
         [KSPField(isPersistant = true)] public bool hasnotvisitedAstronautComplex = true;
         public bool inAstronautComplex = false;
@@ -126,7 +129,6 @@ namespace RPStoryteller
         public override void OnAwake()
         {
             base.OnAwake();
-            //_reputationManager = new ReputationManager();
         }
 
         /// <summary>
@@ -142,6 +144,7 @@ namespace RPStoryteller
             InitializeHMM("space_craze");
             InitializeHMM("reputation_decay");
             InitializeHMM("position_search");
+            InitializeHMM("program_manager");
 
             InitializePeopleManager();
             SchedulerCacheNextTime();
@@ -169,6 +172,20 @@ namespace RPStoryteller
             // Shameless hack.
             if (updateIndex < 10)
             {
+                _programManager.SetStoryEngine(this);
+                
+                _reputationManager.ReattemptLoadContracts();
+
+                try
+                {
+                    KACWrapper.InitKACWrapper();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+
                 if (updateIndex == 9)
                 {
                     // if the mod is installed in a new career (less than an hour), randomize crew specialty
@@ -222,7 +239,6 @@ namespace RPStoryteller
             double triggertime;
             HiddenState stateToSave;
             ConfigNode temporaryNode = new ConfigNode();
-
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
             {
                 triggertime = kvp.Value;
@@ -237,28 +253,24 @@ namespace RPStoryteller
 
                 hmmSet.AddNode("hmm", temporaryNode);
             }
-
             node.AddNode(hmmSet);
 
             ConfigNode headlineFeed = new ConfigNode("HEADLINESFEED");
-
             foreach (NewsStory ns in headlines)
             {
                 headlineFeed.AddNode("headline", ns.AsConfigNode());
             }
-            
             node.AddNode(headlineFeed);
 
             ConfigNode visitingEndTimes = new ConfigNode("VISITINGSCHOLAR");
-
             foreach (double time in visitingScholarEndTimes)
             {
                 visitingEndTimes.AddValue("time", time);
             }
-
             node.AddNode(visitingEndTimes);
             
             node.AddNode(_reputationManager.AsConfigNode());
+            node.AddNode(_programManager.AsConfigNode());
         }
 
         public override void OnLoad(ConfigNode node)
@@ -303,6 +315,15 @@ namespace RPStoryteller
                 
             }
             */
+            
+            Debug("Loading PROGRAMMANAGER");
+            ConfigNode pmNode = node.GetNode("PROGRAMMANAGER");
+            if (pmNode != null)
+            {
+                Debug("Node found");
+                _programManager.FromConfigNode(pmNode);
+            }
+
             Debug("Loading HIDDENMODELS");
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
             if (hmNode != null)
@@ -405,7 +426,6 @@ namespace RPStoryteller
                 _reputationManager.IgnoreLastCredibilityChange();
                 return;
             }
-
             
             _reputationManager.HighjackCredibility(newReputation, reason);
 
@@ -571,7 +591,11 @@ namespace RPStoryteller
         {
             if (ev.from == Vessel.Situations.PRELAUNCH && ev.host == FlightGlobals.ActiveVessel)
             {
-                newLaunch.Add(ev.host);
+                // newLaunch might as well be a pointer
+                if (newLaunch.Count == 0)
+                {
+                    newLaunch.Add(ev.host);
+                }
             }
         }
 
@@ -582,6 +606,8 @@ namespace RPStoryteller
         {
             foreach (Vessel vessel in newLaunch)
             {
+                _programManager.RegisterLaunch(vessel);
+                
                 // get crew
                 List<ProtoCrewMember> inFlight = vessel.GetVesselCrew();
 
@@ -610,7 +636,6 @@ namespace RPStoryteller
                     _reputationManager.AdjustCredibility(onboardHype, reason: TransactionReasons.None);
                 }
             }
-            
             newLaunch.Clear();
         }
 
@@ -724,7 +749,18 @@ namespace RPStoryteller
                 return;
             }
 
-            SkillCheckOutcome successLevel = SkillCheck(kerbalFile.Effectiveness(isMedia));
+            int skillLevel = kerbalFile.Effectiveness(isMedia);
+            int difficulty = GetProgramComplexity();
+            if (_programManager.ControlLevel() == ProgramControlLevel.HIGH)
+            {
+                difficulty -= 1;
+            }
+            else if (_programManager.ControlLevel() == ProgramControlLevel.CHAOS)
+            {
+                difficulty += 1;
+            }
+            
+            SkillCheckOutcome successLevel = SkillCheck(skillLevel, difficulty);
 
             // In case of inquiry, immediate impact vanishes.
             if (ongoingInquiry &
@@ -983,7 +1019,7 @@ namespace RPStoryteller
             // A leave is always good for the soul.
             personnelFile.AdjustDiscontent(-1);
 
-            SkillCheckOutcome outcome = SkillCheck(5, personnelFile.Effectiveness());
+            SkillCheckOutcome outcome = SkillCheck(5, difficulty);
 
             if (outcome == SkillCheckOutcome.SUCCESS)
             {
@@ -1056,7 +1092,7 @@ namespace RPStoryteller
             }
             ns.SpecifyOtherCrew(collaborator.DisplayName(), emitData);
             
-            if (personnelFile.IsFeuding(collaborator))
+            if (personnelFile.IsFeuding(collaborator.UniqueName()))
             {
                 if (personnelFile.UnsetFeuding(collaborator))
                 {
@@ -1364,14 +1400,21 @@ namespace RPStoryteller
             ProtoCrewMember.Gender gender = ProtoCrewMember.Gender.Female;
             if (storytellerRand.NextDouble() < 0.5) gender = ProtoCrewMember.Gender.Male;
             
-            visitingScholarName = CrewGenerator.GetRandomName(gender);
+            //visitingScholarName = CrewGenerator.GetRandomName(gender);
+            string cultureName = "";
+            KerbalRenamer.RandomName(gender, ref cultureName, ref visitingScholarName);
+
+            if (KACWrapper.APIReady)
+            {
+                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.ScienceLab, $"{visitingScholarName} leaves.", expiryDate);
+            }
 
             NewsStory ns = new NewsStory(emitData);
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             emitData.AddStoryElement("visiting_name", visitingScholarName);
             ns.headline = "New visiting scientist";
             ns.AddToStory(emitData.GenerateStory());
-            ns.AddToStory($" {visitingScholarName} is expected to be in-residence until {KSPUtil.PrintDate(expiryDate,false, false)}.");
+            ns.AddToStory($" {visitingScholarName} ({cultureName}) is expected to be in-residence until {KSPUtil.PrintDate(expiryDate,false, false)}.");
             FileHeadline(ns);
         }
 
@@ -1426,6 +1469,28 @@ namespace RPStoryteller
             }
         }
 
+        public void KerbalAppointProgramManager(PersonnelFile newManager)
+        {
+            string initialName = _programManager.ManagerName();
+            if (newManager != null)
+            {
+                _programManager.AssignProgramManager(newManager);
+            }
+            else
+            {
+                // revert to default PM
+                _programManager.RevertToDefaultProgramManager();
+            }
+            string finalName = _programManager.ManagerName();
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"{finalName} as Program Manager");
+            ns.AddToStory($"{finalName} replaces {initialName} as program manager.");
+            if (_programManager.ManagerBackground() != "Neutral")
+            {
+                ns.AddToStory($" The news comes as a delight to {_programManager.ManagerBackground()}s.");
+            }
+            FileHeadline(ns);
+            
+        }
         #endregion
 
         #region HMM Logic
@@ -1488,47 +1553,30 @@ namespace RPStoryteller
 
         }
 
-        public void ApplyPersonality(HiddenState newState)
+        public void ApplyCrewPersonality(HiddenState newState)
         {
             // People manager may not be loaded
             if (_peopleManager.applicantFolders.Count + _peopleManager.personnelFolders.Count == 0) return;
             
-            newState._personalityApplied = true;
             // Personality
             if (newState.kerbalName != "")
             {
                 PersonnelFile pf = _peopleManager.GetFile(newState.kerbalName);
-                float tempVal = 0;
-                bool recompute = false;
-                
+
                 // This crew member is a social butterfly
                 if (pf.HasAttribute("genial"))
                 {
-                    tempVal = newState.GetEmissionProbability("synergy");
-                    if (tempVal != 0) newState.SpecifyEmission("synergy", tempVal*1.5f);
-                    
-                    tempVal = newState.GetEmissionProbability("reconcile");
-                    if (tempVal != 0) newState.SpecifyEmission("reconcile", tempVal*1.5f);
-                    
-                    tempVal = newState.GetEmissionProbability("feud");
-                    if (tempVal != 0) newState.SpecifyEmission("feud", tempVal*0.5f);
-
-                    recompute = true;
+                    newState.AdjustEmission("synergy", 1.5f);
+                    newState.AdjustEmission("reconcile", 1.5f);
+                    newState.AdjustEmission("feud", 0.5f);
                 }
 
                 // This one is not
                 if (pf.HasAttribute("scrapper"))
                 {
-                    tempVal = newState.GetEmissionProbability("reconcile");
-                    if (tempVal != 0) newState.SpecifyEmission("reconcile", tempVal*0.75f);
-                    
-                    tempVal = newState.GetEmissionProbability("feud");
-                    if (tempVal != 0) newState.SpecifyEmission("feud", tempVal*1.5f);
-                    
-                    recompute = true;
+                    newState.AdjustEmission("reconcile", 0.5f);
+                    newState.AdjustEmission("feud", 1.5f);
                 }
-                
-                if (recompute) newState.Recompute();
             }
         }
         
@@ -1548,6 +1596,31 @@ namespace RPStoryteller
             {
                 InitializeHMM("kerbal_"+personnelFile.kerbalProductiveState, kerbalName:personnelFile.UniqueName());
             }
+        }
+
+        /// <summary>
+        /// Makes sure that the emission probabilities of a HMM reflect the current cirsumstances.
+        /// </summary>
+        /// <param name="hmm"></param>
+        public void ContextualizeHMM(HiddenState hmm)
+        {
+            // Clean slate
+            hmm.LoadTemplate();
+            
+            // Program Manager
+            _programManager.ModifyEmissionProgramManager(hmm);
+            
+            // Media mode
+            _programManager.ModifyEmissionMediaMode(hmm, _reputationManager.currentMode);
+            
+            // Control status
+            _programManager.ModifyEmissionControl(hmm);
+            
+            // Priorities
+            _programManager.ModifyEmissionPriority(hmm);
+            
+            // Personality
+            ApplyCrewPersonality(hmm);
         }
 
         /// <summary>
@@ -1722,6 +1795,9 @@ namespace RPStoryteller
                     Debug($"{registeredStateName} schedule, but doesn't exist");
                     continue;
                 }
+                
+                // Makes sure that Emissions are reflecting game state
+                ContextualizeHMM(_liveProcesses[registeredStateName]);
 
                 // HMM emission call
                 emittedEvent = _liveProcesses[registeredStateName].Emission();
@@ -1740,6 +1816,10 @@ namespace RPStoryteller
                             continue;
                         }
                         if (personnelFile.IsInactive()) continue;
+                        // Program managers don't generate speciality-specific events.
+                        if (registeredStateName.Contains(personnelFile.Specialty()) &
+                            personnelFile.UniqueName() == _programManager.ManagerName()) continue;
+                        
                         if (personnelFile.coercedTask)
                         {
                             EmitEvent(personnelFile.kerbalTask, personnelFile);
@@ -1832,6 +1912,9 @@ namespace RPStoryteller
                     break;
                 case "debris_conclude":
                     DebrisConclude();
+                    break;
+                case "program_check":
+                    ProgramCheck();
                     break;
                 default:
                     Debug( $"[Emission] {eventName} is not implemented yet.");
@@ -2050,6 +2133,29 @@ namespace RPStoryteller
             }
         }
 
+        /// <summary>
+        /// Heartbeat of the program manager
+        /// </summary>
+        public void ProgramCheck()
+        {
+            SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()), GetProgramComplexity());
+
+            if (outcome == SkillCheckOutcome.CRITICAL & _programManager.ControlLevel() != ProgramControlLevel.HIGH)
+            {
+                NewsStory ns = new NewsStory(HeadlineScope.FEATURE, "KSC in high-gear");
+                ns.AddToStory($"Your program is experiencing a golden age of productivity due to the leadership from {_programManager.ManagerName()}.");
+                FileHeadline(ns);
+            }
+            if (outcome == SkillCheckOutcome.FUMBLE & _programManager.ControlLevel() != ProgramControlLevel.CHAOS)
+            {
+                NewsStory ns = new NewsStory(HeadlineScope.FEATURE, "KSC in chaos");
+                ns.AddToStory($"A few blunders from {_programManager.ManagerName()} sends your program into chaos.");
+                FileHeadline(ns);
+            }
+            
+            _programManager.RegisterProgramCheck(outcome);
+        }
+
         #region Death
 
         public void InquiryDamningReport()
@@ -2141,13 +2247,22 @@ namespace RPStoryteller
 
         public void EventContractCompleted(Contract contract)
         {
-            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "Breaking!");
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"{contract.Title}");
             ns.AddToStory($"Multiple reports of the completion of {contract.Title}!");
             if (contract.FundsCompletion != 0)
             {
                 ns.AddToStory($" The √{contract.FundsCompletion} will be most welcome to bankroll future endeavours.");
             }
-            FileHeadline(ns, false);
+
+            ns.reputationValue += contract.ReputationCompletion;
+            if (_reputationManager.currentMode != MediaRelationMode.LOWPROFILE)
+            {
+                FileHeadline(ns, false);
+            }
+            else
+            {
+                _reputationManager.FilePressRelease(ns);
+            }
         }
 
         public void EventContractAccepted(Contract contract)
@@ -2317,13 +2432,13 @@ namespace RPStoryteller
 
         public int GUIVABEnhancement()
         {
-            return _peopleManager.KSCImpact("Engineer");
+            return _peopleManager.KSCImpact("Engineer") + _programManager.GetVABInfluence();
 
         }
 
         public int GUIRnDEnhancement()
         {
-            return _peopleManager.KSCImpact("Scientist");
+            return _peopleManager.KSCImpact("Scientist") + _programManager.GetRnDInfluence();
         }
 
         #endregion
@@ -2504,11 +2619,17 @@ namespace RPStoryteller
                 }
                 else
                 {
-                    ns.AddToStory($"The media crews are leaving impressed. (Hype: {_reputationManager.Hype()})");
+                    ns.AddToStory($"The media crews are leaving impressed. (Hype: {Math.Round(_reputationManager.Hype(),2)})");
                     ns.headline = "Media debrief: Success";
                 }
                 FileHeadline(ns);
             }
+        }
+
+        public void IssuePressRelease(NewsStory ns)
+        {
+            _reputationManager.IssuePressReleaseFor(ns);
+            FileHeadline(ns);
         }
 
         /// <summary>
@@ -2539,11 +2660,17 @@ namespace RPStoryteller
         /// <returns></returns>
         public bool KerbalProtectReputationDecay()
         {
+            // Step 1: the program manager
+            SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()) );
+            if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
+            
+            // Step 2: Any crew in media_relation mode
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
             {
-                if (kvp.Value.IsInactive()) continue;
+                if (kvp.Value.IsInactive() || kvp.Value.isProgramManager) continue;
+                if (kvp.Value.kerbalTask != "media_blitz") continue;
 
-                SkillCheckOutcome outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true));
+                outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true));
                 if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
             }
 
@@ -2552,7 +2679,39 @@ namespace RPStoryteller
 
         public double HiringRebate()
         {
-            return 40000;
+            return 10000;
+        }
+
+        /// <summary>
+        /// How difficult it is for the program manager to do their job.
+        /// </summary>
+        /// <returns>A difficulty for a SkillCheck</returns>
+        public int GetProgramComplexity()
+        {
+            double level = 0;
+            level += GetFacilityLevel(SpaceCenterFacility.MissionControl) * 2;
+            level += GetFacilityLevel(SpaceCenterFacility.AstronautComplex) * 2;
+            level += GetFacilityLevel(SpaceCenterFacility.ResearchAndDevelopment);
+            level += GetFacilityLevel(SpaceCenterFacility.VehicleAssemblyBuilding);
+            level /= 6;
+
+            return (int) Math.Round(level, MidpointRounding.AwayFromZero);
+        }
+
+        public int GetProbabilisticLevel(double level, bool deterministic = true)
+        {
+            if (deterministic)
+            {
+                return (int)Math.Round(level, MidpointRounding.AwayFromZero);
+            }
+            
+            int output = (int) Math.Floor(level);
+            if (storytellerRand.NextDouble() <= level - Math.Floor(level))
+            {
+                output += 1;
+            }
+
+            return output;
         }
         #endregion
 
@@ -2574,6 +2733,18 @@ namespace RPStoryteller
         public int GetVABPoints()
         {
             return Utilities.GetSpentUpgradesFor(SpaceCenterFacility.VehicleAssemblyBuilding);
+        }
+
+        public int UpgradeIncrementVAB()
+        {
+            int purchased = GetVABPoints() - GUIVABEnhancement();
+            return Math.Max(1, GetProbabilisticLevel((double)purchased * 0.05));
+        }
+        
+        public int UpgradeIncrementRnD()
+        {
+            int purchased = GetRnDPoints() - GUIRnDEnhancement();
+            return Math.Max(1, GetProbabilisticLevel((double)purchased * 0.05));
         }
 
         /// <summary>
@@ -2634,6 +2805,11 @@ namespace RPStoryteller
             {
                 CancelInfluence(kvp.Value);
             }
+        }
+
+        public int GetFacilityLevel(SpaceCenterFacility facility)
+        {
+            return Utilities.GetBuildingUpgradeLevel(facility);
         }
         
         #endregion

@@ -29,6 +29,9 @@ namespace RPStoryteller
         // Prospective crew members
         public Dictionary<string, PersonnelFile> applicantFolders = new Dictionary<string, PersonnelFile>();
         
+        // Program manager(s)
+        public Dictionary<string, PersonnelFile> managerFolders = new Dictionary<string, PersonnelFile>();
+        
         // Job Search
         [KSPField(isPersistant = true)] public bool seekingPilot = false;
         [KSPField(isPersistant = true)] public bool seekingScientist = false;
@@ -63,6 +66,12 @@ namespace RPStoryteller
             }
             node.AddNode("APPLICANTFILES", appfolders);
             
+            ConfigNode mngrfolders = new ConfigNode();
+            foreach (KeyValuePair<string, PersonnelFile> kvp in managerFolders)
+            {
+                mngrfolders.AddNode("File", kvp.Value.AsConfigNode());
+            }
+            node.AddNode("MANAGERFILES", mngrfolders);
         }
 
         public override void OnLoad(ConfigNode node)
@@ -97,6 +106,21 @@ namespace RPStoryteller
                     {
                         temporaryFile = new PersonnelFile(kerbalFile);
                         applicantFolders.Add(temporaryFile.UniqueName(), temporaryFile);
+                    }
+                }
+            }
+            
+            folder = node.GetNode("MANAGERFILES");
+            if (folder != null)
+            {
+                PersonnelFile temporaryFile;
+            
+                foreach (ConfigNode kerbalFile in folder.GetNodes())
+                {
+                    if (managerFolders.ContainsKey(kerbalFile.GetValue("kerbalName")) == false)
+                    {
+                        temporaryFile = new PersonnelFile(kerbalFile);
+                        managerFolders.Add(temporaryFile.UniqueName(), temporaryFile);
                     }
                 }
             }
@@ -242,6 +266,19 @@ namespace RPStoryteller
         }
 
         /// <summary>
+        /// Create a non-flight manager to run the place in absence of a high profile Project Manager
+        /// </summary>
+        /// <param name="level"></param>
+        /// <returns></returns>
+        public PersonnelFile GenerateDefaultProgramManager(int level = 0)
+        {
+            ProtoCrewMember newpcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Unowned);
+            PersonnelFile newFile = GetFile(newpcm.name);
+            newFile.Randomize(level);
+            return newFile;
+        }
+
+        /// <summary>
         /// Moves from applicants to personnel or create the file
         /// </summary>
         /// <param name="apcm">PCM from event</param>
@@ -315,7 +352,32 @@ namespace RPStoryteller
             return null;
         }
 
+        public void AssignProgramManager(PersonnelFile newManager)
+        {
+            managerFolders.Clear();
+            managerFolders.Add(newManager.UniqueName(), newManager);
+        }
+        
+        /// <summary>
+        /// Returns the program manager or null
+        /// </summary>
+        /// <returns></returns>
+        public PersonnelFile GetProgramManager()
+        {
+            HeadlinesUtil.Report(1, $"managerFolder length {managerFolders.Count}.");
+            if (managerFolders.Count == 0)
+            {
+                return null;
+            }
 
+            foreach (KeyValuePair<string, PersonnelFile> kvp in managerFolders)
+            {
+                return kvp.Value;
+            }
+
+            return null;
+        }
+        
         /// <summary>
         /// Needed by the GUI to build a roster selector
         /// </summary>
@@ -552,6 +614,8 @@ namespace RPStoryteller
 
     public class PersonnelFile
     {
+        #region fields
+        
         private static System.Random randomNG = new System.Random();
         
         public static List<string>attributes = new List<string>() {"stubborn","genial","inspiring","charming","scrapper","bland"};
@@ -586,6 +650,9 @@ namespace RPStoryteller
         public string kerbalProductiveState;
         public string kerbalTask;
         
+        // Program Manager
+        public bool isProgramManager = false;
+        
         // relationships
         public List<string> collaborators = new List<string>();
         public List<string> feuds = new List<string>();
@@ -596,6 +663,8 @@ namespace RPStoryteller
         private ProtoCrewMember pcm;
 
         private int _cachedEffectiveness = 0; 
+        
+        #endregion
         
         /// <summary>
         /// Constructor used to generate a brand new file from a protocrewember
@@ -647,6 +716,8 @@ namespace RPStoryteller
             discontent = int.Parse(node.GetValue("discontent"));
             lifetimeHype = int.Parse(node.GetValue("lifetimeHype"));
             personality = node.GetValue("personality");
+            isProgramManager = Boolean.Parse(node.GetValue("isProgramManager"));
+            nationality = node.GetValue("nationality");
             
             ConfigNode people = node.GetNode("people");
             
@@ -676,6 +747,8 @@ namespace RPStoryteller
             outputNode.AddValue("discontent", this.discontent);
             outputNode.AddValue("lifetimeHype", lifetimeHype);
             outputNode.AddValue("personality", personality);
+            outputNode.AddValue("isProgramManager", isProgramManager);
+            outputNode.AddValue("nationality", nationality);
 
             ConfigNode people = new ConfigNode();
 
@@ -907,9 +980,9 @@ namespace RPStoryteller
             return pcm.inactiveTimeEnd;
         }
         
-        public bool IsFeuding(PersonnelFile candidate)
+        public bool IsFeuding(string candidate)
         {
-            return feuds.Contains(candidate.UniqueName()) ;
+            return feuds.Contains(candidate) ;
         }
         
         /// <summary>
@@ -1155,12 +1228,19 @@ namespace RPStoryteller
             {
                 discontent = Math.Max(0, discontent + difference);
             }
-            
+
+            personality = GetRandomPersonality();
+        }
+
+        public static string GetRandomPersonality()
+        {
             if (randomNG.NextDouble() < 0.5)
             {
                 int attributeIndex = randomNG.Next(0, attributes.Count);
-                personality = attributes[attributeIndex];
+               return attributes[attributeIndex];
             }
+
+            return "";
         }
 
         public void RandomizeType()
