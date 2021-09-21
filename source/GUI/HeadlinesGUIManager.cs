@@ -479,10 +479,15 @@ namespace RPStoryteller.source.GUI
                 }
                 
             }
-            
-            
-            _showAutoAcceptedContracts = GUILayout.Toggle(_showAutoAcceptedContracts, "Show all contracts");
 
+            bool temp = false;
+            temp = GUILayout.Toggle(_showAutoAcceptedContracts, "Show all contracts");
+            if (temp != _showAutoAcceptedContracts)
+            {
+                _showAutoAcceptedContracts = temp;
+                resizePosition = true;
+            }
+            
             GUIPad();
         }
 
@@ -1112,7 +1117,13 @@ namespace RPStoryteller.source.GUI
                 GUILayout.EndScrollView();
             }
 
-            _showDebug = GUILayout.Toggle(_showDebug, "Show debug controls");
+            bool temp = false;
+            temp = GUILayout.Toggle(_showDebug, "Show debug controls");
+            if (temp != _showDebug)
+            {
+                _showDebug = temp;
+                resizePosition = true;
+            }
             GUILayout.EndVertical();
         }
 
