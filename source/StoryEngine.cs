@@ -513,7 +513,9 @@ namespace RPStoryteller
                 }
                 alreadyProcessed.Add(crewName);
                 
-                HeadlinesUtil.Report(3, $"Death inquiry for {crewName} launched.", "Public Inquiry");
+                NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"Death inquiry for {crewName} launched.",
+                    "Public Inquiry");
+                FileHeadline(ns);
 
                 PersonnelFile personnelFile = _peopleManager.GetFile(crewName);
                 if (personnelFile == null) PrintScreen("null pfile");
