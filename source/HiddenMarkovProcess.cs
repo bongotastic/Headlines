@@ -28,28 +28,14 @@ namespace HiddenMarkovProcess
 
         // Housekeeping
         private bool _dirty = true;
-        public bool _personalityApplied = false;
+        private List<string> _appliedFilters = new List<string>(); 
 
         public HiddenState(string templateStateIdentity, string kerbalName="")
         {
             this.templateStateName = templateStateIdentity;
             this.kerbalName = kerbalName;
             
-            // Default emission-less permanent state
-            _transitions.Add("", 1.0f);
-            _emissions.Add("", 1.0f);
-
-            ConfigNode thisdefinition = null;
-            
-            foreach (ConfigNode cfg in GameDatabase.Instance.GetConfigNodes("HIDDENMARKOVMODELS"))
-            {
-                if (cfg.TryGetNode(templateStateIdentity, ref thisdefinition))
-                {
-                    FromConfigNode(thisdefinition);
-                    break;
-                }
-            }
-            Recompute();
+            LoadTemplate();
         }
 
         #region Meta
@@ -101,6 +87,29 @@ namespace HiddenMarkovProcess
             }
 
             return output;
+        }
+
+        public void LoadTemplate()
+        {
+            _appliedFilters.Clear();
+            _emissions.Clear();
+            _transitions.Clear();
+            
+            // Default emission-less permanent state
+            _transitions.Add("", 1.0f);
+            _emissions.Add("", 1.0f);
+
+            ConfigNode thisdefinition = null;
+            
+            foreach (ConfigNode cfg in GameDatabase.Instance.GetConfigNodes("HIDDENMARKOVMODELS"))
+            {
+                if (cfg.TryGetNode(templateStateName, ref thisdefinition))
+                {
+                    FromConfigNode(thisdefinition);
+                    break;
+                }
+            }
+            Recompute();
         }
         #endregion
 
@@ -301,7 +310,38 @@ namespace HiddenMarkovProcess
             
         }
         #endregion
+
+        #region Filters
         
+        /// <summary>
+        /// Modify one emission probability by a factor. This emission must be already present to be modified.
+        /// </summary>
+        /// <remarks>Must be used in conjuction with setting a filter label with RegisterFilter().</remarks>
+        /// <param name="emissionName"></param>
+        /// <param name="factor"></param>
+        public void AdjustEmission(string emissionName, float factor = 1)
+        {
+            if (_emissions.ContainsKey(emissionName))
+            {
+                float newProbability = _emissions[emissionName];
+                newProbability *= factor;
+                SpecifyEmission(emissionName, newProbability);
+            }
+        }
+
+        /// <summary>
+        /// Keep a record of modifications to the emission probabilities
+        /// </summary>
+        /// <param name="filterName"></param>
+        public void RegisterFilter(string filterName)
+        {
+            if (!_appliedFilters.Contains(filterName))
+            {
+                _appliedFilters.Add(filterName);
+            }
+        }
+
+        #endregion
 
     }
 }
