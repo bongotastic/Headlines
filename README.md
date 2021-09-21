@@ -4,3 +4,5 @@ More information: Please refer to the project's wiki.
 
 Dependencies: 
 * Realistic Progression 1
+* Kerbal Renamer (Newest release)
+* Kerbal Alarm Clock
