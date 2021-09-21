@@ -512,6 +512,7 @@ namespace RPStoryteller.source
             string background = new List<string>() {"Neutral", "Pilot", "Engineer", "Scientist"}[rnd.Next(3)];
             
             ProgramManagerRecord pmRecord = new ProgramManagerRecord(name, background, PersonnelFile.GetRandomPersonality());
+            pmRecord.managerSkill = _storyEngine.GetProgramComplexity() + 4;
             _record.Add(pmRecord.name, pmRecord);
             AssignProgramManager(pmRecord.name);
         }
