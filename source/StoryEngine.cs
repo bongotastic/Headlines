@@ -8,13 +8,13 @@ using FinePrint;
 using HiddenMarkovProcess;
 using KerbalConstructionTime;
 using Renamer;
-using RPStoryteller.source;
-using RPStoryteller.source.Emissions;
+using Headlines.source;
+using Headlines.source.Emissions;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 
-namespace RPStoryteller
+namespace Headlines
 {
     public enum ImpactType
     {

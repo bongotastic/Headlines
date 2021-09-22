@@ -6,7 +6,7 @@ using HiddenMarkovProcess;
 using Renamer;
 using Smooth.Collections;
 
-namespace RPStoryteller.source
+namespace Headlines.source
 {
     /// <summary>
     /// Four levels of control over the program

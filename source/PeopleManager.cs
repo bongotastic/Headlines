@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using CommNet.Network;
 using KerbalConstructionTime;
-using RPStoryteller.source;
+using Headlines.source;
 using Smooth.Collections;
 using UniLinq;
 using Enumerable = System.Linq.Enumerable;
 
-namespace RPStoryteller
+namespace Headlines
 {
     /// <summary>
     /// This class manages the Kerbal interface of the Storyteller mod: a mix of HR and the PR department.

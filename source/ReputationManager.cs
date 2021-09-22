@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using Contracts;
 using KSP.UI;
 using RP0;
-using RPStoryteller.source.Emissions;
+using Headlines.source.Emissions;
 using UnityEngine;
 
-namespace RPStoryteller.source
+namespace Headlines.source
 {
     public enum MediaRelationMode
     {

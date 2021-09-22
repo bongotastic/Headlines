@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UniLinq;
 
-namespace RPStoryteller.source.Emissions
+namespace Headlines.source.Emissions
 {
     public enum HeadlineScope
     {

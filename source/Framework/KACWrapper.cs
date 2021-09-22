@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 
-namespace RPStoryteller
+namespace Headlines
 {
 
     ///////////////////////////////////////////////////////////////////////////////////////////

@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("RPStoryteller")]
+[assembly: AssemblyTitle("Headlines")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("RPStoryteller")]
+[assembly: AssemblyProduct("Headlines")]
 [assembly: AssemblyCopyright("Copyright © Christian Blouin 2021")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
