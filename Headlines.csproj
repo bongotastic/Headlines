@@ -7,8 +7,8 @@
     <ProjectGuid>{5D167AC0-C71C-4E70-83DB-0C573A191D23}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>RPStoryteller</RootNamespace>
-    <AssemblyName>RPStoryteller</AssemblyName>
+    <RootNamespace>Headlines</RootNamespace>
+    <AssemblyName>Headlines</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -38,7 +38,7 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\RP-1 TF\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="Renamer, Version=1.4.0.0, Culture=neutral, PublicKeyToken=null">
+    <Reference Include="Renamer, Version=1.5.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\..\..\..\..\KSP dev\RP1play\GameData\KerbalRenamer\plugins\Renamer.dll</HintPath>
     </Reference>
     <Reference Include="RP0, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
@@ -81,9 +81,7 @@
     <Compile Include="source\PeopleManager.cs" />
     <Compile Include="source\ProgramManager.cs" />
     <Compile Include="source\ReputationManager.cs" />
-    <Compile Include="source\StoryEngine.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Compile>
+    <Compile Include="source\StoryEngine.cs" />
     <Compile Include="source\HeadlinesUtil.cs" />
   </ItemGroup>
   <ItemGroup>

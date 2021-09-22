@@ -4,12 +4,12 @@ using System.Linq;
 using Contracts;
 using HiddenMarkovProcess;
 using KSP.UI.Screens;
-using RPStoryteller.source.Emissions;
+using Headlines.source.Emissions;
 using UnityEngine;
 using Enumerable = UniLinq.Enumerable;
 
 
-namespace RPStoryteller.source.GUI
+namespace Headlines.source.GUI
 {
     [KSPAddon(KSPAddon.Startup.FlightEditorAndKSC, false)]
     public class HeadlinesGUIManager : MonoBehaviour

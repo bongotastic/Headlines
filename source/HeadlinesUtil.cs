@@ -1,8 +1,8 @@
 ﻿using KSP.UI.Screens;
-using RPStoryteller.source.Emissions;
+using Headlines.source.Emissions;
 
 
-namespace RPStoryteller.source
+namespace Headlines.source
 {
     public class HeadlinesUtil
     {

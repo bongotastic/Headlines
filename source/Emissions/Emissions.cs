@@ -6,7 +6,7 @@ using KerbalConstructionTime;
 using UniLinq;
 using UnityEngine;
 
-namespace RPStoryteller.source.Emissions
+namespace Headlines.source.Emissions
 {
     public class Emissions
     {
