@@ -1186,7 +1186,7 @@ namespace RPStoryteller
             this.discontent = Math.Min(this.discontent, 5);
         }
 
-        public void IncurInjury(double endTime)
+        public void SetInactive(double endTime)
         {
             pcm.SetInactive(endTime, false);
         }

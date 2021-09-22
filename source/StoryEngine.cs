@@ -206,6 +206,9 @@ namespace RPStoryteller
             // Unfortunate addition to the Update look to get around weirdness in Event Firing.
             if (newDeath.Count != 0) DeathRoutine();
             if (newLaunch.Count != 0) CrewedLaunchReputation();
+            
+            // Kill impact if a kerbal is inactive
+            CancelInfluenceForInactiveCrew();
 
             // Another dumb hack
             if (ongoingInquiry && !_liveProcesses.ContainsKey("death_inquiry")) InitializeHMM("death_inquiry");
@@ -624,6 +627,7 @@ namespace RPStoryteller
                     onboardHype += individualHype;
                     pf.lifetimeHype += (int)individualHype;
                     pf.AdjustDiscontent(-1);
+                    CancelInfluence(pf);
 
                     // First flight grants one experience point as a baseline display of competence (not sure if this will work)
                     if (pcm.experienceLevel == 0)
@@ -1353,6 +1357,7 @@ namespace RPStoryteller
                     ns.AddToStory(emitData.GenerateStory());
                     FileHeadline(ns);
                     TransitionHMM(KerbalStateOf(personnelFile), "kerbal_injured");
+                    CancelInfluence(personnelFile);
                     break;
             }
         }
@@ -1764,7 +1769,7 @@ namespace RPStoryteller
             // Punt injury inactivation into the future
             if (registeredStateIdentity.Contains("kerbal_injured"))
             {
-                _peopleManager.GetFile(_liveProcesses[registeredStateIdentity].kerbalName).IncurInjury(deltaTime);
+                _peopleManager.GetFile(_liveProcesses[registeredStateIdentity].kerbalName).SetInactive(deltaTime);
             }
         }
 
@@ -2456,10 +2461,19 @@ namespace RPStoryteller
             int maxStories = 100;
             double month = 3600 * 24 * 30;
             double now = HeadlinesUtil.GetUT();
+
             
             if (headlines.Count > maxStories)
             {
-                headlines = new Queue<NewsStory>(headlines.Where(x => x.timestamp < now - ((int)x.scope * 3 * month)));
+                Queue<NewsStory> nq = new Queue<NewsStory>();
+                foreach (NewsStory ns in headlines)
+                {
+                    if (ns.timestamp > now - ((int)ns.scope * 3 * month))
+                    {
+                        nq.Enqueue(ns);
+                    }
+                }
+                headlines = nq;
                 Debug($"News Feed culled to {headlines.Count} elements","News Feed");
             }
             else
@@ -2804,6 +2818,17 @@ namespace RPStoryteller
         private void CancelAllInfluence()
         {
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
+            {
+                CancelInfluence(kvp.Value);
+            }
+        }
+
+        /// <summary>
+        /// Catch cases where inactivity is triggered by a course.
+        /// </summary>
+        private void CancelInfluenceForInactiveCrew()
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders.Where(x=>x.Value.IsInactive()))
             {
                 CancelInfluence(kvp.Value);
             }
