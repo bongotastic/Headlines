@@ -860,7 +860,6 @@ namespace Headlines.source.GUI
             }
 
             GUIPad();
-            GUILayout.Box("News feed");
             DrawFeedSection(true);
         }
 
@@ -910,9 +909,9 @@ namespace Headlines.source.GUI
 
         private void DrawFeedSection(bool crewSpecific = false)
         {
+            bool drawfeed = false;
             int height = crewSpecific ? 100 : 430;
-            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(height));
-            if (storyEngine.headlines.Count == 0)
+            if (storyEngine.headlines.Count == 0 & !crewSpecific)
             {
                 GUILayout.Label("This is soon to become a busy feed. Enjoy the silence while it lasts.");
             }
@@ -922,16 +921,32 @@ namespace Headlines.source.GUI
                 {
                     if (ns.HasActor(crewRoster[_selectedCrew]))
                     {
+                        if (!drawfeed)
+                        {
+                            GUILayout.Box("News feed");
+                            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(height));
+                            drawfeed = true;
+                        }
                         DrawHeadline(ns);
                     }
                 }
                 else
                 {
                     if ((int)ns.scope < feedThreshold + 1) continue;
+                    if (!drawfeed)
+                    {
+                        scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(height));
+                        drawfeed = true;
+                    }
                     DrawHeadline(ns);
                 }
             }
-            GUILayout.EndScrollView();
+
+            if (drawfeed)
+            {
+                GUILayout.EndScrollView();
+            }
+            
         }
 
         private void DrawHeadline(NewsStory ns)
