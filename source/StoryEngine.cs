@@ -1497,6 +1497,8 @@ namespace Headlines
             }
             FileHeadline(ns);
             
+            _peopleManager.MarkEffectivenessCacheDirty();
+            
         }
         #endregion
 
@@ -1779,6 +1781,8 @@ namespace Headlines
         /// <param name="currentTime">Passed on from GetUT() from a previous calls</param>
         private void SchedulerUpdate(double currentTime)
         {
+            _peopleManager.MarkEffectivenessCacheDirty();
+            
             Debug("Scheduler update");
             string emittedEvent = "";
             string nextTransitionState = "";

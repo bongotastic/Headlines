@@ -682,6 +682,7 @@ namespace Headlines.source.GUI
             GUIPad();
             DrawCrew();
             GUILayout.EndVertical();
+     
         }
 
         
@@ -697,14 +698,14 @@ namespace Headlines.source.GUI
             string personality = "";
             if (focusCrew.personality != "")
             {
-                personality = $" ({focusCrew.personality})";
+                personality = $", {focusCrew.personality}";
             }
 
             double effectiveness = focusCrew.Effectiveness(deterministic: true);
             if (focusCrew.UniqueName() == PrgMgr.ManagerName())
             {
                 effectiveness -= storyEngine.GetProgramComplexity();
-                GUILayout.Box($"{peopleManager.QualitativeEffectiveness(effectiveness)} Program Manager ({focusCrew.Specialty()}, {personality.Substring(1,personality.Length-2)})");
+                GUILayout.Box($"{peopleManager.QualitativeEffectiveness(effectiveness)} Program Manager ({focusCrew.Specialty()}{personality})");
             }
             else
             {
@@ -759,7 +760,7 @@ namespace Headlines.source.GUI
             {
                 if (PrgMgr.ManagerName() != focusCrew.UniqueName())
                 {
-                    if (focusCrew.Effectiveness(deterministic: true) > PrgMgr.ManagerProfile())
+                    if (focusCrew.Effectiveness(deterministic: true) > PrgMgr.ManagerProfile(deterministic:true))
                     {
                         GUILayout.BeginHorizontal();
                         Indent();

@@ -606,12 +606,21 @@ namespace Headlines
 
             List<string> output = new List<string>();
             
-            foreach (PersonnelFile pf in temp.OrderByDescending(o=>o.Effectiveness(deterministic:true, quickDirty:true)))
+            // to do Cannot use cached as it causes flickering when PM is not a NPC (?)
+            foreach (PersonnelFile pf in temp.OrderByDescending(o=>o.Effectiveness(deterministic:true, quickDirty:false)))
             {
                 output.Add(pf.UniqueName());
             }
 
             return output;
+        }
+
+        public void MarkEffectivenessCacheDirty()
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                kvp.Value.ResetEffectivenessCache();
+            }
         }
 
         #endregion
@@ -1204,6 +1213,11 @@ namespace Headlines
         {
             kerbalTask = newtask;
             coercedTask = true;
+        }
+        
+        public void ResetEffectivenessCache()
+        {
+            _cachedEffectiveness = 0;
         }
         #endregion
 
