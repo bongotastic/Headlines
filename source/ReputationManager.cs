@@ -302,6 +302,7 @@ namespace Headlines.source
             // LOW Profile mode cause a cancellation of credibility unless allowed through
             if (currentMode == MediaRelationMode.LOWPROFILE)
             {
+                HeadlinesUtil.Report(1, $"LOW PROFILE with {credibilityGainAllowed} bypasses.");
                 if (credibilityGainAllowed == 0)
                 {
                     IgnoreLastCredibilityChange();
@@ -309,6 +310,7 @@ namespace Headlines.source
                 }
                 else
                 {
+                    HeadlinesUtil.Report(1, $"And letting it through.");
                     credibilityGainAllowed = Math.Max(0, credibilityGainAllowed - 1);
                 }
                 

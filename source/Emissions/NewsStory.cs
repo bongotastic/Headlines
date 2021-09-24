@@ -71,6 +71,7 @@ namespace Headlines.source.Emissions
             output.AddValue("scope", (int)scope);
             output.AddValue("headline", headline);
             output.AddValue("story", story);
+            output.AddValue("reputationValue", reputationValue);
 
             ConfigNode act = new ConfigNode();
             bool addAct = false;
@@ -94,6 +95,7 @@ namespace Headlines.source.Emissions
             scope = (HeadlineScope) int.Parse(node.GetValue("scope"));
             headline = node.GetValue("headline");
             story = node.GetValue("story");
+            reputationValue = float.Parse(node.GetValue("reputationValue"));
 
             ConfigNode act = node.GetNode("actors");
             if (act != null)
