@@ -2226,7 +2226,7 @@ namespace Headlines
         /// todo Split the two procedure into two methods.
         public void WithdrawRandomApplication()
         {
-            if (_peopleManager.applicantFolders.Count > 0)
+            if (_peopleManager.applicantFolders.Count > 1)
             {
                 PersonnelFile dropOut = (PersonnelFile) null;
                 int randomIndex = storytellerRand.Next(0, _peopleManager.applicantFolders.Count);

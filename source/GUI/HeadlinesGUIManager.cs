@@ -1120,6 +1120,11 @@ namespace Headlines.source.GUI
                 {
                     storyEngine.RealityCheck();
                 }
+                
+                if (GUILayout.Button("Add applicant"))
+                {
+                    storyEngine.NewRandomApplicant();
+                }
 
                 GUIPad();
                 GUILayout.Box("Random processes");
