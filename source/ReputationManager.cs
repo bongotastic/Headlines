@@ -249,7 +249,7 @@ namespace Headlines.source
         /// </summary>
         public void IgnoreLastCredibilityChange()
         {
-            AdjustCredibility( Credibility() - lastKnownCredibility);
+            Reputation.Instance.SetReputation((float)lastKnownCredibility, TransactionReasons.None);
         }
 
         /// <summary>
@@ -309,7 +309,7 @@ namespace Headlines.source
                 }
                 else
                 {
-                    credibilityGainAllowed -= 1;
+                    credibilityGainAllowed = Math.Max(0, credibilityGainAllowed - 1);
                 }
                 
             }

@@ -2265,7 +2265,8 @@ namespace Headlines
                 ns.AddToStory($" The √{contract.FundsCompletion} will be most welcome to bankroll future endeavours.");
             }
 
-            ns.reputationValue += contract.ReputationCompletion;
+            ns.reputationValue = contract.ReputationCompletion;
+            HeadlinesUtil.Report(1, $"Contract {contract.Title} value is {contract.ReputationCompletion}");
             if (_reputationManager.currentMode != MediaRelationMode.LOWPROFILE)
             {
                 FileHeadline(ns, false);
