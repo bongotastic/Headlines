@@ -461,9 +461,11 @@ namespace Headlines.source.GUI
                         ratio = 1f;
                     }
 
+                    string ratioString = $"({(int)Math.Ceiling(100f*ratio)}%)";
                     if (ratio >= 1f)
                     {
                         UnityEngine.GUI.contentColor = Color.green;
+                        ratioString = $"({Math.Round(ratio, (ratio > 5f) ? 0 : 1, MidpointRounding.AwayFromZero)}X)";
                     }
 
                     else if (ratio >= 0.5f)
@@ -472,7 +474,7 @@ namespace Headlines.source.GUI
                     }
                     else UnityEngine.GUI.contentColor = Color.red;
                     
-                    GUILayout.Label($"{myContract.Title} (Cred: {myContract.ReputationCompletion}, {(int)Math.Ceiling(100f*ratio)}%)" , GUILayout.Width(380));
+                    GUILayout.Label($"{myContract.Title} (Cred: {myContract.ReputationCompletion}, {ratioString}" , GUILayout.Width(380));
                     UnityEngine.GUI.contentColor = originalColor;
                     
                     GUILayout.EndHorizontal();

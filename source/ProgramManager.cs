@@ -349,6 +349,12 @@ namespace Headlines.source
                 RegisterProgramCheckFailure();
                 return;
             }
+
+            if (programPriority == ProgramPriority.CAPACITY)
+            {
+                _storyEngine.programPayrollRebate =
+                    (_storyEngine.programPayrollRebate == 0) ? 1 : _storyEngine.programPayrollRebate;
+            }
             ApplyInfluence();
             controlLevel = ProgramControlLevel.NOMINAL;
         }
@@ -361,6 +367,11 @@ namespace Headlines.source
                 return;
             }
             ApplyInfluence();
+            
+            if (programPriority == ProgramPriority.CAPACITY)
+            {
+                _storyEngine.programPayrollRebate += 1;
+            }
             controlLevel = ProgramControlLevel.HIGH;
         }
 
