@@ -1388,6 +1388,7 @@ namespace Headlines
             
             if (_peopleManager.EndWarp(newApplicant))
             {
+                HeadlinesUtil.Report(2, "New Applicant to review");
                 TimeWarp.SetRate(0,false);
             }
         }
@@ -2112,6 +2113,12 @@ namespace Headlines
                 _reputationManager.AdjustCredibility(decayScalar);
                 return;
             }
+            
+            // Secret achievements cannot be protected by PR
+            foreach (NewsStory ns in _reputationManager.shelvedAchievements)
+            {
+                ns.reputationValue *= 0.933f;
+            }
 
             if (KerbalProtectReputationDecay())
             {
@@ -2219,6 +2226,7 @@ namespace Headlines
             
             if (_peopleManager.ShouldNotify(pf.Specialty()))
             {
+                HeadlinesUtil.Report(2, "New Applicant to review");
                 TimeWarp.SetRate(0,false);
             }
         }

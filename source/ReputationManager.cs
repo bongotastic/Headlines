@@ -543,7 +543,7 @@ namespace Headlines.source
 
         public bool EventSuccess()
         {
-            return Credibility() >= mediaOpsTarget;
+            return Math.Round(Credibility(),0,MidpointRounding.AwayFromZero)  >= Math.Round(mediaOpsTarget,0,MidpointRounding.AwayFromZero);
         }
 
         public double WageredCredibilityToGo()
@@ -590,7 +590,7 @@ namespace Headlines.source
         {
             credibilityGainAllowed += 1;
             shelvedAchievements.Remove(ns);
-            AdjustCredibility(ns.reputationValue);
+            AdjustCredibility(ns.reputationValue, TransactionReasons.Contracts);
         }
 
         

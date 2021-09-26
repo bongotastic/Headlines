@@ -514,7 +514,7 @@ namespace Headlines.source.GUI
             {
                 storyEngine.IssuePressRelease(ns);
             }
-            GUILayout.Label($"{ns.headline} ({ns.reputationValue})", GUILayout.Width(320));
+            GUILayout.Label($"{ns.headline} ({Math.Round(ns.reputationValue,1,MidpointRounding.AwayFromZero)})", GUILayout.Width(320));
             GUILayout.EndHorizontal();
         }
 
