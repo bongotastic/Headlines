@@ -1091,6 +1091,19 @@ namespace Headlines.source.GUI
                 storyEngine.DebrisOverLand();
             }
 
+            if (HighLogic.LoadedScene == GameScenes.FLIGHT)
+            {
+                if (GUILayout.Button("High drama ending not badly") && RepMgr.currentMode == MediaRelationMode.LIVE && !storyEngine.highDramaReported)
+                {
+                    storyEngine.HighDramaEndingWell();
+                }
+                
+                if (GUILayout.Button("Naked-eye sightings over urban area") && RepMgr.currentMode != MediaRelationMode.LOWPROFILE)
+                {
+                    storyEngine.VisibleShowOverUrban();
+                }
+            }
+
             GUIPad();
             if (HighLogic.LoadedSceneIsFlight)
             {

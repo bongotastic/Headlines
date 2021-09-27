@@ -111,6 +111,7 @@ namespace Headlines
 
         // Launch detection
         private List<Vessel> newLaunch = new List<Vessel>();
+        [KSPField(isPersistant = true)] public bool highDramaReported = false;
 
         // New Game flag
         [KSPField(isPersistant = true)] public bool hasnotvisitedAstronautComplex = true;
@@ -612,6 +613,8 @@ namespace Headlines
         /// </summary>
         public void CrewedLaunchReputation()
         {
+            highDramaReported = false;
+            
             foreach (Vessel vessel in newLaunch)
             {
                 _programManager.RegisterLaunch(vessel);
@@ -2390,7 +2393,23 @@ namespace Headlines
         }
 
         #endregion
-        
+
+        public void HighDramaEndingWell()
+        {
+            highDramaReported = true;
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "High drama on TV");
+            ns.AddToStory($"Dramatic tension for {FlightGlobals.ActiveVessel.name} is captured on live TV.");
+            FileHeadline(ns);
+            _reputationManager.AdjustHype(_reputationManager.Hype()*0.2);
+        }
+
+        public void VisibleShowOverUrban()
+        {
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "This is not a UFO!");
+            ns.AddToStory($"Sightings of {FlightGlobals.ActiveVessel.name} over the city are captured on live TV.");
+            FileHeadline(ns);
+            _reputationManager.AdjustHype(_reputationManager.Hype()*0.1);
+        }
 
         #endregion
 
