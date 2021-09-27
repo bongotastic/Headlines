@@ -169,6 +169,9 @@ namespace Headlines
         /// </summary>
         public void Update()
         {
+            // Do not run Headlines outside of career
+            if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER) return;
+            
             // Shameless hack.
             if (updateIndex < 10)
             {
@@ -300,7 +303,7 @@ namespace Headlines
                 _reputationManager.FromConfigNode(rmNode);
             }
             /*
-            else
+            if (needUpgrade)
             {
                 HeadlinesUtil.Report(1, "REPUTATIONMANAGER not found");
                 
@@ -316,8 +319,8 @@ namespace Headlines
                 _reputationManager.SetLastKnownCredibility(programLastKnownReputation);
                 _reputationManager.SetHighestReputation(programHighestValuation);
                 
-            }
-            */
+            }*/
+            
             
             Debug("Loading PROGRAMMANAGER");
             ConfigNode pmNode = node.GetNode("PROGRAMMANAGER");
