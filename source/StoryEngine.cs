@@ -2873,6 +2873,17 @@ namespace Headlines
         {
             return Utilities.GetBuildingUpgradeLevel(facility);
         }
+
+        /// <summary>
+        /// Returns whatever KCT wants to warp to next, including tech nodes. 
+        /// </summary>
+        /// <returns></returns>
+        public double GetNextLaunchDeltaTime()
+        {
+            IKCTBuildItem buildItem = Utilities.GetNextThingToFinish();
+            double buildTime = buildItem.GetTimeLeft();
+            return buildTime;
+        }
         
         #endregion
     }

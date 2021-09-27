@@ -195,6 +195,7 @@ namespace Headlines.source.GUI
             {
                 resizePosition = true;
                 _activeTabIndex = selectedActiveTab;
+                mediaInvitationDelay = (int)Math.Ceiling(storyEngine.GetNextLaunchDeltaTime() / (3600*24));
             }
         }
         
