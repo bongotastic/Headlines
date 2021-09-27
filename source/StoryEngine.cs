@@ -1055,6 +1055,15 @@ namespace Headlines
             {
                 ns.AddToStory($" The only thing to show for this leave will be a postcard or some beach glass.");
             }
+            
+            // New passion
+            PartCategories oldPassion = personnelFile.passion;
+            personnelFile.RandomizePassion();
+            if (personnelFile.passion != oldPassion && personnelFile.Specialty() == "Scientist")
+            {
+                ns.AddToStory($"They have developed and affinity to research in the field of {personnelFile.passion.ToString()}.");
+            }
+            
             FileHeadline(ns);
         }
 
@@ -2884,7 +2893,43 @@ namespace Headlines
             double buildTime = buildItem.GetTimeLeft();
             return buildTime;
         }
-        
+
+        /// <summary>
+        /// Pull the data structure of all vessels currently in assembly
+        /// </summary>
+        /// <returns></returns>
+        public List<BuildListVessel> GetAssemblyQueue()
+        {
+            List<BuildListVessel> output = new List<BuildListVessel>();
+
+            foreach (BuildListVessel blv in KCTGameStates.ActiveKSC.VABList)
+            {
+                output.Add(blv);
+            }
+            foreach (BuildListVessel blv in KCTGameStates.ActiveKSC.SPHList)
+            {
+                output.Add(blv);
+            }
+            
+            return output;
+        }
+
+        /// <summary>
+        /// Pulls all tech nodes from KCT
+        /// </summary>
+        /// <returns></returns>
+        public List<TechItem> GetTechNodes()
+        {
+            List<TechItem> output = new List<TechItem>();
+            foreach (var techNode in KCTGameStates.TechList)
+            {
+                output.Add(techNode);
+                techNode.ProtoNode.partsPurchased[0].category = PartCategories.none;
+            }
+            
+            return output;
+        }
+
         #endregion
     }
 }

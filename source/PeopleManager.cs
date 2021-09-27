@@ -9,6 +9,7 @@ using Enumerable = System.Linq.Enumerable;
 
 namespace Headlines
 {
+
     /// <summary>
     /// This class manages the Kerbal interface of the Storyteller mod: a mix of HR and the PR department.
     /// </summary>
@@ -634,8 +635,20 @@ namespace Headlines
         
         public static List<string>attributes = new List<string>() {"stubborn","genial","inspiring","charming","scrapper","bland"};
         
+        private static List<PartCategories> validCategoriesList = new List<PartCategories>()
+        {
+            PartCategories.Aero, PartCategories.Cargo, PartCategories.Communication, PartCategories.Control,
+            PartCategories.Coupling, PartCategories.Electrical,
+            PartCategories.Engine, PartCategories.Ground, PartCategories.Payload, PartCategories.Propulsion,
+            PartCategories.Science, PartCategories.Structural,
+            PartCategories.Thermal, PartCategories.Utility, PartCategories.FuelTank
+        };
+        
         // Getting better through professional development
         public int trainingLevel = 0;
+
+        // Whether the crew has affinity to a certain category
+        public PartCategories passion = PartCategories.none;
         
         // Affects the odds of leaving the program
         [KSPField(isPersistant = true)] private int discontent = 1;
@@ -732,6 +745,10 @@ namespace Headlines
             personality = node.GetValue("personality");
             isProgramManager = Boolean.Parse(node.GetValue("isProgramManager"));
             nationality = node.GetValue("nationality");
+            if (node.HasValue("passion"))
+            {
+                passion = (PartCategories)int.Parse(node.GetValue("passion"));
+            }
             
             ConfigNode people = node.GetNode("people");
             
@@ -763,6 +780,7 @@ namespace Headlines
             outputNode.AddValue("personality", personality);
             outputNode.AddValue("isProgramManager", isProgramManager);
             outputNode.AddValue("nationality", nationality);
+            outputNode.AddValue("passion", (int)passion);
 
             ConfigNode people = new ConfigNode();
 
@@ -1249,6 +1267,8 @@ namespace Headlines
             }
 
             personality = GetRandomPersonality();
+            
+            RandomizePassion();
         }
 
         public static string GetRandomPersonality()
@@ -1271,6 +1291,33 @@ namespace Headlines
                 string newType = newTypes[randomNG.Next(0,4)];
                 KerbalRoster.SetExperienceTrait(pcm, newType);
             }
+        }
+
+        /// <summary>
+        /// Assign a passion (or unassign)
+        /// </summary>
+        public void RandomizePassion()
+        {
+            double p = 0.5;
+            if (passion != PartCategories.none)
+            {
+                p /= 5;
+            }
+            if (randomNG.NextDouble() >= p)
+            {
+                passion = GetRandomPassion();
+                return;
+            }
+
+            if (randomNG.NextDouble() <= 0.1)
+            {
+                passion = PartCategories.none;
+            }
+        }
+        public PartCategories GetRandomPassion()
+        {
+            int rndInt = randomNG.Next() % validCategoriesList.Count;
+            return validCategoriesList[rndInt];
         }
 
         #endregion
