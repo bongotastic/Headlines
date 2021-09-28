@@ -728,7 +728,7 @@ namespace Headlines.source.GUI
             GUILayout.Label($"Nation: {focusCrew.GetCulture()}", GUILayout.Width(130));
             if (focusCrew.Specialty() == "Scientist" && focusCrew.passion != PartCategories.none)
             {
-                GUILayout.Label($"Expert: {focusCrew.passion.ToString()}", GUILayout.Width(130));
+                GUILayout.Label($"Passion: {focusCrew.passion.ToString()}", GUILayout.Width(130));
             }
             GUILayout.EndHorizontal();
             GUIPad();
