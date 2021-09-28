@@ -100,7 +100,7 @@ namespace Headlines.source.GUI
         
         private void OnGuiAppLauncherReady()
         {
-            if (stockButton == null)
+            if (stockButton == null && HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
             {
                 stockButton = ApplicationLauncher.Instance.AddModApplication(
                     ShowWindow,
