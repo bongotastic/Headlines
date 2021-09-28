@@ -328,6 +328,21 @@ namespace HiddenMarkovProcess
                 SpecifyEmission(emissionName, newProbability);
             }
         }
+        
+        /// <summary>
+        /// Fudge transition probabilities. 
+        /// </summary>
+        /// <param name="transitionName"></param>
+        /// <param name="factor"></param>
+        public void AdjustTransition(string transitionName, float factor = 1)
+        {
+            if (_emissions.ContainsKey(transitionName))
+            {
+                float newProbability = _transitions[transitionName];
+                newProbability *= factor;
+                SpecifyTransition(transitionName, newProbability);
+            }
+        }
 
         /// <summary>
         /// Keep a record of modifications to the emission probabilities

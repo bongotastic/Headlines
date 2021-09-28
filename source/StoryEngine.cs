@@ -1602,6 +1602,12 @@ namespace Headlines
                     newState.AdjustEmission("reconcile", 0.5f);
                     newState.AdjustEmission("feud", 1.5f);
                 }
+                
+                // Passion
+                if (GetPartCategoriesUnderResearch().Contains(pf.passion))
+                {
+                    newState.AdjustTransition("kerbal_inspired", 2);
+                }
             }
         }
         
@@ -1643,6 +1649,7 @@ namespace Headlines
             
             // Priorities
             _programManager.ModifyEmissionPriority(hmm);
+            
             
             // Personality
             ApplyCrewPersonality(hmm);
@@ -1860,6 +1867,15 @@ namespace Headlines
                     else
                     {
                         EmitEvent(emittedEvent);
+                    }
+                }
+
+                if (_liveProcesses[registeredStateName].kerbalName != "")
+                {
+                    PersonnelFile pf = _peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName);
+                    if (GetPartCategoriesUnderResearch().Contains(pf.passion))
+                    {
+                        _liveProcesses[registeredStateName].AdjustTransition("kerbal_inspired", 2);
                     }
                 }
                 
@@ -2918,17 +2934,40 @@ namespace Headlines
         /// Pulls all tech nodes from KCT
         /// </summary>
         /// <returns></returns>
-        public List<TechItem> GetTechNodes()
+        public List<TechItem> GetTechNodes(bool  ongoing = false)
         {
             List<TechItem> output = new List<TechItem>();
             foreach (var techNode in KCTGameStates.TechList)
             {
-                output.Add(techNode);
-                techNode.ProtoNode.partsPurchased[0].category = PartCategories.none;
+                if (!ongoing || ongoing && techNode.Progress != 0)
+                {
+                    output.Add(techNode);
+                }
+                
+                //var x = techNode.ProtoNode.partsPurchased[0];
+                //PartLoader.LoadedPartsList.Where(x => x.TechRequired == techNode.TechID);
             }
             
             return output;
         }
+
+        public List<PartCategories> GetPartCategoriesUnderResearch()
+        {
+            List<PartCategories> output = new List<PartCategories>();
+            foreach (TechItem tech in GetTechNodes(true))
+            {
+                foreach (AvailablePart avp in PartLoader.LoadedPartsList.Where(x => x.TechRequired == tech.TechID))
+                {
+                    if (!output.Contains(avp.category) && avp.category != PartCategories.none)
+                    {
+                        output.Add(avp.category);
+                    }
+                }
+            }
+
+            return output;
+        }
+        
 
         #endregion
     }

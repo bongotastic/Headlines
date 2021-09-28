@@ -726,6 +726,10 @@ namespace Headlines.source.GUI
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(130));
             GUILayout.Label($"Nation: {focusCrew.GetCulture()}", GUILayout.Width(130));
+            if (focusCrew.Specialty() == "Scientist" && focusCrew.passion != PartCategories.none)
+            {
+                GUILayout.Label($"Expert: {focusCrew.passion.ToString()}", GUILayout.Width(130));
+            }
             GUILayout.EndHorizontal();
             GUIPad();
             
@@ -1138,9 +1142,12 @@ namespace Headlines.source.GUI
                     storyEngine.RealityCheck();
                 }
                 
-                if (GUILayout.Button("Add applicant"))
+                if (GUILayout.Button("Dump part categories"))
                 {
-                    storyEngine.NewRandomApplicant();
+                    foreach (PartCategories pc in storyEngine.GetPartCategoriesUnderResearch())
+                    {
+                        HeadlinesUtil.Report(1,$"{pc.ToString()}");
+                    }
                 }
 
                 GUIPad();
