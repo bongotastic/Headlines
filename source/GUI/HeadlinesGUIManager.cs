@@ -1032,9 +1032,19 @@ namespace Headlines.source.GUI
                 else
                 {
                     nApplicant++;
-                    GUILayout.Label($"{kvp.Value.DisplayName()}", GUILayout.Width(150)); 
-                    GUILayout.Label($"{peopleManager.QualitativeEffectiveness(kvp.Value.Effectiveness(deterministic:true))} {kvp.Value.Specialty()}", GUILayout.Width(120));
-                    GUILayout.Label($"{kvp.Value.personality}", GUILayout.Width(60));
+                    try
+                    {
+                        // There seems to be a concurency issue in some case when new applicants are added. Better to bail for one frame.
+                        GUILayout.Label($"{kvp.Value.DisplayName()}", GUILayout.Width(150)); 
+                        GUILayout.Label($"{peopleManager.QualitativeEffectiveness(kvp.Value.Effectiveness(deterministic:true))} {kvp.Value.Specialty()}", GUILayout.Width(120));
+                        GUILayout.Label($"{kvp.Value.personality}", GUILayout.Width(60));
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        throw;
+                    }
+                    
                 }
 
                 GUILayout.EndHorizontal();
