@@ -213,6 +213,9 @@ namespace Headlines
             
             // Kill impact if a kerbal is inactive
             CancelInfluenceForInactiveCrew();
+            
+            // Never allow 0 applicants
+            if (_peopleManager.applicantFolders.Count == 0) NewRandomApplicant();
 
             // Another dumb hack
             if (ongoingInquiry && !_liveProcesses.ContainsKey("death_inquiry")) InitializeHMM("death_inquiry");
