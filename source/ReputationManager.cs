@@ -477,14 +477,14 @@ namespace Headlines.source
         /// <summary>
         /// begin a media blitz ahead of a live event
         /// </summary>
-        /// <param name="goLiveTime"></param>
-        public void LaunchCampaign(double goLiveTime)
+        /// <param name="lenghtCampaign">lenght of campaign</param>
+        public void LaunchCampaign(double lenghtCampaign)
         {
             currentMode = MediaRelationMode.CAMPAIGN;
             mediaOpsTarget = Credibility() + GetMediaEventWager();
             mediaInitialHype = Hype();
-            airTimeStarts = goLiveTime;
-            airTimeEnds = goLiveTime + (3600*24*2);
+            airTimeStarts = HeadlinesUtil.GetUT() + lenghtCampaign * 0.9;
+            airTimeEnds = HeadlinesUtil.GetUT() + lenghtCampaign * 1.1;
             KSPLog.print($"[MEDIA] Campaign mode engaged.");
             KSPLog.print($"[MEDIA] Targeting credibility of {mediaOpsTarget}.");
             KSPLog.print($"[MEDIA] Going live at {KSPUtil.PrintDate(airTimeStarts, true, false)}.");
@@ -492,8 +492,8 @@ namespace Headlines.source
 
             if (KACWrapper.APIReady)
             {
-                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Going Live!", airTimeStarts);
-                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Live event deadline", airTimeEnds);
+                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Earliest live launch", airTimeStarts);
+                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Latest live launch", airTimeEnds);
             }
         }
         
@@ -507,6 +507,12 @@ namespace Headlines.source
             mediaOpsTarget = Credibility() + GetMediaEventWager();
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
             announcedSuccess = false;
+            // Set end time to 48h later
+            airTimeEnds = HeadlinesUtil.GetUT() + (48*3600);
+            if (KACWrapper.APIReady)
+            {
+                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Live event ends", airTimeEnds);
+            }
         }
 
         /// <summary>

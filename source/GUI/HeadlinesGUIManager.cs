@@ -568,12 +568,22 @@ namespace Headlines.source.GUI
         
         public void DrawPressGalleryCampaign()
         {
+            double now = HeadlinesUtil.GetUT();
+            
             GUILayout.Box("Media campaign");
             double timeToLive = RepMgr.airTimeStarts - HeadlinesUtil.GetUT();
             GUILayout.BeginHorizontal();
             Indent();
             GUILayout.Label("", GUILayout.Width(10));
-            GUILayout.Label("Public Event in", GUILayout.Width(100));
+            if (now <= RepMgr.airTimeStarts)
+            {
+                GUILayout.Label("Earliest event:", GUILayout.Width(100));
+            }
+            else
+            {
+                GUILayout.Label("Latest event:", GUILayout.Width(100));
+                timeToLive = RepMgr.airTimeEnds - HeadlinesUtil.GetUT();
+            }
             GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(150));
             GUILayout.Label($"    Hype:{Math.Round(RepMgr.CampaignHype(), MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
             GUILayout.EndHorizontal();
@@ -586,6 +596,17 @@ namespace Headlines.source.GUI
                 RepMgr.CancelMediaEvent();
             }
             GUILayout.EndHorizontal();
+
+            if (now >= RepMgr.airTimeStarts)
+            {
+                GUILayout.BeginHorizontal();
+                Indent();
+                if (GUILayout.Button("Manual Kickoff of Media Event"))
+                {
+                    RepMgr.GoLIVE();
+                }
+                GUILayout.EndHorizontal();
+            }
 
         }
         

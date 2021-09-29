@@ -613,6 +613,16 @@ namespace Headlines
         /// </summary>
         public void CrewedLaunchReputation()
         {
+            // automatically begin a live even if in the media event window
+            if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN)
+            {
+                double now = HeadlinesUtil.GetUT();
+                if (now >= _reputationManager.airTimeStarts && now <= _reputationManager.airTimeEnds)
+                {
+                    _reputationManager.GoLIVE();
+                }
+            }
+            
             highDramaReported = false;
             
             foreach (Vessel vessel in newLaunch)
@@ -2662,8 +2672,8 @@ namespace Headlines
         {
             if (_reputationManager.currentMode == MediaRelationMode.LOWPROFILE & invite)
             {
-                double start = HeadlinesUtil.GetUT() + nDays * (3600 * 24);
-                _reputationManager.LaunchCampaign(start);
+                double campaignLength = nDays * (3600 * 24);
+                _reputationManager.LaunchCampaign(campaignLength);
             }
         }
 
@@ -2678,9 +2688,9 @@ namespace Headlines
             }
 
             if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN &
-                _reputationManager.airTimeStarts < HeadlinesUtil.GetUT())
+                _reputationManager.airTimeEnds < HeadlinesUtil.GetUT())
             {
-                _reputationManager.GoLIVE();
+                _reputationManager.CancelMediaEvent();
             }
 
             if (_reputationManager.currentMode == MediaRelationMode.LIVE & _reputationManager.airTimeEnds < HeadlinesUtil.GetUT())
