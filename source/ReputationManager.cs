@@ -516,7 +516,6 @@ namespace Headlines.source
         /// </summary>
         public void GoLIVE()
         {
-            TimeWarp.SetRate(0, false, true);
             currentMode = MediaRelationMode.LIVE;
             mediaOpsTarget = Credibility() + GetMediaEventWager();
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
@@ -538,6 +537,12 @@ namespace Headlines.source
         public double EndLIVE()
         {
             currentMode = MediaRelationMode.LOWPROFILE;
+            
+            if (KACWrapper.APIReady)
+            {
+                KACWrapper.KAC.DeleteAlarm(airTimeEndAlarm);
+            }
+            
             if (!EventSuccess())
             {
                 double credibilityLoss = Credibility() - mediaOpsTarget;
@@ -551,12 +556,7 @@ namespace Headlines.source
             announcedSuccess = false;
 
             airTimeEnds = HeadlinesUtil.GetUT() - 1;
-            
-            if (KACWrapper.APIReady)
-            {
-                KACWrapper.KAC.DeleteAlarm(airTimeEndAlarm);
-            }
-            
+
             return 0;
         }
 

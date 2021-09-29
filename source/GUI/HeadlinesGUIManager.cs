@@ -574,7 +574,6 @@ namespace Headlines.source.GUI
             double timeToLive = RepMgr.airTimeStarts - HeadlinesUtil.GetUT();
             GUILayout.BeginHorizontal();
             Indent();
-            GUILayout.Label("", GUILayout.Width(10));
             if (now <= RepMgr.airTimeStarts)
             {
                 GUILayout.Label("Earliest event:", GUILayout.Width(100));
@@ -616,7 +615,6 @@ namespace Headlines.source.GUI
             double timeToLive = RepMgr.airTimeEnds - HeadlinesUtil.GetUT();
             GUILayout.BeginHorizontal();
             Indent();
-            GUILayout.Label("", GUILayout.Width(10));
             GUILayout.Label("Live for ", GUILayout.Width(100));
             GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, false)}", GUILayout.Width(150));
             if (RepMgr.WageredCredibilityToGo() > 0)
