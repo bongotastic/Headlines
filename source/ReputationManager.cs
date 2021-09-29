@@ -33,7 +33,10 @@ namespace Headlines.source
         private double mediaInitialHype = 0;
         public List<Contract> mediaContracts = new List<Contract>();
         private List<string> _contractNames = new List<string>();
-
+        private string airTimeOpenAlarm = "";
+        private string airTimeCloseAlarm = "";
+        private string airTimeEndAlarm = "";
+        
         private bool announcedSuccess = false;
 
         public List<NewsStory> shelvedAchievements = new List<NewsStory>();
@@ -59,6 +62,13 @@ namespace Headlines.source
             airTimeEnds = SafeRead(node,"airTimeEnds");
             mediaOpsTarget = SafeRead(node,"mediaOpsTarget");
             mediaInitialHype = SafeRead(node,"mediaInitialHype");
+
+            if (node.HasValue("airTimeOpenAlarm"))
+            {
+                airTimeOpenAlarm = node.GetValue("airTimeOpenAlarm");
+                airTimeCloseAlarm = node.GetValue("airTimeCloseAlarm");
+                airTimeEndAlarm = node.GetValue("airTimeEndAlarm");
+            }
 
             _daylight = double.Parse(node.GetValue("_daylight"));
             
@@ -131,6 +141,10 @@ namespace Headlines.source
             output.AddValue("airTimeEnds", airTimeEnds);
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
             output.AddValue("mediaInitialHype", mediaInitialHype);
+            
+            output.AddValue("airTimeOpenAlarm", airTimeOpenAlarm);
+            output.AddValue("airTimeCloseAlarm", airTimeCloseAlarm);
+            output.AddValue("airTimeEndAlarm", airTimeEndAlarm);
             
             output.AddValue("_daylight", _daylight);
 
@@ -492,8 +506,8 @@ namespace Headlines.source
 
             if (KACWrapper.APIReady)
             {
-                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Earliest live launch", airTimeStarts);
-                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Latest live launch", airTimeEnds);
+                airTimeOpenAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Earliest live launch", airTimeStarts);
+                airTimeCloseAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Latest live launch", airTimeEnds);
             }
         }
         
@@ -511,7 +525,9 @@ namespace Headlines.source
             airTimeEnds = HeadlinesUtil.GetUT() + (48*3600);
             if (KACWrapper.APIReady)
             {
-                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Live event ends", airTimeEnds);
+                airTimeEndAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Live event ends", airTimeEnds);
+                KACWrapper.KAC.DeleteAlarm(airTimeOpenAlarm);
+                KACWrapper.KAC.DeleteAlarm(airTimeCloseAlarm);
             }
         }
 
@@ -535,6 +551,11 @@ namespace Headlines.source
             announcedSuccess = false;
 
             airTimeEnds = HeadlinesUtil.GetUT() - 1;
+            
+            if (KACWrapper.APIReady)
+            {
+                KACWrapper.KAC.DeleteAlarm(airTimeEndAlarm);
+            }
             
             return 0;
         }
