@@ -498,7 +498,7 @@ namespace Headlines.source.GUI
         {
             if (RepMgr.shelvedAchievements.Count != 0)
             {
-                GUILayout.Box("Secret achievements");
+                GUILayout.Box("Secret achievements (rep. value)");
                 //scrollReleases = GUILayout.BeginScrollView(scrollReleases, GUILayout.Width(400), GUILayout.Height(100));
                 foreach (NewsStory ns in RepMgr.shelvedAchievements.OrderByDescending(x=>x.reputationValue))
                 {
