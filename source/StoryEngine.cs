@@ -436,7 +436,7 @@ namespace Headlines
             
             _reputationManager.HighjackCredibility(newReputation, reason);
 
-            if ( newReputation - _reputationManager.Credibility() >= 1)
+            if ( newReputation - _reputationManager.Credibility() >= 1 && _reputationManager.currentMode != MediaRelationMode.LOWPROFILE)
             {
                 HeadlinesUtil.Report(2, $"{Math.Round(newReputation - _reputationManager.Credibility(),MidpointRounding.AwayFromZero)} reputation spoiled");
             }

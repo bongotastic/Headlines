@@ -349,7 +349,6 @@ namespace Headlines.source
                 // Anything less than Hype() doesn't take away from Hype() when LIVE
                 if (currentMode != MediaRelationMode.LIVE)
                 {
-                    HeadlinesUtil.Report(2,"BREAKING NEWS: The public is whipped into a frenzy.");
                     AdjustHype(-1*deltaReputation);
                 }
             }
