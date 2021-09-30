@@ -112,6 +112,7 @@ namespace Headlines
         // Launch detection
         private List<Vessel> newLaunch = new List<Vessel>();
         [KSPField(isPersistant = true)] public bool highDramaReported = false;
+        [KSPField(isPersistant = true)] public bool overUrbanReported = false;
 
         // New Game flag
         [KSPField(isPersistant = true)] public bool hasnotvisitedAstronautComplex = true;
@@ -627,6 +628,7 @@ namespace Headlines
             }
             
             highDramaReported = false;
+            overUrbanReported = false;
             
             foreach (Vessel vessel in newLaunch)
             {
@@ -2443,6 +2445,7 @@ namespace Headlines
 
         public void VisibleShowOverUrban()
         {
+            overUrbanReported = true;
             NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "This is not a UFO!");
             ns.AddToStory($"Sightings of {FlightGlobals.ActiveVessel.name} over the city are captured on live TV.");
             FileHeadline(ns);

@@ -148,7 +148,7 @@ namespace Headlines.source
             
             output.AddValue("_daylight", _daylight);
 
-            
+
             ConfigNode nodePledged = new ConfigNode("PLEDGED");
             foreach (Contract contract in mediaContracts)
             {

@@ -1132,7 +1132,7 @@ namespace Headlines.source.GUI
                     storyEngine.HighDramaEndingWell();
                 }
                 
-                if (GUILayout.Button("Naked-eye sightings over urban area") && RepMgr.currentMode != MediaRelationMode.LOWPROFILE)
+                if (GUILayout.Button("Naked-eye sightings over urban area") && RepMgr.currentMode != MediaRelationMode.LOWPROFILE && !storyEngine.overUrbanReported)
                 {
                     storyEngine.VisibleShowOverUrban();
                 }
