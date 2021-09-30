@@ -33,7 +33,10 @@ namespace Headlines.source
         private double mediaInitialHype = 0;
         public List<Contract> mediaContracts = new List<Contract>();
         private List<string> _contractNames = new List<string>();
-
+        private string airTimeOpenAlarm = "";
+        private string airTimeCloseAlarm = "";
+        private string airTimeEndAlarm = "";
+        
         private bool announcedSuccess = false;
 
         public List<NewsStory> shelvedAchievements = new List<NewsStory>();
@@ -59,6 +62,13 @@ namespace Headlines.source
             airTimeEnds = SafeRead(node,"airTimeEnds");
             mediaOpsTarget = SafeRead(node,"mediaOpsTarget");
             mediaInitialHype = SafeRead(node,"mediaInitialHype");
+
+            if (node.HasValue("airTimeOpenAlarm"))
+            {
+                airTimeOpenAlarm = node.GetValue("airTimeOpenAlarm");
+                airTimeCloseAlarm = node.GetValue("airTimeCloseAlarm");
+                airTimeEndAlarm = node.GetValue("airTimeEndAlarm");
+            }
 
             _daylight = double.Parse(node.GetValue("_daylight"));
             
@@ -131,6 +141,10 @@ namespace Headlines.source
             output.AddValue("airTimeEnds", airTimeEnds);
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
             output.AddValue("mediaInitialHype", mediaInitialHype);
+            
+            output.AddValue("airTimeOpenAlarm", airTimeOpenAlarm);
+            output.AddValue("airTimeCloseAlarm", airTimeCloseAlarm);
+            output.AddValue("airTimeEndAlarm", airTimeEndAlarm);
             
             output.AddValue("_daylight", _daylight);
 
@@ -335,7 +349,6 @@ namespace Headlines.source
                 // Anything less than Hype() doesn't take away from Hype() when LIVE
                 if (currentMode != MediaRelationMode.LIVE)
                 {
-                    HeadlinesUtil.Report(2,"BREAKING NEWS: The public is whipped into a frenzy.");
                     AdjustHype(-1*deltaReputation);
                 }
             }
@@ -477,14 +490,14 @@ namespace Headlines.source
         /// <summary>
         /// begin a media blitz ahead of a live event
         /// </summary>
-        /// <param name="goLiveTime"></param>
-        public void LaunchCampaign(double goLiveTime)
+        /// <param name="lenghtCampaign">lenght of campaign</param>
+        public void LaunchCampaign(double lenghtCampaign)
         {
             currentMode = MediaRelationMode.CAMPAIGN;
             mediaOpsTarget = Credibility() + GetMediaEventWager();
             mediaInitialHype = Hype();
-            airTimeStarts = goLiveTime;
-            airTimeEnds = goLiveTime + (3600*24*2);
+            airTimeStarts = HeadlinesUtil.GetUT() + lenghtCampaign * 0.9;
+            airTimeEnds = HeadlinesUtil.GetUT() + lenghtCampaign * 1.1;
             KSPLog.print($"[MEDIA] Campaign mode engaged.");
             KSPLog.print($"[MEDIA] Targeting credibility of {mediaOpsTarget}.");
             KSPLog.print($"[MEDIA] Going live at {KSPUtil.PrintDate(airTimeStarts, true, false)}.");
@@ -492,8 +505,8 @@ namespace Headlines.source
 
             if (KACWrapper.APIReady)
             {
-                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Going Live!", airTimeStarts);
-                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Live event deadline", airTimeEnds);
+                airTimeOpenAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Earliest live launch", airTimeStarts);
+                airTimeCloseAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Latest live launch", airTimeEnds);
             }
         }
         
@@ -502,11 +515,18 @@ namespace Headlines.source
         /// </summary>
         public void GoLIVE()
         {
-            TimeWarp.SetRate(0, false, true);
             currentMode = MediaRelationMode.LIVE;
             mediaOpsTarget = Credibility() + GetMediaEventWager();
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
             announcedSuccess = false;
+            // Set end time to 48h later
+            airTimeEnds = HeadlinesUtil.GetUT() + (48*3600);
+            if (KACWrapper.APIReady)
+            {
+                airTimeEndAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Live event ends", airTimeEnds);
+                KACWrapper.KAC.DeleteAlarm(airTimeOpenAlarm);
+                KACWrapper.KAC.DeleteAlarm(airTimeCloseAlarm);
+            }
         }
 
         /// <summary>
@@ -516,6 +536,12 @@ namespace Headlines.source
         public double EndLIVE()
         {
             currentMode = MediaRelationMode.LOWPROFILE;
+            
+            if (KACWrapper.APIReady)
+            {
+                KACWrapper.KAC.DeleteAlarm(airTimeEndAlarm);
+            }
+            
             if (!EventSuccess())
             {
                 double credibilityLoss = Credibility() - mediaOpsTarget;
@@ -529,7 +555,7 @@ namespace Headlines.source
             announcedSuccess = false;
 
             airTimeEnds = HeadlinesUtil.GetUT() - 1;
-            
+
             return 0;
         }
 
