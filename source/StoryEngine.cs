@@ -782,6 +782,7 @@ namespace Headlines
             }
             
             SkillCheckOutcome successLevel = SkillCheck(skillLevel, difficulty);
+            HeadlinesUtil.Report(1, $"Skill check (impact)-{skillLevel} diff:{difficulty}, outcome: {successLevel}","SKILLCHECK");
 
             // In case of inquiry, immediate impact vanishes.
             if (ongoingInquiry &
