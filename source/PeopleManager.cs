@@ -624,6 +624,17 @@ namespace Headlines
             }
         }
 
+        /// <summary>
+        /// Decay fame by the magic factor.
+        /// </summary>
+        public void DecayFame()
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                kvp.Value.DecayFame();
+            }
+        }
+
         #endregion
     }
 
@@ -644,8 +655,14 @@ namespace Headlines
             PartCategories.Thermal, PartCategories.Utility, PartCategories.FuelTank
         };
         
+        
         // Getting better through professional development
         public int trainingLevel = 0;
+
+        /// <summary>
+        /// Track how past visibility affects profile
+        /// </summary>
+        public double fame = 0;
 
         // Whether the crew has affinity to a certain category
         public PartCategories passion = PartCategories.none;
@@ -749,6 +766,12 @@ namespace Headlines
             {
                 passion = (PartCategories)int.Parse(node.GetValue("passion"));
             }
+
+            if (node.HasValue("fame"))
+            {
+                fame = double.Parse(node.GetValue("fame"));
+            }
+            
             
             ConfigNode people = node.GetNode("people");
             
@@ -781,6 +804,7 @@ namespace Headlines
             outputNode.AddValue("isProgramManager", isProgramManager);
             outputNode.AddValue("nationality", nationality);
             outputNode.AddValue("passion", (int)passion);
+            outputNode.AddValue("fame", fame);
 
             ConfigNode people = new ConfigNode();
 
@@ -814,18 +838,6 @@ namespace Headlines
         {
             if (feuds.Contains(kerbalName)) feuds.Remove(kerbalName);
             if (collaborators.Contains(kerbalName)) collaborators.Remove(kerbalName);
-        }
-        
-        /// <summary>
-        /// Add one experience point to an inexperienced kerbal, no matter what.
-        /// This is triggered when taking flight. This is an override of the KSP mechanics.
-        /// </summary>
-        public void RegisterFirstFlight()
-        {
-            if (pcm.experience == 0)
-            {
-                KerbalRoster.SetExperienceLevel(pcm, 1);
-            }
         }
 
         #endregion
@@ -880,7 +892,7 @@ namespace Headlines
             // experience Level (untrained if media for non-pilot
             if (!(isMedia && Specialty() != "Pilot"))
             {
-                effectiveness += EffectivenessExperience();
+                effectiveness += EffectivenessFame();
             }
             
             // Charm and personality
@@ -982,16 +994,19 @@ namespace Headlines
         /// upper range.
         /// </summary>
         /// <returns>Starstruck levels</returns>
-        public int EffectivenessExperience()
+        public int EffectivenessFame()
         {
+            int output = (int)Math.Round(fame, MidpointRounding.AwayFromZero);
             float xp = pcm.experience;
 
-            if (xp <= 2) return (int) xp;
+            if (xp <= 2) output += (int)xp;
             else if (xp <= 4)
             {
-                return 3;
+                output += 3;
             }
-            else return 4;
+            else output += 4;
+
+            return output;
         }
 
         #endregion
@@ -1237,6 +1252,23 @@ namespace Headlines
         {
             _cachedEffectiveness = 0;
         }
+
+        public void AddLifetimeHype(int moreHype)
+        {
+            lifetimeHype += moreHype;
+            AddFame((double)moreHype);
+        }
+
+        public void DecayFame()
+        {
+            fame *= 0.933;
+        }
+
+        public void AddFame(double newFame)
+        {
+            fame += Math.Log(newFame, 3);
+        }
+
         #endregion
 
         #region logic

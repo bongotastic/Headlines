@@ -646,15 +646,9 @@ namespace Headlines
                     pf = _peopleManager.GetFile(pcm.name);
                     individualHype = (float)_reputationManager.AdjustHype(pf.Effectiveness());
                     onboardHype += individualHype;
-                    pf.lifetimeHype += (int)individualHype;
+                    pf.AddLifetimeHype((int)individualHype);
                     pf.AdjustDiscontent(-1);
                     CancelInfluence(pf);
-
-                    // First flight grants one experience point as a baseline display of competence (not sure if this will work)
-                    if (pcm.experienceLevel == 0)
-                    {
-                        KerbalRoster.SetExperienceLevel(pcm, 1);
-                    }
                 }
 
                 if (onboardHype != 0)
@@ -870,7 +864,7 @@ namespace Headlines
             ns.AddToStory(em.GenerateStory());
             ns.AddToStory($"They are{adjective}in the public eye. Hype gain is {deltaHype}.");
             FileHeadline(ns);
-            kerbalFile.lifetimeHype += (int)AdjustHype(deltaHype);
+            kerbalFile.AddLifetimeHype((int)deltaHype);
         }
 
         /// <summary>
@@ -2160,6 +2154,9 @@ namespace Headlines
                 return;
             }
             
+            // Fame for each crew member is decaying
+            _peopleManager.DecayFame();
+            
             // Secret achievements cannot be protected by PR
             foreach (NewsStory ns in _reputationManager.shelvedAchievements)
             {
@@ -2324,6 +2321,15 @@ namespace Headlines
             if (_reputationManager.currentMode != MediaRelationMode.LOWPROFILE)
             {
                 FileHeadline(ns, false);
+                
+                // Add fame to any crew in the active vessel
+                if (FlightGlobals.ActiveVessel != null)
+                {
+                    foreach (ProtoCrewMember pcm in FlightGlobals.ActiveVessel.GetVesselCrew())
+                    {
+                        _peopleManager.GetFile(pcm.name).AddFame(contract.ReputationCompletion);
+                    }
+                }
             }
             else
             {

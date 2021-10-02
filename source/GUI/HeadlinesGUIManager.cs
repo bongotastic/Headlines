@@ -735,7 +735,7 @@ namespace Headlines.source.GUI
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Charisma: {focusCrew.EffectivenessLikability(true)}", GUILayout.Width(130));
             GUILayout.Label($"Training: {focusCrew.trainingLevel}", GUILayout.Width(130));
-            GUILayout.Label($"Experience: {focusCrew.EffectivenessExperience()}", GUILayout.Width(130));
+            GUILayout.Label($"Fame: {focusCrew.EffectivenessFame()}", GUILayout.Width(130));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Personality: {focusCrew.EffectivenessPersonality()}", GUILayout.Width(130));
@@ -753,7 +753,7 @@ namespace Headlines.source.GUI
             GUIPad();
             
             // If untrained, offers to reassign
-            if (focusCrew.trainingLevel + focusCrew.EffectivenessExperience() == 0)
+            if (focusCrew.trainingLevel + focusCrew.EffectivenessFame() == 0)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Reassign as: ");
