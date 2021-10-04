@@ -508,19 +508,6 @@ namespace Headlines
         }
 
         /// <summary>
-        /// Determined is Warp shoudl be killed when a new applicant spawns
-        /// </summary>
-        /// <param name="applicantRole">Speciality</param>
-        /// <returns></returns>
-        public bool ShouldNotify(string applicantSpecialty)
-        {
-            if (seekingEngineer & applicantSpecialty == "Engineer") return true;
-            if (seekingPilot & applicantSpecialty == "Pilot") return true;
-            if (seekingScientist & applicantSpecialty == "Scientist") return true;
-            return false;
-        }
-        
-        /// <summary>
         /// Sums all staff effectiveness as a program profile extimate.
         /// </summary>
         /// <returns></returns>
@@ -555,7 +542,7 @@ namespace Headlines
             return output;
         }
 
-        public bool EndWarp(PersonnelFile applicant)
+        public bool ShouldEndWarp(PersonnelFile applicant)
         {
             if (applicant.Specialty() == "Pilot" && !seekingPilot) return false;
             if (applicant.Specialty() == "Engineer" && !seekingEngineer) return false;

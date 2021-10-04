@@ -1411,7 +1411,7 @@ namespace Headlines
             }
             FileHeadline(ns);
             
-            if (_peopleManager.EndWarp(newApplicant))
+            if (_peopleManager.ShouldEndWarp(newApplicant))
             {
                 HeadlinesUtil.Report(2, $"{personnelFile.DisplayName()} scouted a new applicant to review: {newApplicant.DisplayName()}");
                 TimeWarp.SetRate(0,false);
@@ -2268,7 +2268,7 @@ namespace Headlines
             ns.headline = $"New {_peopleManager.QualitativeEffectiveness(pf.Effectiveness())} applicant";
             FileHeadline(ns);
             
-            if (_peopleManager.ShouldNotify(pf.Specialty()))
+            if (_peopleManager.ShouldEndWarp(pf))
             {
                 HeadlinesUtil.Report(2, "New Applicant to review");
                 TimeWarp.SetRate(0,false);

@@ -91,11 +91,15 @@ namespace Headlines.source.Emissions
 
         public void FromConfigNode(ConfigNode node)
         {
-            timestamp = double.Parse(node.GetValue("timestamp"));
-            scope = (HeadlineScope) int.Parse(node.GetValue("scope"));
-            headline = node.GetValue("headline");
-            story = node.GetValue("story");
-            reputationValue = float.Parse(node.GetValue("reputationValue"));
+            HeadlinesUtil.SafeDouble("timestamp", ref timestamp, node);
+            if (node.HasValue("scope"))
+            {
+                scope = (HeadlineScope) int.Parse(node.GetValue("scope"));
+            }
+            HeadlinesUtil.SafeString("headline", ref headline, node);
+            HeadlinesUtil.SafeString("story", ref story, node);
+
+            HeadlinesUtil.SafeFloat("reputationValue", ref reputationValue, node);
 
             ConfigNode act = node.GetNode("actors");
             if (act != null)

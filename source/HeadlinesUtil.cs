@@ -107,5 +107,13 @@ namespace Headlines.source
                 dataHolder = double.Parse(cfg.GetValue(stringName));
             }
         }
+        
+        public static void SafeFloat(string stringName, ref float dataHolder, ConfigNode cfg)
+        {
+            if (cfg.HasValue(stringName))
+            {
+                dataHolder = float.Parse(cfg.GetValue(stringName));
+            }
+        }
     }
 }
