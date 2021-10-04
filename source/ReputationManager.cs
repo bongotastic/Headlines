@@ -49,19 +49,24 @@ namespace Headlines.source
 
         public void FromConfigNode(ConfigNode node)
         {
-            currentMode = (MediaRelationMode)int.Parse(node.GetValue("currentMode"));
+            if (node.HasValue("currentMode"))
+            {
+                currentMode = (MediaRelationMode)int.Parse(node.GetValue("currentMode"));
+            }
 
-            programHype = SafeRead(node,"programHype");
-            highestReputation = SafeRead(node,"highestReputation");
+            HeadlinesUtil.SafeDouble("programHype", ref programHype, node);
+            HeadlinesUtil.SafeDouble("highestReputation", ref highestReputation, node);
             
-            headlinesScore = SafeRead(node,"headlinesScore");
-            lastScoreTimeStamp = SafeRead(node, "lastScoreTimeStamp");
-            lastKnownCredibility = SafeRead(node,"lastKnownCredibility");
+            HeadlinesUtil.SafeDouble("headlinesScore", ref headlinesScore, node);
+            HeadlinesUtil.SafeDouble( "lastScoreTimeStamp", ref lastScoreTimeStamp, node);
+            HeadlinesUtil.SafeDouble("lastKnownCredibility", ref lastKnownCredibility, node);
             
-            airTimeStarts = SafeRead(node,"airTimeStarts");
-            airTimeEnds = SafeRead(node,"airTimeEnds");
-            mediaOpsTarget = SafeRead(node,"mediaOpsTarget");
-            mediaInitialHype = SafeRead(node,"mediaInitialHype");
+            HeadlinesUtil.SafeDouble("airTimeStarts", ref airTimeStarts, node);
+            HeadlinesUtil.SafeDouble("airTimeEnds", ref airTimeEnds, node);
+            HeadlinesUtil.SafeDouble("mediaOpsTarget", ref mediaOpsTarget, node);
+            HeadlinesUtil.SafeDouble("mediaInitialHype", ref mediaInitialHype, node);
+            
+            HeadlinesUtil.SafeDouble("_daylight", ref _daylight, node);
 
             if (node.HasValue("airTimeOpenAlarm"))
             {
@@ -69,8 +74,6 @@ namespace Headlines.source
                 airTimeCloseAlarm = node.GetValue("airTimeCloseAlarm");
                 airTimeEndAlarm = node.GetValue("airTimeEndAlarm");
             }
-
-            _daylight = double.Parse(node.GetValue("_daylight"));
             
             ConfigNode nodePledged = node.GetNode("PLEDGED");
             mediaContracts.Clear();
