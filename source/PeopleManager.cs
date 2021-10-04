@@ -1256,7 +1256,7 @@ namespace Headlines
         public void AddLifetimeHype(int moreHype)
         {
             lifetimeHype += moreHype;
-            AddFame((double)moreHype);
+            AddFame((double)moreHype/4);
         }
 
         public void DecayFame()
@@ -1266,7 +1266,7 @@ namespace Headlines
 
         public void AddFame(double newFame)
         {
-            fame += Math.Log(newFame, 3);
+            fame += Math.Log(newFame, 4);
         }
 
         #endregion
