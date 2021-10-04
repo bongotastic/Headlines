@@ -876,12 +876,8 @@ namespace Headlines
                 return _cachedEffectiveness;
             }
             int effectiveness = EffectivenessLikability(deterministic);
-
-            // experience Level (untrained if media for non-pilot
-            if (!(isMedia && Specialty() != "Pilot"))
-            {
-                effectiveness += EffectivenessFame();
-            }
+            
+            effectiveness += EffectivenessFame();
             
             // Charm and personality
             effectiveness += EffectivenessPersonality(isMedia);

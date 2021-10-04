@@ -1060,6 +1060,7 @@ namespace Headlines.source.GUI
                     }
                     catch (Exception e)
                     {
+                        HeadlinesUtil.Report(1, $"Unable to write the labels for applicant {kvp.Value.DisplayName()}");
                         Console.WriteLine(e);
                         throw;
                     }
