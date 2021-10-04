@@ -1413,7 +1413,7 @@ namespace Headlines
             
             if (_peopleManager.EndWarp(newApplicant))
             {
-                HeadlinesUtil.Report(2, "New Applicant to review");
+                HeadlinesUtil.Report(2, $"{personnelFile.DisplayName()} scouted a new applicant to review: {newApplicant.DisplayName()}");
                 TimeWarp.SetRate(0,false);
             }
         }

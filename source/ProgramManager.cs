@@ -67,12 +67,20 @@ namespace Headlines.source
 
         public void FromConfigNode(ConfigNode node)
         {
+            HeadlinesUtil.SafeString("name", ref name, node);
+            HeadlinesUtil.SafeString("background", ref background, node);
+            HeadlinesUtil.SafeString("personality", ref personality, node);
+            HeadlinesUtil.SafeInt("launches", ref launches, node);
+            HeadlinesUtil.SafeDouble("managerSkill", ref managerSkill, node);
+            HeadlinesUtil.SafeBool("isNPC", ref isNPC, node);
+            /*
             name = node.GetValue("name");
             background = node.GetValue("background");
             personality = node.GetValue("personality");
             launches = int.Parse(node.GetValue("launches"));
             managerSkill = double.Parse(node.GetValue("managerSkill"));
             isNPC = bool.Parse(node.GetValue("isNPC"));
+            */
         }
     }
     
@@ -128,12 +136,18 @@ namespace Headlines.source
         public void FromConfigNode(ConfigNode node)
         {
             KSPLog.print($"reading {node}");
-            controlLevel = (ProgramControlLevel) int.Parse(node.GetValue("controlLevel"));
-            programPriority = (ProgramPriority) int.Parse(node.GetValue("programPriority"));
-            managerKey = node.GetValue("managerKey");
-            
-            influenceVAB = int.Parse(node.GetValue("influenceVAB"));
-            influenceRnD = int.Parse(node.GetValue("influenceRnD"));
+            HeadlinesUtil.SafeString("managerKey", ref managerKey, node);
+            if (node.HasValue("controlLevel"))
+            {
+                controlLevel = (ProgramControlLevel) int.Parse(node.GetValue("controlLevel"));
+            }
+            if (node.HasValue("programPriority"))
+            {
+                programPriority = (ProgramPriority)int.Parse(node.GetValue("programPriority"));
+            }
+
+            HeadlinesUtil.SafeInt("influenceVAB", ref influenceVAB, node);
+            HeadlinesUtil.SafeInt("influenceRnD", ref influenceRnD, node);
 
             _record.Clear();
             foreach (ConfigNode pmnode in node.GetNodes("PMRECORD"))

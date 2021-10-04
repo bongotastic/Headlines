@@ -1,4 +1,5 @@
-﻿using KSP.UI.Screens;
+﻿using CommNet.Network;
+using KSP.UI.Screens;
 using Headlines.source.Emissions;
 
 
@@ -73,6 +74,38 @@ namespace Headlines.source
         public static double GetUT()
         {
             return HighLogic.LoadedSceneIsEditor ? HighLogic.CurrentGame.UniversalTime : Planetarium.GetUniversalTime();
+        }
+
+        public static void SafeString(string stringName, ref string dataHolder, ConfigNode cfg)
+        {
+            if (cfg.HasValue(stringName))
+            {
+                dataHolder = cfg.GetValue(stringName);
+            }
+        }
+        
+        public static void SafeBool(string stringName, ref bool dataHolder, ConfigNode cfg)
+        {
+            if (cfg.HasValue(stringName))
+            {
+                dataHolder = bool.Parse(cfg.GetValue(stringName));
+            }
+        }
+        
+        public static void SafeInt(string stringName, ref int dataHolder, ConfigNode cfg)
+        {
+            if (cfg.HasValue(stringName))
+            {
+                dataHolder = int.Parse(cfg.GetValue(stringName));
+            }
+        }
+        
+        public static void SafeDouble(string stringName, ref double dataHolder, ConfigNode cfg)
+        {
+            if (cfg.HasValue(stringName))
+            {
+                dataHolder = double.Parse(cfg.GetValue(stringName));
+            }
         }
     }
 }
