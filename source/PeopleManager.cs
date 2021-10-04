@@ -751,26 +751,25 @@ namespace Headlines
 
         public void FromConfigNode(ConfigNode node)
         {
-            kerbalProductiveState = node.GetValue("kerbalState");
-            kerbalTask = node.GetValue("kerbalTask");
-            trainingLevel = int.Parse(node.GetValue("trainingLevel"));
-            influence = int.Parse(node.GetValue("influence"));
-            teamInfluence = int.Parse(node.GetValue("teamInfluence"));
-            legacy = int.Parse(node.GetValue("legacy"));
-            discontent = int.Parse(node.GetValue("discontent"));
-            lifetimeHype = int.Parse(node.GetValue("lifetimeHype"));
-            personality = node.GetValue("personality");
-            isProgramManager = Boolean.Parse(node.GetValue("isProgramManager"));
-            nationality = node.GetValue("nationality");
+            HeadlinesUtil.SafeString("kerbalState", ref kerbalProductiveState, node);
+            HeadlinesUtil.SafeString("kerbalTask", ref kerbalTask, node);
+            HeadlinesUtil.SafeInt("trainingLevel", ref trainingLevel, node);
+            HeadlinesUtil.SafeInt("influence", ref influence, node);
+            HeadlinesUtil.SafeInt("teamInfluence", ref teamInfluence, node);
+            HeadlinesUtil.SafeInt("legacy", ref legacy, node);
+            HeadlinesUtil.SafeInt("discontent", ref discontent, node);
+            HeadlinesUtil.SafeInt("lifetimeHype", ref lifetimeHype, node);
+            HeadlinesUtil.SafeString("personality", ref personality, node);
+            HeadlinesUtil.SafeBool("isProgramManager", ref isProgramManager, node);
+            HeadlinesUtil.SafeString("nationality", ref nationality, node);
+            HeadlinesUtil.SafeDouble("fame", ref fame, node);
+            HeadlinesUtil.SafeInt("numberScout", ref numberScout, node);
+            HeadlinesUtil.SafeInt("fundRaised", ref fundRaised, node);
             if (node.HasValue("passion"))
             {
                 passion = (PartCategories)int.Parse(node.GetValue("passion"));
             }
-
-            if (node.HasValue("fame"))
-            {
-                fame = double.Parse(node.GetValue("fame"));
-            }
+            
             
             
             ConfigNode people = node.GetNode("people");
@@ -805,6 +804,8 @@ namespace Headlines
             outputNode.AddValue("nationality", nationality);
             outputNode.AddValue("passion", (int)passion);
             outputNode.AddValue("fame", fame);
+            outputNode.AddValue("numberScout", numberScout);
+            outputNode.AddValue("fundRaised", fundRaised);
 
             ConfigNode people = new ConfigNode();
 
