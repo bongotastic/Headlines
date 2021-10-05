@@ -590,6 +590,11 @@ namespace Headlines.source
             penalty /= 2;
             AdjustCredibility(-1 * penalty);
             currentMode = MediaRelationMode.LOWPROFILE;
+
+            if (KACWrapper.APIReady)
+            {
+                KACWrapper.KAC.DeleteAlarm(airTimeCloseAlarm);
+            }
         }
 
         /// <summary>
