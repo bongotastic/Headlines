@@ -2273,6 +2273,10 @@ namespace Headlines
                 HeadlinesUtil.Report(2, "New Applicant to review");
                 TimeWarp.SetRate(0,false);
             }
+            else
+            {
+                HeadlinesUtil.Report(1, $"New applicant {pf.DisplayName()} quietly added.");
+            }
         }
 
         /// <summary>
