@@ -1250,7 +1250,15 @@ namespace Headlines
 
         public void AddFame(double newFame)
         {
-            fame += Math.Log(newFame, 4);
+            // Never allowed to be negative
+            if (newFame >= 1)
+            {
+                fame += Math.Log(newFame, 4);
+            }
+
+            // bounding the value
+            fame = Math.Max(0, fame);
+            fame = Math.Min(5, fame);
         }
 
         #endregion
