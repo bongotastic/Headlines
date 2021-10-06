@@ -169,14 +169,14 @@ namespace Headlines.source.GUI
 
         #region Styling
 
-        private readonly int widthUI = 400;
-        private readonly int widthMargin = 20;
+        public readonly int widthUI = 400;
+        public readonly int widthMargin = 20;
 
-        private GUILayoutOption FullWidth() => GUILayout.Width(widthUI);
-        private GUILayoutOption ThirdWidth() => GUILayout.Width(widthUI/3);
-        private void GUIPad() => GUILayout.Space(5);
+        public GUILayoutOption FullWidth() => GUILayout.Width(widthUI);
+        public GUILayoutOption ThirdWidth() => GUILayout.Width(widthUI/3);
+        public void GUIPad() => GUILayout.Space(5);
 
-        private void Indent()
+        public void Indent()
         {
             GUILayout.Label("", GUILayout.Width(widthMargin));
         }
