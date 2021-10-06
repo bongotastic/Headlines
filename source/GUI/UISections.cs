@@ -1,4 +1,5 @@
 ﻿using System;
+using CommNet.Network;
 using UnityEngine;
 
 namespace Headlines.source.GUI
@@ -8,7 +9,7 @@ namespace Headlines.source.GUI
     /// </summary>
     public class UISectionProgramCredibility : UIBox
     {
-        public UISectionProgramCredibility(HeadlinesGUIManager root) : base(root)
+        public UISectionProgramCredibility(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {
             hasCompact = true;
             hasExtended = true;
@@ -71,9 +72,75 @@ namespace Headlines.source.GUI
     /// <summary>
     /// Template for deriving a class
     /// </summary>
+    public class UISectionProgramManagement : UIBox
+    {
+        public UISectionProgramManagement(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
+        {
+            hasCompact = true;
+            hasExtended = true;
+            hasHelp = false;
+
+            _state = UIBoxState.COMPACT;
+        }
+
+        protected override string HeadString()
+        {
+            return $"Program status: {_root.PrgMgr.ControlLevelQualitative()}";
+        }
+
+        protected override void DrawCompact()
+        {
+            GUILayout.BeginVertical();
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Manager: {_root.PrgMgr.ManagerName()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"Suitability: {_root.storyEngine.GetPeopleManager().QualitativeEffectiveness(_root.PrgMgr.ManagerProfile()-_root.storyEngine.GetProgramComplexity())}", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            
+            GUILayout.EndVertical();
+        }
+
+        protected override void DrawExtended()
+        {
+            peopleManager = storyEngine.GetPeopleManager();
+            GUILayout.BeginVertical();
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Manager: {PrgMgr.ManagerName()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"Profile: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile())}", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Suitability: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile()-storyEngine.GetProgramComplexity())}", GUILayout.Width(sectionWidth/2));
+            string qualifier = PrgMgr.ManagerLaunches() <= 2 ? "[GREEN]" : PrgMgr.ManagerLaunches() >= 8 ? "[VETERAN]" : "";
+            GUILayout.Label($"Launches: {PrgMgr.ManagerLaunches()} {qualifier}", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            if (PrgMgr.ManagerPersonality() != "")
+            {
+                GUILayout.Label($"Trait: {PrgMgr.ManagerPersonality()}", GUILayout.Width(sectionWidth/2));
+            }
+            GUILayout.Label($"Background: {PrgMgr.ManagerBackground()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            
+            GUILayout.EndVertical();
+            
+            _root.GUIPad();
+        }
+        
+        protected override void DrawHelp()
+        {
+            
+        }
+    }
+    
+    /// <summary>
+    /// Template for deriving a class
+    /// </summary>
     public class UISectionTemplate : UIBox
     {
-        public UISectionTemplate(HeadlinesGUIManager root) : base(root)
+        public UISectionTemplate(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {
             hasCompact = false;
             hasExtended = false;

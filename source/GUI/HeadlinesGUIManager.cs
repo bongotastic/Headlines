@@ -87,6 +87,8 @@ namespace Headlines.source.GUI
             position = new Rect(100f, 150f, 400f, 575f);
             
             _section.Add("ProgramCredibility", new UISectionProgramCredibility(this));
+            _section.Add("ProgramManagement", new UISectionProgramManagement(this));
+
         }
 
         protected void OnDestroy()
@@ -296,7 +298,7 @@ namespace Headlines.source.GUI
             
             if (!HighLogic.LoadedSceneIsFlight)
             {
-                DrawProgramManager();
+                DrawSection("ProgramManagement");
                 DrawImpact();
             }
             GUILayout.EndVertical();

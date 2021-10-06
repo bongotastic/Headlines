@@ -23,6 +23,7 @@ namespace Headlines.source.GUI
         protected StoryEngine storyEngine;
         protected ReputationManager RepMgr;
         protected ProgramManager PrgMgr;
+        protected PeopleManager peopleManager;
 
         protected bool hasCompact = false;
         protected bool hasExtended = false;
@@ -36,18 +37,23 @@ namespace Headlines.source.GUI
         public UIBox(HeadlinesGUIManager root, bool isFullWidth = false)
         {
             _root = root;
-            storyEngine = _root.storyEngine;
-            RepMgr = _root.RepMgr;
-            PrgMgr = _root.PrgMgr;
-
-            sectionWidth = _root.widthUI;
-            if (isFullWidth)
-            {
-                sectionWidth -= _root.widthMargin;
-            }
 
             fullWidth = isFullWidth;
 
+        }
+
+        protected void BuildPointers()
+        {
+            storyEngine = _root.storyEngine;
+            RepMgr = _root.RepMgr;
+            PrgMgr = _root.PrgMgr;
+            peopleManager = storyEngine.GetPeopleManager();
+            
+            sectionWidth = _root.widthUI;
+            if (!fullWidth)
+            {
+                sectionWidth -= _root.widthMargin;
+            }
         }
 
         /// <summary>
@@ -55,6 +61,11 @@ namespace Headlines.source.GUI
         /// </summary>
         public void Draw()
         {
+            if (RepMgr == null)
+            {
+                BuildPointers();
+            }
+            
             DrawHead();
 
             if (!fullWidth)
