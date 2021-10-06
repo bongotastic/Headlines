@@ -2660,7 +2660,7 @@ namespace Headlines
             generationLevel = Math.Min(5, generationLevel);
             
             int poolSize = 4 +
-                           (int) Math.Round((double) generationLevel * (2 * _reputationManager.Peak() + 1)) +
+                           (int) Math.Round((double) generationLevel * (_reputationManager.Peak())) +
                            storytellerRand.Next(-1, 2);
             while (poolSize > 0)
             {
