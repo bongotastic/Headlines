@@ -138,6 +138,73 @@ namespace Headlines.source.GUI
     /// <summary>
     /// Template for deriving a class
     /// </summary>
+    public class UISectionProgramPriority : UIBox
+    {
+        public UISectionProgramPriority(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
+        {
+            hasCompact = true;
+            hasExtended = true;
+            hasHelp = false;
+
+            _state = UIBoxState.COMPACT;
+        }
+
+        protected override string HeadString()
+        {
+            return "Program Priority";
+        }
+
+        protected override void DrawCompact()
+        {
+            GUILayout.BeginVertical();
+            
+            _root.OrderNewPriority(GUILayout.SelectionGrid(_root._priority, HeadlinesGUIManager.priorities,4 , GUILayout.Width(sectionWidth)));
+            
+            GUILayout.EndVertical();
+        }
+
+        protected override void DrawExtended()
+        {
+            GUILayout.BeginVertical();
+            _root.OrderNewPriority(GUILayout.SelectionGrid(_root._priority, HeadlinesGUIManager.priorities,4 , GUILayout.Width(sectionWidth)));
+            
+            string UIhint = "";
+            string verb = "is";
+            if (PrgMgr.ControlLevel() <= ProgramControlLevel.WEAK)
+            {
+                UIhint = $"{PrgMgr.ManagerName()} lacks focus and the program is running as balanced. ";
+                verb = "should be";
+            }
+
+            switch (PrgMgr.GetPriority())
+            {
+                case ProgramPriority.NONE:
+                    UIhint += "A balanced program requires everyone to pursue their personal goals and do their best.";
+                    break;
+                case ProgramPriority.REPUTATION:
+                    UIhint += $"The focus {verb} on building reputation at the expense of other KSC activities.";
+                    break;
+                case ProgramPriority.PRODUCTION:
+                    UIhint += $"The focus {verb} on research and vehicle assembly at the expense of medium- and long-term activities..";
+                    break;
+                case ProgramPriority.CAPACITY:
+                    UIhint += $"{PrgMgr.ManagerName()} {verb} focussing on capacity building for the future.";
+                    break;
+            }
+            GUILayout.Label(UIhint, FullWidth());
+            _root.GUIPad();
+            GUILayout.EndVertical();
+        }
+        
+        protected override void DrawHelp()
+        {
+            
+        }
+    }
+    
+    /// <summary>
+    /// Template for deriving a class
+    /// </summary>
     public class UISectionTemplate : UIBox
     {
         public UISectionTemplate(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)

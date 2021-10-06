@@ -56,6 +56,11 @@ namespace Headlines.source.GUI
             }
         }
 
+        protected GUILayoutOption FullWidth()
+        {
+            return GUILayout.Width(sectionWidth);
+        }
+
         /// <summary>
         /// This is the method to call when doing layout in the root class
         /// </summary>

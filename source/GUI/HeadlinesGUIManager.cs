@@ -30,7 +30,7 @@ namespace Headlines.source.GUI
         private int _activeTabIndex = 0;
         private int _selectedCrew = 0;
         private int _currentActivity = 0;
-        private int _priority = 0;
+        public int _priority = 0;
 
         private PeopleManager peopleManager;
         private List<string> crewRoster;
@@ -55,7 +55,7 @@ namespace Headlines.source.GUI
         private static string[] feedFilter = new[] { "All", "Chatter", "Feature stories", "Headlines"};
         private static string[] tabs = new[] { "Program", "Media", "Feed", "Personnel", "Recruit","Story"};
         private static string[] flightTabs = new[] { "Program", "Media", "Story"};
-        private static string[] priorities = new[] { "Balanced", "Reputation", "Production", "Growth"};
+        public static string[] priorities = new[] { "Balanced", "Reputation", "Production", "Growth"};
         
         private int mediaInvitationDelay = 1;
 
@@ -88,6 +88,7 @@ namespace Headlines.source.GUI
             
             _section.Add("ProgramCredibility", new UISectionProgramCredibility(this));
             _section.Add("ProgramManagement", new UISectionProgramManagement(this));
+            _section.Add("ProgramPriority", new UISectionProgramPriority(this));
 
         }
 
@@ -299,6 +300,7 @@ namespace Headlines.source.GUI
             if (!HighLogic.LoadedSceneIsFlight)
             {
                 DrawSection("ProgramManagement");
+                DrawSection("ProgramPriority");
                 DrawImpact();
             }
             GUILayout.EndVertical();
@@ -334,7 +336,6 @@ namespace Headlines.source.GUI
 
         private void DrawProgramManagerPriority()
         {
-            GUILayout.Box("Program Priority");
             OrderNewPriority(GUILayout.SelectionGrid(_priority, priorities,4 , FullWidth()));
             string UIhint = "";
             string verb = "is";
@@ -1267,7 +1268,7 @@ namespace Headlines.source.GUI
             return null;
         }
 
-        private void OrderNewPriority(int buttonClicked)
+        public void OrderNewPriority(int buttonClicked)
         {
             if (buttonClicked == _priority) return;
             _priority = buttonClicked;
