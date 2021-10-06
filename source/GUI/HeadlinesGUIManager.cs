@@ -5,6 +5,7 @@ using Contracts;
 using HiddenMarkovProcess;
 using KSP.UI.Screens;
 using Headlines.source.Emissions;
+using Smooth.Collections;
 using UnityEngine;
 using Enumerable = UniLinq.Enumerable;
 
@@ -15,10 +16,10 @@ namespace Headlines.source.GUI
     public class HeadlinesGUIManager : MonoBehaviour
     {
         #region declarations
-        
-        private StoryEngine storyEngine;
-        private ReputationManager RepMgr;
-        private ProgramManager PrgMgr;
+
+        internal StoryEngine storyEngine;
+        internal ReputationManager RepMgr;
+        internal ProgramManager PrgMgr;
         private static ApplicationLauncherButton stockButton;
 
         public bool _isDisplayed = false;
@@ -47,8 +48,7 @@ namespace Headlines.source.GUI
         private Vector2 scrollReleases = new Vector2(0, 0);
         private Vector2 scrollRelationships = new Vector2(0, 0);
         
-
-        //private bool feedChatter = true;
+        
         private int feedThreshold = 1;
         private string feedFilterLabel = "";
 
@@ -58,6 +58,12 @@ namespace Headlines.source.GUI
         private static string[] priorities = new[] { "Balanced", "Reputation", "Production", "Growth"};
         
         private int mediaInvitationDelay = 1;
+
+        /// <summary>
+        /// UISections
+        /// </summary>
+        private Dictionary<string, UIBox> _section = new Dictionary<string, UIBox>();
+        
         #endregion
 
         #region Unity stuff
@@ -79,6 +85,8 @@ namespace Headlines.source.GUI
         {
             storyEngine = StoryEngine.Instance;
             position = new Rect(100f, 150f, 400f, 575f);
+            
+            _section.Add("ProgramCredibility", new UISectionProgramCredibility(this));
         }
 
         protected void OnDestroy()
@@ -284,7 +292,8 @@ namespace Headlines.source.GUI
             
             
             GUILayout.BeginVertical();
-            DrawProgramStats();
+            DrawSection("ProgramCredibility");
+            
             if (!HighLogic.LoadedSceneIsFlight)
             {
                 DrawProgramManager();
@@ -401,6 +410,11 @@ namespace Headlines.source.GUI
 
         #region Media tab
 
+        public void DrawSection(string name)
+        {
+            if (_section.ContainsKey(name)) _section[name].Draw();
+        }
+        
         /// <summary>
         /// Draw panel to manage media and reputation
         /// </summary>

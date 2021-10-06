@@ -78,6 +78,7 @@
     <Compile Include="source\Framework\KACWrapper.cs" />
     <Compile Include="source\GUI\HeadlinesGUIManager.cs" />
     <Compile Include="source\GUI\UIBox.cs" />
+    <Compile Include="source\GUI\UISections.cs" />
     <Compile Include="source\HiddenMarkovProcess.cs" />
     <Compile Include="source\PeopleManager.cs" />
     <Compile Include="source\ProgramManager.cs" />
