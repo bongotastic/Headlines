@@ -2569,6 +2569,20 @@ namespace Headlines
             }
         }
 
+        public int GetNumberNewsAbout(string crewName)
+        {
+            int output = 0;
+            foreach (NewsStory ns in headlines)
+            {
+                if (ns.HasActor(crewName))
+                {
+                    output += 1;
+                }
+            }
+
+            return output;
+        }
+
         /// <summary>
         /// Determines the outcome of a check based on a mashup of Pendragon and VOID.
         /// </summary>

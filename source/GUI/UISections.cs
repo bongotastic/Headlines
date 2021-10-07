@@ -971,6 +971,45 @@ namespace Headlines.source.GUI
         }
     }
     
+    public class UISectionPersonnelNewsFeed : UISection
+    {
+        private PersonnelFile focusCrew;
+        
+        public UISectionPersonnelNewsFeed(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
+        {
+            hasCompact = true;
+            hasExtended = true;
+            hasHelp = false;
+
+            _state = UIBoxState.EXTENDED;
+        }
+
+        protected override string HeadString()
+        {
+            focusCrew = _root.GetFocusCrew();
+            return "News Feed";
+        }
+
+        protected override void DrawCompact()
+        {
+            GUILayout.BeginVertical();
+            GUILayout.Label($"{focusCrew.DisplayName()} has {storyEngine.GetNumberNewsAbout(focusCrew.UniqueName())} new items.");
+            GUILayout.EndVertical();
+        }
+
+        protected override void DrawExtended()
+        {
+            GUILayout.BeginVertical();
+            _root.DrawFeedSection(true);
+            GUILayout.EndVertical();
+        }
+        
+        protected override void DrawHelp()
+        {
+            
+        }
+    }
+    
     #endregion
 
     #region Recruit UI

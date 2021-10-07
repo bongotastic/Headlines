@@ -97,6 +97,7 @@ namespace Headlines.source.GUI
             _section.Add("PersonnelImpact", new UISectionPersonnelImpact(this));
             _section.Add("PersonnelActivity", new UISectionPersonnelActivity(this));
             _section.Add("PersonnelRelationships", new UISectionPersonnelRelationships(this));
+            _section.Add("PersonnelNewsFeed", new UISectionPersonnelNewsFeed(this));
         }
 
         protected void OnDestroy()
@@ -364,6 +365,11 @@ namespace Headlines.source.GUI
             {
                 DrawSection("PersonnelRelationships");
             }
+
+            if (storyEngine.GetNumberNewsAbout(crewRoster[_selectedCrew]) != 0)
+            {
+                DrawSection("PersonnelNewsFeed");
+            }
             
             GUILayout.EndVertical();
      
@@ -402,8 +408,10 @@ namespace Headlines.source.GUI
             GUIPad();
         }
 
-        private void DrawFeedSection(bool crewSpecific = false)
+        public void DrawFeedSection(bool crewSpecific = false)
         {
+            int width = crewSpecific ? widthUI - widthMargin - 10 :  widthUI;
+            
             bool drawfeed = false;
             int height = crewSpecific ? 100 : 430;
             if (storyEngine.headlines.Count == 0 & !crewSpecific)
@@ -418,11 +426,10 @@ namespace Headlines.source.GUI
                     {
                         if (!drawfeed)
                         {
-                            GUILayout.Box("News feed");
-                            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(height));
+                            scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(width), GUILayout.Height(height));
                             drawfeed = true;
                         }
-                        DrawHeadline(ns);
+                        DrawHeadline(ns, width);
                     }
                 }
                 else
@@ -430,10 +437,10 @@ namespace Headlines.source.GUI
                     if ((int)ns.scope < feedThreshold + 1) continue;
                     if (!drawfeed)
                     {
-                        scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(400), GUILayout.Height(height));
+                        scrollFeedView = GUILayout.BeginScrollView(scrollFeedView, GUILayout.Width(width), GUILayout.Height(height));
                         drawfeed = true;
                     }
-                    DrawHeadline(ns);
+                    DrawHeadline(ns, width);
                 }
             }
 
@@ -444,18 +451,18 @@ namespace Headlines.source.GUI
             
         }
 
-        private void DrawHeadline(NewsStory ns)
+        private void DrawHeadline(NewsStory ns, int width)
         {
             if (ns.headline == "")
             {
-                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.story}",GUILayout.Width(370));
+                GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.story}",GUILayout.Width(width-30));
             }
             else
             {
                 GUILayout.Label($"{KSPUtil.PrintDate(ns.timestamp, false, false)} {ns.headline}");
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("", GUILayout.Width(10));
-                GUILayout.TextArea(ns.story, GUILayout.Width(360));
+                GUILayout.TextArea(ns.story, GUILayout.Width(width - 40));
                 GUILayout.EndHorizontal();
             }
             GUILayout.Space(5);
