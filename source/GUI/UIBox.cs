@@ -107,7 +107,7 @@ namespace Headlines.source.GUI
         {
             int pad = 2;
             GUILayout.BeginHorizontal();
-            GUILayout.Box(HeadString(), GUILayout.Width(_root.widthUI - 50));
+            GUILayout.Box(HeadString(), GUILayout.Width(_root.widthUI - 45));
             if (_state != UIBoxState.COMPACT & hasCompact)
             {
                 pad -= 1;

@@ -33,7 +33,7 @@ namespace Headlines.source.GUI
         public int _priority = 0;
 
         private PeopleManager peopleManager;
-        private List<string> crewRoster;
+        public List<string> crewRoster;
         private List<string> applicantRoster;
         
         //private List<string> tabLabels;
@@ -56,8 +56,8 @@ namespace Headlines.source.GUI
         private static string[] tabs = new[] { "Program", "Media", "Feed", "Personnel", "Recruit","Story"};
         private static string[] flightTabs = new[] { "Program", "Media", "Story"};
         public static string[] priorities = new[] { "Balanced", "Reputation", "Production", "Growth"};
-        
-        private int mediaInvitationDelay = 1;
+
+        public int mediaInvitationDelay = 1;
 
         /// <summary>
         /// UISections
@@ -90,7 +90,11 @@ namespace Headlines.source.GUI
             _section.Add("ProgramManagement", new UISectionProgramManagement(this));
             _section.Add("ProgramPriority", new UISectionProgramPriority(this));
             _section.Add("ProgramImpact", new UISectionProgramImpact(this));
-            
+            _section.Add("MediaEvent", new UISectionMediaEvent(this));
+            _section.Add("MediaContracts", new UISectionMediaContracts(this));
+            _section.Add("MediaSecret", new UISectionMediaSecret(this));
+            _section.Add("PersonnelProfile", new UISectionPersonnelProfile(this));
+            _section.Add("PersonnelImpact", new UISectionPersonnelImpact(this));
         }
 
         protected void OnDestroy()
@@ -196,6 +200,11 @@ namespace Headlines.source.GUI
         #endregion
         
         #region Panels
+        
+        public void DrawSection(string name)
+        {
+            if (_section.ContainsKey(name)) _section[name].Draw();
+        }
 
         /// <summary>
         /// Store the tab to display
@@ -309,286 +318,23 @@ namespace Headlines.source.GUI
 
         #region Media tab
 
-        public void DrawSection(string name)
-        {
-            if (_section.ContainsKey(name)) _section[name].Draw();
-        }
+        
         
         /// <summary>
         /// Draw panel to manage media and reputation
         /// </summary>
         public void DrawPressRoom()
         {
-            DrawPressGallery();
-            DrawPressReleases();
-            DrawContracts();
-            
-        }
-        
-         /// <summary>
-        /// Contract view and controls for the program view.
-        /// </summary>
-        public void DrawContracts()
-        {
-            float ratio = 0f;
-            
-            Color originalColor = UnityEngine.GUI.contentColor;
-
-            GUILayout.Box("Contracts (% hyped)");
-            
-            foreach (Contract myContract in ContractSystem.Instance.GetCurrentContracts<Contract>().OrderBy(x=>x.ReputationCompletion))
-            {
-                if (myContract.ContractState == Contract.State.Active)
-                {
-                    
-                    // Do no show pledged contracts
-                    if (RepMgr.currentMode != MediaRelationMode.LOWPROFILE & RepMgr.mediaContracts.Contains(myContract)) continue;
-                    
-                    // Skip autoaccepted contracts 
-                    if (myContract.AutoAccept & !_showAutoAcceptedContracts) continue;
-
-                    GUILayout.BeginHorizontal();
-                    if (RepMgr.currentMode == MediaRelationMode.LOWPROFILE)
-                    {
-                        if (RepMgr.mediaContracts.Contains(myContract))
-                        {
-                            if (GUILayout.Button("-", GUILayout.Width(20)))
-                            {
-                                RepMgr.WithdrawContractFromMediaEvent(myContract);
-                            }
-                        }
-                        else
-                        {
-                            if (GUILayout.Button("+", GUILayout.Width(20)))
-                            {
-                                RepMgr.AttachContractToMediaEvent(myContract);
-                            }
-                        }
-                    }
-                    
-                    if (myContract.ReputationCompletion > 0)
-                    {
-                        ratio = (float)storyEngine._reputationManager.Hype() / myContract.ReputationCompletion;
-                    }
-                    else
-                    {
-                        ratio = 1f;
-                    }
-
-                    string ratioString = $"({(int)Math.Ceiling(100f*ratio)}%)";
-                    if (ratio >= 1f)
-                    {
-                        UnityEngine.GUI.contentColor = Color.green;
-                        ratioString = $"({Math.Round(ratio, (ratio > 5f) ? 0 : 1, MidpointRounding.AwayFromZero)}X)";
-                    }
-
-                    else if (ratio >= 0.5f)
-                    {
-                        UnityEngine.GUI.contentColor = Color.yellow;
-                    }
-                    else UnityEngine.GUI.contentColor = Color.red;
-                    
-                    GUILayout.Label($"{myContract.Title} (Cred: {myContract.ReputationCompletion}, {ratioString}" , GUILayout.Width(380));
-                    UnityEngine.GUI.contentColor = originalColor;
-                    
-                    GUILayout.EndHorizontal();
-                }
-                
-            }
-
-            bool temp = false;
-            temp = GUILayout.Toggle(_showAutoAcceptedContracts, "Show all contracts");
-            if (temp != _showAutoAcceptedContracts)
-            {
-                _showAutoAcceptedContracts = temp;
-                resizePosition = true;
-            }
-            
-            GUIPad();
-        }
-
-        public void DrawPressReleases()
-        {
+            DrawSection("MediaEvent");
             if (RepMgr.shelvedAchievements.Count != 0)
             {
-                GUILayout.Box("Secret achievements (rep. value)");
-                //scrollReleases = GUILayout.BeginScrollView(scrollReleases, GUILayout.Width(400), GUILayout.Height(100));
-                foreach (NewsStory ns in RepMgr.shelvedAchievements.OrderByDescending(x=>x.reputationValue))
-                {
-                    DrawUnreleasedNews(ns);
-                }
-                //GUILayout.EndScrollView();
+                DrawSection("MediaSecret");
             }
-        }
-
-        public void DrawUnreleasedNews(NewsStory ns)
-        {
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Release", GUILayout.Width(60)))
-            {
-                storyEngine.IssuePressRelease(ns);
-            }
-            GUILayout.Label($"{ns.headline} ({Math.Round(ns.reputationValue,1,MidpointRounding.AwayFromZero)})", GUILayout.Width(320));
-            GUILayout.EndHorizontal();
-        }
-
-        public void DrawPressGallery()
-        {
-            switch (RepMgr.currentMode)
-            {
-                case MediaRelationMode.LOWPROFILE:
-                    DrawPressGalleryLowProfile();
-                    break;
-                case MediaRelationMode.CAMPAIGN:
-                    DrawPressGalleryCampaign();
-                    break;
-                case MediaRelationMode.LIVE:
-                    DrawPressGalleryLive();
-                    break;
-            }
-            DrawPressGalleryContractList();
-            
-            GUIPad();
-        }
-
-        public void DrawPressGalleryLowProfile()
-        {
-            GUILayout.Box("Plan Media campaign [Status: Low Profile]");
-            
-            double cost = RepMgr.MediaCampaignCost(mediaInvitationDelay);
-            
-            GUILayout.BeginHorizontal();
-            Indent();
-            if (cost > Funding.Instance.Funds)
-            {
-                mediaInvitationDelay -= 1;
-                GUILayout.Button($"Insufficient fund for ", GUILayout.Width(200));
-            }
-            else
-            {
-                storyEngine.InvitePress(GUILayout.Button($"Invite Press (√{cost})", GUILayout.Width(200)), mediaInvitationDelay);
-            }
-            GUILayout.Label("  in ", GUILayout.Width(25));
-            mediaInvitationDelay = Math.Max(Int32.Parse(GUILayout.TextField($"{mediaInvitationDelay}", GUILayout.Width(40))), 1);
-            GUILayout.Label("  days");
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            Indent();
-            GUILayout.Label($"NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.GetMediaEventWager(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.", GUILayout.Width(380));
-            GUILayout.EndHorizontal();
+            DrawSection("MediaContracts");
             
         }
-        
-        public void DrawPressGalleryCampaign()
-        {
-            double now = HeadlinesUtil.GetUT();
-            
-            GUILayout.Box("Media campaign");
-            double timeToLive = RepMgr.airTimeStarts - HeadlinesUtil.GetUT();
-            GUILayout.BeginHorizontal();
-            Indent();
-            if (now <= RepMgr.airTimeStarts)
-            {
-                GUILayout.Label("Earliest event:", GUILayout.Width(100));
-            }
-            else
-            {
-                GUILayout.Label("Latest event:", GUILayout.Width(100));
-                timeToLive = RepMgr.airTimeEnds - HeadlinesUtil.GetUT();
-            }
-            GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, true)}", GUILayout.Width(150));
-            GUILayout.Label($"    Hype:{Math.Round(RepMgr.CampaignHype(), MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
-            GUILayout.EndHorizontal();
 
-            GUILayout.BeginHorizontal();
-            Indent();
-            if (GUILayout.Button("Cancel Media Event"))
-            {
-                
-                RepMgr.CancelMediaEvent();
-            }
-            GUILayout.EndHorizontal();
 
-            if (now >= RepMgr.airTimeStarts)
-            {
-                GUILayout.BeginHorizontal();
-                Indent();
-                if (GUILayout.Button("Manual Kickoff of Media Event"))
-                {
-                    RepMgr.GoLIVE();
-                }
-                GUILayout.EndHorizontal();
-            }
-
-        }
-        
-        public void DrawPressGalleryLive()
-        {
-            GUILayout.Box("Media relation: We're live!");
-            double timeToLive = RepMgr.airTimeEnds - HeadlinesUtil.GetUT();
-            GUILayout.BeginHorizontal();
-            Indent();
-            GUILayout.Label("Live for ", GUILayout.Width(100));
-            GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, false)}", GUILayout.Width(150));
-            if (RepMgr.WageredCredibilityToGo() > 0)
-            {
-                GUILayout.Label($"  Cred. Target:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
-            }
-            else
-            {
-                GUILayout.Label($"  Exceeded by:{Math.Round(RepMgr.WageredCredibilityToGo()*-1, MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
-            }
-            GUILayout.EndHorizontal();
-            
-            if (RepMgr.EventSuccess())
-            {
-                GUILayout.BeginHorizontal();
-                Indent();
-                if (GUILayout.Button("Call successful media debrief", GUILayout.Width(380)))
-                {
-                    RepMgr.CallMediaDebrief();
-                }
-                GUILayout.EndHorizontal();
-            }
-            else
-            {
-                GUILayout.BeginHorizontal();
-                Indent();
-                GUILayout.Label($"Awaiting {Math.Round(RepMgr.WageredCredibilityToGo(),MidpointRounding.AwayFromZero) } additional reputation points to be satisfied.", GUILayout.Width(380));
-                GUILayout.EndHorizontal();
-                GUILayout.BeginHorizontal();
-                Indent();
-                if (GUILayout.Button("Dismiss the press gallery in shame"))
-                {
-                    RepMgr.CallMediaDebrief();
-
-                }
-                GUILayout.EndHorizontal();
-            }
-        }
-
-        public void DrawPressGalleryContractList()
-        {
-            
-            if (RepMgr.mediaContracts.Count == 0) return;
-            
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("", GUILayout.Width(20));
-            GUILayout.Box($"Pledged objectives: {RepMgr.GetMediaEventWager()} reputation");
-            GUILayout.EndHorizontal();
-            foreach (Contract contract in RepMgr.mediaContracts.OrderByDescending(c=>c.ReputationCompletion))
-            {
-                DrawPressGalleryContractItem(contract);
-            }
-            
-        }
-        public void DrawPressGalleryContractItem(Contract contract)
-        {
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("", GUILayout.Width(20));
-            GUILayout.Toggle(contract.ReputationCompletion <= RepMgr.Hype(), $"   {contract.Title} ({contract.ReputationCompletion})", GUILayout.Width(380));
-            GUILayout.EndHorizontal();
-        }
 
         #endregion
 
@@ -613,7 +359,9 @@ namespace Headlines.source.GUI
             }
             
             GUIPad();
-            DrawCrew();
+            //DrawCrew();
+            DrawSection("PersonnelProfile");
+            DrawSection("PersonnelImpact");
             GUILayout.EndVertical();
      
         }
@@ -627,44 +375,7 @@ namespace Headlines.source.GUI
         {
             string crewName = crewRoster[_selectedCrew];
             PersonnelFile focusCrew = peopleManager.GetFile(crewName);
-            
-            string personality = "";
-            if (focusCrew.personality != "")
-            {
-                personality = $", {focusCrew.personality}";
-            }
 
-            double effectiveness = focusCrew.Effectiveness(deterministic: true);
-            if (focusCrew.UniqueName() == PrgMgr.ManagerName())
-            {
-                effectiveness -= storyEngine.GetProgramComplexity();
-                GUILayout.Box($"{peopleManager.QualitativeEffectiveness(effectiveness)} Program Manager ({focusCrew.Specialty()}{personality})");
-            }
-            else
-            {
-                GUILayout.Box($"{peopleManager.QualitativeEffectiveness(effectiveness)} {focusCrew.Specialty().ToLower()}{personality}");
-            }
-            
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Charisma: {focusCrew.EffectivenessLikability(true)}", GUILayout.Width(130));
-            GUILayout.Label($"Training: {focusCrew.trainingLevel}", GUILayout.Width(130));
-            GUILayout.Label($"Fame: {focusCrew.EffectivenessFame()}", GUILayout.Width(130));
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Personality: {focusCrew.EffectivenessPersonality()}", GUILayout.Width(130));
-            GUILayout.Label($"Peers: {focusCrew.EffectivenessHumanFactors()}", GUILayout.Width(130));
-            GUILayout.Label($"Mood: {focusCrew.EffectivenessMood()}", GUILayout.Width(130));
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(130));
-            GUILayout.Label($"Nation: {focusCrew.GetCulture()}", GUILayout.Width(130));
-            if (focusCrew.Specialty() == "Scientist" && focusCrew.passion != PartCategories.none)
-            {
-                GUILayout.Label($"Passion: {focusCrew.passion.ToString()}", GUILayout.Width(130));
-            }
-            GUILayout.EndHorizontal();
-            GUIPad();
-            
             // If untrained, offers to reassign
             if (focusCrew.trainingLevel + focusCrew.EffectivenessFame() == 0)
             {
@@ -1202,6 +913,11 @@ namespace Headlines.source.GUI
                     _priority = 3;
                     break;
             }
+        }
+
+        public PersonnelFile GetFocusCrew()
+        {
+            return peopleManager.GetFile(crewRoster[_selectedCrew]);
         }
         
         #endregion
