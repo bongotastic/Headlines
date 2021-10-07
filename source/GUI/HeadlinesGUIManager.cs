@@ -29,7 +29,7 @@ namespace Headlines.source.GUI
         
         private int _activeTabIndex = 0;
         private int _selectedCrew = 0;
-        private int _currentActivity = 0;
+        public int _currentActivity = 0;
         public int _priority = 0;
 
         private PeopleManager peopleManager;
@@ -37,7 +37,7 @@ namespace Headlines.source.GUI
         private List<string> applicantRoster;
         
         //private List<string> tabLabels;
-        private List<string> activityLabels;
+        public List<string> activityLabels;
 
         // location of the Window
         public Rect position;
@@ -46,7 +46,7 @@ namespace Headlines.source.GUI
         private Vector2 scrollFeedView = new Vector2(0,0);
         private Vector2 scrollHMMView = new Vector2(0,0);
         private Vector2 scrollReleases = new Vector2(0, 0);
-        private Vector2 scrollRelationships = new Vector2(0, 0);
+        public Vector2 scrollRelationships = new Vector2(0, 0);
         
         
         private int feedThreshold = 1;
@@ -95,6 +95,8 @@ namespace Headlines.source.GUI
             _section.Add("MediaSecret", new UISectionMediaSecret(this));
             _section.Add("PersonnelProfile", new UISectionPersonnelProfile(this));
             _section.Add("PersonnelImpact", new UISectionPersonnelImpact(this));
+            _section.Add("PersonnelActivity", new UISectionPersonnelActivity(this));
+            _section.Add("PersonnelRelationships", new UISectionPersonnelRelationships(this));
         }
 
         protected void OnDestroy()
@@ -148,7 +150,7 @@ namespace Headlines.source.GUI
             }
         }
 
-        private void BuildActivityLabels(string role)
+        public void BuildActivityLabels(string role)
         {
             HiddenState hmmprocess = new HiddenState("role_" + role);
             activityLabels = hmmprocess.ListEmissions();
@@ -334,12 +336,6 @@ namespace Headlines.source.GUI
             
         }
 
-
-
-        #endregion
-
-        #region Personnel
-
         /// <summary>
         /// Top-level UI for the Crew panel of the main UI
         /// </summary>
@@ -349,6 +345,7 @@ namespace Headlines.source.GUI
 
             if (crewRoster.Count == 0) return;
             
+            // Crew member selector
             GUILayout.BeginVertical();
             GUILayout.Box("Active crew");
             
@@ -357,11 +354,17 @@ namespace Headlines.source.GUI
             {
                 _selectedCrew = 0;
             }
-            
             GUIPad();
-            //DrawCrew();
+            
+            // Crew information part
             DrawSection("PersonnelProfile");
             DrawSection("PersonnelImpact");
+            DrawSection("PersonnelActivity");
+            if (GetFocusCrew().collaborators.Count + GetFocusCrew().feuds.Count != 0)
+            {
+                DrawSection("PersonnelRelationships");
+            }
+            
             GUILayout.EndVertical();
      
         }
@@ -376,170 +379,11 @@ namespace Headlines.source.GUI
             string crewName = crewRoster[_selectedCrew];
             PersonnelFile focusCrew = peopleManager.GetFile(crewName);
 
-            // If untrained, offers to reassign
-            if (focusCrew.trainingLevel + focusCrew.EffectivenessFame() == 0)
-            {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Reassign as: ");
-                if (focusCrew.Specialty() != "Pilot")
-                {
-                    if (GUILayout.Button("Pilot"))
-                    {
-                        storyEngine.RetrainKerbal(focusCrew, "Pilot");
-                    }
-                }
-                if (focusCrew.Specialty() != "Scientist")
-                {
-                    if (GUILayout.Button("Scientist"))
-                    {
-                        storyEngine.RetrainKerbal(focusCrew, "Scientist");
-                    }
-                }
-                if (focusCrew.Specialty() != "Engineer")
-                {
-                    if (GUILayout.Button("Engineer"))
-                    {
-                        storyEngine.RetrainKerbal(focusCrew, "Engineer");
-                    }
-                }
-                GUILayout.EndHorizontal();
-            }
-            else
-            {
-                if (PrgMgr.ManagerName() != focusCrew.UniqueName())
-                {
-                    if (focusCrew.Effectiveness(deterministic: true) > PrgMgr.ManagerProfile(deterministic:true))
-                    {
-                        GUILayout.BeginHorizontal();
-                        Indent();
-                        if (GUILayout.Button("Promote to Program Manager", GUILayout.Width(380)))
-                        {
-                            storyEngine.KerbalAppointProgramManager(focusCrew);
-                        }
-                        GUILayout.EndHorizontal();
-                    }
-                }
-                else
-                {
-                    GUILayout.BeginHorizontal();
-                    Indent();
-                    if (GUILayout.Button("Dismiss as Program Manager", GUILayout.Width(380)))
-                    {
-                        storyEngine.KerbalAppointProgramManager(null);
-                    }
-                    GUILayout.EndHorizontal();
-                }
-                
-            }
-            GUIPad();
-            
-            // Impact
-            if (focusCrew.Specialty() != "Pilot")
-            {
-                string location = "VAB";
-                if (focusCrew.Specialty() == "Scientist") location = "R&D complex";
-                GUILayout.Box($"Impact on {location} ({focusCrew.influence+focusCrew.teamInfluence+focusCrew.legacy} pts)");
-                GUILayout.BeginHorizontal();
-                GUILayout.Label($"Immediate: {focusCrew.influence}", GUILayout.Width(133));
-                GUILayout.Label($"Lasting: {focusCrew.teamInfluence}", GUILayout.Width(133));
-                GUILayout.Label($"Legacy: {focusCrew.legacy}", GUILayout.Width(133));
-                GUILayout.EndHorizontal();
-            }
-            else
-            {
-                GUILayout.Box($"Impact on Space Program");
-            }
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Hype: {focusCrew.lifetimeHype}", GUILayout.Width(133));
-            GUILayout.Label($"Scout: {focusCrew.numberScout}", GUILayout.Width(133));
-            GUILayout.Label($"Funds: {focusCrew.fundRaised/1000}K", GUILayout.Width(133));
-            GUILayout.EndHorizontal();
-            GUIPad();
-            
-            // Relationships
-            int nLines = focusCrew.feuds.Count + focusCrew.collaborators.Count;
-            if (nLines != 0)
-            {
-                GUILayout.Box($"Relationships");
-                if (nLines >= 3)
-                {
-                    scrollRelationships = GUILayout.BeginScrollView(scrollRelationships, GUILayout.Width(400), GUILayout.Height(100));
-                }
-                foreach (string otherCrew in focusCrew.collaborators)
-                {
-                    DrawRelationship(peopleManager.GetFile(otherCrew), isFeud:false);
-                }
-                foreach (string otherCrew in focusCrew.feuds)
-                {
-                    DrawRelationship(peopleManager.GetFile(otherCrew), isFeud:true);
-                }
-
-                if (nLines >= 3)
-                {
-                    GUILayout.EndScrollView();
-                }
-                GUIPad();
-            }
-            
-            // Activity controls
-            if (focusCrew.UniqueName() != PrgMgr.ManagerName())
-            {
-                if (focusCrew.IsInactive())
-                {
-                    double deltaTime = focusCrew.InactiveDeadline() - HeadlinesUtil.GetUT();
-                    GUILayout.Box($"Activity (inactive)");
-                    GUILayout.Label($"Earliest possible return: {KSPUtil.PrintDateDelta(deltaTime,false, false)}");
-                }
-                else if (PrgMgr.ControlLevel() >= ProgramControlLevel.NOMINAL)
-                {
-                    BuildActivityLabels(focusCrew.Specialty()); // inefficient
-                    GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
-                    _currentActivity = activityLabels.IndexOf(focusCrew.kerbalTask);
-                    _currentActivity = GUILayout.SelectionGrid(_currentActivity, activityLabels.ToArray(), 2);
-                    if (_currentActivity != activityLabels.IndexOf(focusCrew.kerbalTask))
-                    {
-                        storyEngine.KerbalOrderTask(focusCrew, activityLabels[_currentActivity]);
-                    }
-
-                    focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
-                }
-                else
-                {
-                    GUILayout.Box($"Activity ({focusCrew.kerbalProductiveState})");
-                    GUILayout.Label($"Busy with {focusCrew.kerbalTask}. {PrgMgr.ManagerName()} needs to have at least nominal control to micromanage crew.", FullWidth());
-                }
-            }
-
             GUIPad();
             DrawFeedSection(true);
         }
 
-        /// <summary>
-        /// This section of the Crew UI displays one entry of the interpersonal relationships involving the selected crewMember 
-        /// </summary>
-        /// <param name="crewMember">Name of the "other" crew member</param>
-        /// <param name="isFeud"></param>
-        public void DrawRelationship(PersonnelFile crewMember, bool isFeud = false)
-        {
-            GUILayout.BeginHorizontal();
-            Color oldColor = UnityEngine.GUI.contentColor;
-            if (isFeud == true)
-            {
-                UnityEngine.GUI.contentColor = Color.red;
-                GUILayout.Label("[FEUD]", GUILayout.Width(50));
-            }
-            else
-            {
-                UnityEngine.GUI.contentColor = Color.green;
-                GUILayout.Label("[COLL]", GUILayout.Width(50));
-            }
-            UnityEngine.GUI.contentColor = oldColor;
-            
-            GUILayout.Label($"{crewMember.DisplayName()}", GUILayout.Width(160));
-            GUILayout.Label($"{peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))} {crewMember.Specialty()}", GUILayout.Width(190));
-            
-            GUILayout.EndHorizontal();
-        }
+        
         
         #endregion
         

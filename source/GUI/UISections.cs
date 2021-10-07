@@ -640,7 +640,7 @@ namespace Headlines.source.GUI
             GUILayout.BeginVertical();
             
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(125));
+            GUILayout.Label($"Profile: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(125));
             GUILayout.Label($"Nation: {focusCrew.GetCulture()}", GUILayout.Width(125));
             if (focusCrew.Specialty() == "Scientist" && focusCrew.passion != PartCategories.none)
             {
@@ -665,7 +665,7 @@ namespace Headlines.source.GUI
             GUILayout.Label($"Mood: {focusCrew.EffectivenessMood()}", GUILayout.Width(125));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Net: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(125));
+            GUILayout.Label($"Profile: {focusCrew.Effectiveness(deterministic:true)}", GUILayout.Width(125));
             GUILayout.Label($"Nation: {focusCrew.GetCulture()}", GUILayout.Width(125));
             if (focusCrew.Specialty() == "Scientist" && focusCrew.passion != PartCategories.none)
             {
@@ -752,6 +752,225 @@ namespace Headlines.source.GUI
         }
     }
 
+    public class UISectionPersonnelActivity : UIBox
+    {
+        public PersonnelFile focusCrew;
+        public UISectionPersonnelActivity(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
+        {
+            hasCompact = true;
+            hasExtended = true;
+            hasHelp = false;
+
+            _state = UIBoxState.COMPACT;
+        }
+
+        protected override string HeadString()
+        {
+            focusCrew = _root.GetFocusCrew();
+            if (focusCrew.IsInactive()) return "Activity (inactive)";
+            return $"Activity ({focusCrew.kerbalProductiveState})";
+        }
+
+        protected override void DrawCompact()
+        {
+            GUILayout.BeginVertical();
+            
+            if (focusCrew.IsInactive())
+            {
+                double deltaTime = focusCrew.InactiveDeadline() - HeadlinesUtil.GetUT();
+                GUILayout.Label($"Earliest possible return: {KSPUtil.PrintDateDelta(deltaTime,false, false)}", FullWidth());
+            }
+            else
+            {
+                GUILayout.Label($"Busy with {focusCrew.kerbalTask}, please don't bother them at this time.", FullWidth());
+            }
+            
+            GUILayout.EndVertical();
+        }
+
+        protected override void DrawExtended()
+        {
+            GUILayout.BeginVertical();
+            // Activity controls
+            if (focusCrew.UniqueName() != PrgMgr.ManagerName())
+            {
+                if (focusCrew.IsInactive())
+                {
+                    double deltaTime = focusCrew.InactiveDeadline() - HeadlinesUtil.GetUT();
+                    GUILayout.Label($"Earliest possible return: {KSPUtil.PrintDateDelta(deltaTime,false, false)}");
+                }
+                else if (PrgMgr.ControlLevel() >= ProgramControlLevel.NOMINAL)
+                {
+                    _root.BuildActivityLabels(focusCrew.Specialty()); // inefficient
+                    _root._currentActivity = _root.activityLabels.IndexOf(focusCrew.kerbalTask);
+                    _root._currentActivity = GUILayout.SelectionGrid(_root._currentActivity, _root.activityLabels.ToArray(), 2, FullWidth());
+                    if (_root._currentActivity != _root.activityLabels.IndexOf(focusCrew.kerbalTask))
+                    {
+                        storyEngine.KerbalOrderTask(focusCrew, _root.activityLabels[_root._currentActivity]);
+                    }
+
+                    focusCrew.coercedTask = GUILayout.Toggle(focusCrew.coercedTask, "Told what to do");
+                }
+                else
+                {
+                    GUILayout.Label($"Busy with {focusCrew.kerbalTask}. {PrgMgr.ManagerName()} needs to have at least nominal control to micromanage crew.", FullWidth());
+                }
+            }
+            else
+            {
+                GUILayout.Label($"{focusCrew.DisplayName()} is current appointed as Program Manager.", FullWidth());
+            }
+            
+            // If untrained, offers to reassign
+            if (focusCrew.trainingLevel + focusCrew.EffectivenessFame() == 0)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Reassign as: ");
+                if (focusCrew.Specialty() != "Pilot")
+                {
+                    if (GUILayout.Button("Pilot"))
+                    {
+                        storyEngine.RetrainKerbal(focusCrew, "Pilot");
+                    }
+                }
+                if (focusCrew.Specialty() != "Scientist")
+                {
+                    if (GUILayout.Button("Scientist"))
+                    {
+                        storyEngine.RetrainKerbal(focusCrew, "Scientist");
+                    }
+                }
+                if (focusCrew.Specialty() != "Engineer")
+                {
+                    if (GUILayout.Button("Engineer"))
+                    {
+                        storyEngine.RetrainKerbal(focusCrew, "Engineer");
+                    }
+                }
+                GUILayout.EndHorizontal();
+            }
+            else
+            {
+                if (PrgMgr.ManagerName() != focusCrew.UniqueName())
+                {
+                    if (focusCrew.Effectiveness(deterministic: true) > PrgMgr.ManagerProfile(deterministic:true))
+                    {
+                        if (GUILayout.Button("Promote to Program Manager", FullWidth()))
+                        {
+                            storyEngine.KerbalAppointProgramManager(focusCrew);
+                        }
+                    }
+                }
+                else
+                {
+                    if (GUILayout.Button("Dismiss as Program Manager", FullWidth()))
+                    {
+                        storyEngine.KerbalAppointProgramManager(null);
+                    }
+                }
+                
+            }
+            GUILayout.EndVertical();
+        }
+        
+        protected override void DrawHelp()
+        {
+            
+        }
+    }
+    
+    public class UISectionPersonnelRelationships : UIBox
+    {
+        private PersonnelFile focusCrew;
+        public UISectionPersonnelRelationships(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
+        {
+            hasCompact = true;
+            hasExtended = true;
+            hasHelp = false;
+
+            _state = UIBoxState.EXTENDED;
+        }
+
+        protected override string HeadString()
+        {
+            focusCrew = _root.GetFocusCrew();
+            return "Relationships";
+        }
+
+        protected override void DrawCompact()
+        {
+            GUILayout.BeginVertical();
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Collaborators: {focusCrew.collaborators.Count}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"Feuds: {focusCrew.feuds.Count}", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            
+            GUILayout.EndVertical();
+        }
+
+        protected override void DrawExtended()
+        {
+            GUILayout.BeginVertical();
+            // Relationships
+            int nLines = focusCrew.feuds.Count + focusCrew.collaborators.Count;
+            if (nLines != 0)
+            {
+                if (nLines >= 5)
+                {
+                    _root.scrollRelationships = GUILayout.BeginScrollView(_root.scrollRelationships, FullWidth(), GUILayout.Height(100));
+                }
+                foreach (string otherCrew in focusCrew.collaborators)
+                {
+                    DrawRelationship(peopleManager.GetFile(otherCrew), isFeud:false);
+                }
+                foreach (string otherCrew in focusCrew.feuds)
+                {
+                    DrawRelationship(peopleManager.GetFile(otherCrew), isFeud:true);
+                }
+
+                if (nLines >= 5)
+                {
+                    GUILayout.EndScrollView();
+                }
+                _root.GUIPad();
+            }
+            GUILayout.EndVertical();
+        }
+        
+        protected override void DrawHelp()
+        {
+            
+        }
+        
+        /// <summary>
+        /// This section of the Crew UI displays one entry of the interpersonal relationships involving the selected crewMember 
+        /// </summary>
+        /// <param name="crewMember">Name of the "other" crew member</param>
+        /// <param name="isFeud"></param>
+        public void DrawRelationship(PersonnelFile crewMember, bool isFeud = false)
+        {
+            GUILayout.BeginHorizontal();
+            Color oldColor = UnityEngine.GUI.contentColor;
+            if (isFeud == true)
+            {
+                UnityEngine.GUI.contentColor = Color.red;
+                GUILayout.Label("[FEUD]", GUILayout.Width(50));
+            }
+            else
+            {
+                UnityEngine.GUI.contentColor = Color.green;
+                GUILayout.Label("[COLL]", GUILayout.Width(50));
+            }
+            UnityEngine.GUI.contentColor = oldColor;
+            
+            GUILayout.Label($"{crewMember.DisplayName()}", GUILayout.Width(155));
+            GUILayout.Label($"{peopleManager.QualitativeEffectiveness(crewMember.Effectiveness(deterministic:true))} {crewMember.Specialty()}", GUILayout.Width(180));
+            
+            GUILayout.EndHorizontal();
+        }
+    }
+    
     #endregion
 
     #region Recruit UI
