@@ -13,7 +13,7 @@ namespace Headlines.source.GUI
     /// <summary>
     /// Draws details about credibility, hype and the space race.
     /// </summary>
-    public class UISectionProgramCredibility : UIBox
+    public class UISectionProgramCredibility : UISection
     {
         public UISectionProgramCredibility(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {
@@ -78,7 +78,7 @@ namespace Headlines.source.GUI
     /// <summary>
     /// Template for deriving a class
     /// </summary>
-    public class UISectionProgramManagement : UIBox
+    public class UISectionProgramManagement : UISection
     {
         public UISectionProgramManagement(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {
@@ -144,7 +144,7 @@ namespace Headlines.source.GUI
     /// <summary>
     /// Template for deriving a class
     /// </summary>
-    public class UISectionProgramPriority : UIBox
+    public class UISectionProgramPriority : UISection
     {
         public UISectionProgramPriority(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {
@@ -212,7 +212,7 @@ namespace Headlines.source.GUI
     /// <summary>
     /// Template for deriving a class
     /// </summary>
-    public class UISectionProgramImpact : UIBox
+    public class UISectionProgramImpact : UISection
     {
         public UISectionProgramImpact(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {
@@ -269,7 +269,7 @@ namespace Headlines.source.GUI
 
     #region Media UI
 
-    public class UISectionMediaEvent : UIBox
+    public class UISectionMediaEvent : UISection
     {
         public UISectionMediaEvent(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {
@@ -441,7 +441,7 @@ namespace Headlines.source.GUI
         }
     }
     
-    public class UISectionMediaContracts : UIBox
+    public class UISectionMediaContracts : UISection
     {
         public UISectionMediaContracts(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {
@@ -548,7 +548,7 @@ namespace Headlines.source.GUI
         }
     }
     
-    public class UISectionMediaSecret : UIBox
+    public class UISectionMediaSecret : UISection
     {
         public UISectionMediaSecret(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {
@@ -602,7 +602,7 @@ namespace Headlines.source.GUI
     /// <summary>
     /// Top block in Personnel UI panel breaking down profile and come vital statistics.
     /// </summary>
-    public class UISectionPersonnelProfile : UIBox
+    public class UISectionPersonnelProfile : UISection
     {
         public PersonnelFile focusCrew;
         
@@ -682,7 +682,7 @@ namespace Headlines.source.GUI
         }
     }
     
-    public class UISectionPersonnelImpact : UIBox
+    public class UISectionPersonnelImpact : UISection
     {
         public PersonnelFile focusCrew; 
         
@@ -752,7 +752,7 @@ namespace Headlines.source.GUI
         }
     }
 
-    public class UISectionPersonnelActivity : UIBox
+    public class UISectionPersonnelActivity : UISection
     {
         public PersonnelFile focusCrew;
         public UISectionPersonnelActivity(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
@@ -879,7 +879,7 @@ namespace Headlines.source.GUI
         }
     }
     
-    public class UISectionPersonnelRelationships : UIBox
+    public class UISectionPersonnelRelationships : UISection
     {
         private PersonnelFile focusCrew;
         public UISectionPersonnelRelationships(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
@@ -987,7 +987,7 @@ namespace Headlines.source.GUI
     /// <summary>
     /// Template for deriving a class
     /// </summary>
-    public class UISectionTemplate : UIBox
+    public class UISectionTemplate : UISection
     {
         public UISectionTemplate(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
         {

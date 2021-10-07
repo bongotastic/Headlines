@@ -62,7 +62,7 @@ namespace Headlines.source.GUI
         /// <summary>
         /// UISections
         /// </summary>
-        private Dictionary<string, UIBox> _section = new Dictionary<string, UIBox>();
+        private Dictionary<string, UISection> _section = new Dictionary<string, UISection>();
         
         #endregion
 

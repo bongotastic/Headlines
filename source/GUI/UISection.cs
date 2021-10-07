@@ -4,7 +4,7 @@ namespace Headlines.source.GUI
 {
     public enum UIBoxState {COMPACT, EXTENDED, HELP}
     
-    public class UIBox
+    public class UISection
     {
         /// <summary>
         /// How much to draw.
@@ -34,7 +34,7 @@ namespace Headlines.source.GUI
         /// Base class contructor
         /// </summary>
         /// <param name="root"></param>
-        public UIBox(HeadlinesGUIManager root, bool isFullWidth = false)
+        public UISection(HeadlinesGUIManager root, bool isFullWidth = false)
         {
             _root = root;
 
