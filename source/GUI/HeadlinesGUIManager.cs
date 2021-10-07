@@ -41,7 +41,7 @@ namespace Headlines.source.GUI
 
         // location of the Window
         public Rect position;
-        private bool resizePosition = true;
+        public bool resizePosition = true;
 
         private Vector2 scrollFeedView = new Vector2(0,0);
         private Vector2 scrollHMMView = new Vector2(0,0);
@@ -84,12 +84,13 @@ namespace Headlines.source.GUI
         public void Start()
         {
             storyEngine = StoryEngine.Instance;
-            position = new Rect(100f, 150f, 400f, 575f);
+            position = new Rect(100f, 150f, 300f, 575f);
             
             _section.Add("ProgramCredibility", new UISectionProgramCredibility(this));
             _section.Add("ProgramManagement", new UISectionProgramManagement(this));
             _section.Add("ProgramPriority", new UISectionProgramPriority(this));
-
+            _section.Add("ProgramImpact", new UISectionProgramImpact(this));
+            
         }
 
         protected void OnDestroy()
@@ -181,7 +182,7 @@ namespace Headlines.source.GUI
         #region Styling
 
         public readonly int widthUI = 400;
-        public readonly int widthMargin = 20;
+        public readonly int widthMargin = 15;
 
         public GUILayoutOption FullWidth() => GUILayout.Width(widthUI);
         public GUILayoutOption ThirdWidth() => GUILayout.Width(widthUI/3);
@@ -276,8 +277,7 @@ namespace Headlines.source.GUI
             
             UnityEngine.GUI.DragWindow();
         }
-
-        #region Program Panel
+        
         
         /// <summary>
         /// Display program information and (eventually) the pledging mechanism 
@@ -301,115 +301,11 @@ namespace Headlines.source.GUI
             {
                 DrawSection("ProgramManagement");
                 DrawSection("ProgramPriority");
-                DrawImpact();
+                DrawSection("ProgramImpact");
             }
             GUILayout.EndVertical();
         }
-
-        private void DrawProgramManager()
-        {
-            peopleManager = storyEngine.GetPeopleManager();
-            
-            GUILayout.Box($"Program status: {PrgMgr.ControlLevelQualitative()}");
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Manager: {PrgMgr.ManagerName()}", GUILayout.Width(200));
-            GUILayout.Label($"Profile: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile())}", GUILayout.Width(200));
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Suitability: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile()-storyEngine.GetProgramComplexity())}", GUILayout.Width(200));
-            string qualifier = PrgMgr.ManagerLaunches() <= 2 ? "[GREEN]" : PrgMgr.ManagerLaunches() >= 8 ? "[VETERAN]" : "";
-            GUILayout.Label($"Launches: {PrgMgr.ManagerLaunches()} {qualifier}", GUILayout.Width(200));
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            if (PrgMgr.ManagerPersonality() != "")
-            {
-                GUILayout.Label($"Trait: {PrgMgr.ManagerPersonality()}", GUILayout.Width(200));
-            }
-            GUILayout.Label($"Background: {PrgMgr.ManagerBackground()}", GUILayout.Width(200));
-            GUILayout.EndHorizontal();
-            GUIPad();
-            
-            DrawProgramManagerPriority();
-            
-            
-        }
-
-        private void DrawProgramManagerPriority()
-        {
-            OrderNewPriority(GUILayout.SelectionGrid(_priority, priorities,4 , FullWidth()));
-            string UIhint = "";
-            string verb = "is";
-            if (PrgMgr.ControlLevel() <= ProgramControlLevel.WEAK)
-            {
-                UIhint = $"{PrgMgr.ManagerName()} lacks focus and the program is running as balanced. ";
-                verb = "should be";
-            }
-
-            switch (PrgMgr.GetPriority())
-            {
-                case ProgramPriority.NONE:
-                    UIhint += "A balanced program requires everyone to pursue their personal goals and do their best.";
-                    break;
-                case ProgramPriority.REPUTATION:
-                    UIhint += $"The focus {verb} on building reputation at the expense of other KSC activities.";
-                    break;
-                case ProgramPriority.PRODUCTION:
-                    UIhint += $"The focus {verb} on research and vehicle assembly at the expense of medium- and long-term activities..";
-                    break;
-                case ProgramPriority.CAPACITY:
-                    UIhint += $"{PrgMgr.ManagerName()} {verb} focussing on capacity building for the future.";
-                    break;
-            }
-            GUILayout.Label(UIhint, FullWidth());
-            GUIPad();
-        }
-
-        private void DrawProgramStats()
-        {
-            GUILayout.Box($"Program Dashboard (Staff: {storyEngine.GUIAverageProfile()})");
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Credibility:", GUILayout.Width(80));
-            GUILayout.Label($"{storyEngine.GUIValuation()}", GUILayout.Width(100));
-            GUILayout.Label($"Overvaluation:", GUILayout.Width(85));
-            GUILayout.Label($"{storyEngine.GUIOvervaluation()} (Hype: {Math.Round(storyEngine._reputationManager.Hype(), MidpointRounding.ToEven)})", GUILayout.Width(95));
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Peak:", GUILayout.Width(80));
-            GUILayout.Label($"{storyEngine.GUIRelativeToPeak()}", GUILayout.Width(100));
-            GUILayout.Label($"Space Craze:", GUILayout.Width(80));
-            GUILayout.Label($"{storyEngine.GUISpaceCraze()}", GUILayout.Width(100));
-            GUILayout.EndHorizontal();
-            if (storyEngine.ongoingInquiry)
-            {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label($"Public inquiry:", GUILayout.Width(100));
-                GUILayout.Label($"{storyEngine.ongoingInquiry}");
-                GUILayout.EndHorizontal();
-            }
-            GUIPad();
-        }
-
-        public void DrawImpact()
-        {
-            GUILayout.Box("Impact");
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(200));
-            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%", GUILayout.Width(200));
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(200));
-            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}", GUILayout.Width(200));
-            GUILayout.EndHorizontal();
-            if (storyEngine.visitingScholarEndTimes.Count != 0)
-            {
-                GUILayout.Label($"There are {storyEngine.visitingScholarEndTimes.Count} visiting scholar(s) in residence providing a science bonus of {Math.Round(storyEngine.VisitingScienceBonus()*100f)}% on new science data.", FullWidth());
-            }
-            GUIPad();
-        }
         
-        #endregion
 
         #region Media tab
 

@@ -96,6 +96,8 @@ namespace Headlines.source.GUI
             {
                 GUILayout.EndHorizontal();
             }
+            
+            GUILayout.Space(10);
         }
 
         /// <summary>
@@ -112,6 +114,7 @@ namespace Headlines.source.GUI
                 if (GUILayout.Button("-", GUILayout.Width(20)))
                 {
                     _state = UIBoxState.COMPACT;
+                    _root.resizePosition = true;
                 }
             }
             if (_state != UIBoxState.EXTENDED & hasExtended)
@@ -120,6 +123,7 @@ namespace Headlines.source.GUI
                 if (GUILayout.Button("+", GUILayout.Width(20)))
                 {
                     _state = UIBoxState.EXTENDED;
+                    _root.resizePosition = true;
                 }
             }
             if (_state != UIBoxState.HELP & hasHelp)
@@ -128,6 +132,7 @@ namespace Headlines.source.GUI
                 if (GUILayout.Button("?", GUILayout.Width(20)))
                 {
                     _state = UIBoxState.HELP;
+                    _root.resizePosition = true;
                 }
             }
 

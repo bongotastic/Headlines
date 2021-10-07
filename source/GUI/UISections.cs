@@ -1,5 +1,6 @@
 ﻿using System;
 using CommNet.Network;
+using Headlines.source.GUI;
 using UnityEngine;
 
 namespace Headlines.source.GUI
@@ -166,7 +167,7 @@ namespace Headlines.source.GUI
         protected override void DrawExtended()
         {
             GUILayout.BeginVertical();
-            _root.OrderNewPriority(GUILayout.SelectionGrid(_root._priority, HeadlinesGUIManager.priorities,4 , GUILayout.Width(sectionWidth)));
+            _root.OrderNewPriority(GUILayout.SelectionGrid(_root._priority, HeadlinesGUIManager.priorities,4 , FullWidth()));
             
             string UIhint = "";
             string verb = "is";
@@ -201,6 +202,65 @@ namespace Headlines.source.GUI
             
         }
     }
+    
+    
+    /// <summary>
+    /// Template for deriving a class
+    /// </summary>
+    public class UISectionProgramImpact : UIBox
+    {
+        public UISectionProgramImpact(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
+        {
+            hasCompact = true;
+            hasExtended = true;
+            hasHelp = false;
+
+            _state = UIBoxState.COMPACT;
+        }
+
+        protected override string HeadString()
+        {
+            return $"Impact on Career";
+        }
+
+        protected override void DrawCompact()
+        {
+            GUILayout.BeginVertical();
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            
+            GUILayout.EndVertical();
+        }
+
+        protected override void DrawExtended()
+        {
+            GUILayout.BeginVertical();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"R&D Boost: {storyEngine.GUIRnDEnhancement()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            
+            if (storyEngine.visitingScholarEndTimes.Count != 0)
+            {
+                GUILayout.Label($"There are {storyEngine.visitingScholarEndTimes.Count} visiting scholar(s) in residence providing a science bonus of {Math.Round(storyEngine.VisitingScienceBonus()*100f)}% on new science data.", FullWidth());
+            }
+            _root.GUIPad();
+            GUILayout.EndVertical();
+        }
+        
+        protected override void DrawHelp()
+        {
+            
+        }
+    }
+
     
     /// <summary>
     /// Template for deriving a class
