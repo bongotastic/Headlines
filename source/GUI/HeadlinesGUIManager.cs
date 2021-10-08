@@ -568,12 +568,18 @@ namespace Headlines.source.GUI
         public void DrawStoryPanel()
         {
             double clock = HeadlinesUtil.GetUT();
-            GUILayout.BeginVertical();
-            
-            GUILayout.BeginHorizontal();
-            Indent();
+
+            // Overall stack
             GUILayout.BeginVertical();
             GUILayout.Box("Story Elements");
+            
+            // Indent the buttons
+            GUILayout.BeginHorizontal();
+            Indent();
+            
+            // Button stack
+            GUILayout.BeginVertical();
+            
             if (GUILayout.Button("Possible debris falling in populated area"))
             {
                 storyEngine.DebrisOverLand(true);
@@ -596,68 +602,69 @@ namespace Headlines.source.GUI
                     storyEngine.VisibleShowOverUrban();
                 }
             }
-            GUILayout.EndHorizontal();
+            GUILayout.EndVertical(); // end of button stack
+            GUILayout.EndHorizontal(); // end of indentation
             
             GUIPad();
-            if (HighLogic.LoadedSceneIsFlight)
+            if (!HighLogic.LoadedSceneIsFlight)
             {
-                GUILayout.EndVertical();
-                return;
-            }
-            
-            if (_showDebug)
-            {
-                
-                GUILayout.Box("Beta testing");
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button("Add 5 Hype"))
-                {
-                    storyEngine._reputationManager.AdjustHype(5);
-                }
 
-                if (GUILayout.Button("Add 5 Reputation"))
+                if (_showDebug)
                 {
-                    RepMgr.AdjustCredibility(5, reason: TransactionReasons.None);
-                }
 
-                GUILayout.EndHorizontal();
-                if (GUILayout.Button("Trigger Decay"))
-                {
-                    storyEngine.DecayReputation();
-                }
-
-                if (GUILayout.Button("Reality Check"))
-                {
-                    storyEngine.RealityCheck();
-                }
-                
-                if (GUILayout.Button("Part categories researched"))
-                {
-                    foreach (PartCategories pc in storyEngine.GetPartCategoriesUnderResearch())
+                    GUILayout.Box("Beta testing");
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("Add 5 Hype"))
                     {
-                        HeadlinesUtil.Report(1,$"{pc.ToString()}");
+                        storyEngine._reputationManager.AdjustHype(5);
                     }
+
+                    if (GUILayout.Button("Add 5 Reputation"))
+                    {
+                        RepMgr.AdjustCredibility(5, reason: TransactionReasons.None);
+                    }
+
+                    GUILayout.EndHorizontal();
+                    if (GUILayout.Button("Trigger Decay"))
+                    {
+                        storyEngine.DecayReputation();
+                    }
+
+                    if (GUILayout.Button("Reality Check"))
+                    {
+                        storyEngine.RealityCheck();
+                    }
+
+                    if (GUILayout.Button("Part categories researched"))
+                    {
+                        foreach (PartCategories pc in storyEngine.GetPartCategoriesUnderResearch())
+                        {
+                            HeadlinesUtil.Report(1, $"{pc.ToString()}");
+                        }
+                    }
+
+                    GUIPad();
+                    GUILayout.Box("Random processes");
+                    scrollHMMView =
+                        GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(200));
+                    foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
+                    {
+                        GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value - clock, true, false)} - {kvp.Key}");
+                    }
+
+                    GUILayout.EndScrollView();
                 }
 
-                GUIPad();
-                GUILayout.Box("Random processes");
-                scrollHMMView = GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(200));
-                foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
+                bool temp = false;
+                temp = GUILayout.Toggle(_showDebug, "Show debug controls");
+                if (temp != _showDebug)
                 {
-                    GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value - clock, true, false)} - {kvp.Key}");
+                    _showDebug = temp;
+                    resizePosition = true;
                 }
-
-                GUILayout.EndScrollView();
             }
 
-            bool temp = false;
-            temp = GUILayout.Toggle(_showDebug, "Show debug controls");
-            if (temp != _showDebug)
-            {
-                _showDebug = temp;
-                resizePosition = true;
-            }
-            GUILayout.EndVertical();
+            GUILayout.EndVertical(); // primary end of the stack
         }
 
         
