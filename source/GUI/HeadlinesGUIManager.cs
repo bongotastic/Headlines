@@ -252,7 +252,7 @@ namespace Headlines.source.GUI
                         DrawProgramFeed();
                         break;
                     case 3:
-                        DrawPersonelPanel();
+                        DrawPersonnelPanel();
                         break;
                     case 4:
                         DrawRecruitmentPanel();
@@ -318,11 +318,6 @@ namespace Headlines.source.GUI
             GUILayout.EndVertical();
         }
         
-
-        #region Media tab
-
-        
-        
         /// <summary>
         /// Draw panel to manage media and reputation
         /// </summary>
@@ -340,7 +335,7 @@ namespace Headlines.source.GUI
         /// <summary>
         /// Top-level UI for the Crew panel of the main UI
         /// </summary>
-        public void DrawPersonelPanel()
+        public void DrawPersonnelPanel()
         {
             RefreshRoster();
 
@@ -375,24 +370,6 @@ namespace Headlines.source.GUI
      
         }
 
-        
-        /// <summary>
-        /// Draw the crew UI assuming that _selectedCrew is set to the index of a a crew. Assumes that crewRoster is built.
-        /// </summary>
-        /// //todo should be refactored into components
-        public void DrawCrew()
-        {
-            string crewName = crewRoster[_selectedCrew];
-            PersonnelFile focusCrew = peopleManager.GetFile(crewName);
-
-            GUIPad();
-            DrawFeedSection(true);
-        }
-
-        
-        
-        #endregion
-        
         #region Feed
 
         public void DrawProgramFeed()
@@ -482,6 +459,7 @@ namespace Headlines.source.GUI
                 double searchCost = storyEngine.SearchCost();
                 if (storyEngine.GetFunds() > searchCost)
                 {
+                    GUILayout.Box("Recruitment activities", FullWidth());
                     if (GUILayout.Button($"Open new search (${searchCost})"))
                     {
                         storyEngine.LaunchSearch(false);
@@ -508,7 +486,7 @@ namespace Headlines.source.GUI
             
             if (storyEngine.programPayrollRebate > 0)
             {
-                GUILayout.Box($"Hiring vouchers: {storyEngine.programPayrollRebate} X {storyEngine.HiringRebate()/1000},000 funds.");
+                GUILayout.Box($"Hiring vouchers: {storyEngine.programPayrollRebate} X {storyEngine.HiringRebate()/1000},000 funds.", FullWidth());
                 GUILayout.Space(5);
             }
             
@@ -529,6 +507,7 @@ namespace Headlines.source.GUI
                     try
                     {
                         // There seems to be a concurency issue in some case when new applicants are added. Better to bail for one frame.
+                        Indent();
                         GUILayout.Label($"{kvp.Value.DisplayName()}", GUILayout.Width(150)); 
                         GUILayout.Label($"{peopleManager.QualitativeEffectiveness(kvp.Value.Effectiveness(deterministic:true))} {kvp.Value.Specialty()}", GUILayout.Width(120));
                         GUILayout.Label($"{kvp.Value.personality}", GUILayout.Width(60));
@@ -553,17 +532,17 @@ namespace Headlines.source.GUI
                 {
                     if (!storyEngine.inAstronautComplex)
                     {
-                        GUILayout.Label("Toby, your HR staff, has misplaced his key to the astronaut complex. Please enter then exit the complex so that he may interview the applicants waiting in line.");
+                        GUILayout.Label("Toby, your HR staff, has misplaced his key to the astronaut complex. Please enter then exit the complex so that he may interview the applicants waiting in line.", FullWidth());
                     }
                     else
                     {
-                        GUILayout.Label("You may leave the complex while Toby does his job.");
+                        GUILayout.Label("You may leave the complex while Toby does his job.", FullWidth());
                     }
                 
                 }
                 else
                 {
-                    GUILayout.Label("There are no applicants on file. You will have to rely on chance walk-ins or spend money to find prospects.");
+                    GUILayout.Label("There are no applicants on file. You will have to rely on chance walk-ins or spend money to find prospects.", FullWidth());
                 }
             }
             
@@ -576,6 +555,7 @@ namespace Headlines.source.GUI
             
             GUILayout.Box("Walk-in applicants notifications");
             GUILayout.BeginHorizontal();
+            Indent();
             peopleManager.seekingPilot = GUILayout.Toggle(peopleManager.seekingPilot, "Pilots");
             peopleManager.seekingScientist = GUILayout.Toggle(peopleManager.seekingScientist, "Scientists");
             peopleManager.seekingEngineer = GUILayout.Toggle(peopleManager.seekingEngineer, "Engineers");
@@ -588,7 +568,10 @@ namespace Headlines.source.GUI
         public void DrawStoryPanel()
         {
             double clock = HeadlinesUtil.GetUT();
-
+            GUILayout.BeginVertical();
+            
+            GUILayout.BeginHorizontal();
+            Indent();
             GUILayout.BeginVertical();
             GUILayout.Box("Story Elements");
             if (GUILayout.Button("Possible debris falling in populated area"))
@@ -613,7 +596,8 @@ namespace Headlines.source.GUI
                     storyEngine.VisibleShowOverUrban();
                 }
             }
-
+            GUILayout.EndHorizontal();
+            
             GUIPad();
             if (HighLogic.LoadedSceneIsFlight)
             {
@@ -647,7 +631,7 @@ namespace Headlines.source.GUI
                     storyEngine.RealityCheck();
                 }
                 
-                if (GUILayout.Button("Dump part categories"))
+                if (GUILayout.Button("Part categories researched"))
                 {
                     foreach (PartCategories pc in storyEngine.GetPartCategoriesUnderResearch())
                     {

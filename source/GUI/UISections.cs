@@ -709,9 +709,9 @@ namespace Headlines.source.GUI
         protected override void DrawCompact()
         {
             string toprint = "";
-            if (focusCrew.influence != 0) toprint += $"Imp: {focusCrew.influence}, ";
+            if (focusCrew.influence != 0) toprint += $"Influence: {focusCrew.influence}, ";
             if (focusCrew.teamInfluence != 0) toprint += $"Team: {focusCrew.teamInfluence}, ";
-            if (focusCrew.legacy != 0) toprint += $"Imp: {focusCrew.legacy}, ";
+            if (focusCrew.legacy != 0) toprint += $"Legacy: {focusCrew.legacy}, ";
             if (focusCrew.lifetimeHype != 0) toprint += $"Hype: {focusCrew.lifetimeHype}, ";
             if (toprint.Length != 0)
             {
@@ -782,7 +782,12 @@ namespace Headlines.source.GUI
             }
             else
             {
-                GUILayout.Label($"Busy with {focusCrew.kerbalTask}, please don't bother them at this time.", FullWidth());
+                string advice = ", please don't bother them at this time.";
+                if (PrgMgr.ControlLevel() >= ProgramControlLevel.NOMINAL)
+                {
+                    advice = ", you may nudge them into something else.";
+                }
+                GUILayout.Label($"Busy with {focusCrew.kerbalTask}{advice}", FullWidth());
             }
             
             GUILayout.EndVertical();
@@ -825,24 +830,24 @@ namespace Headlines.source.GUI
             if (focusCrew.trainingLevel + focusCrew.EffectivenessFame() == 0)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Reassign as: ");
+                GUILayout.Label("Reassign as: ", GUILayout.Width(145));
                 if (focusCrew.Specialty() != "Pilot")
                 {
-                    if (GUILayout.Button("Pilot"))
+                    if (GUILayout.Button("Pilot", GUILayout.Width(120)));
                     {
                         storyEngine.RetrainKerbal(focusCrew, "Pilot");
                     }
                 }
                 if (focusCrew.Specialty() != "Scientist")
                 {
-                    if (GUILayout.Button("Scientist"))
+                    if (GUILayout.Button("Scientist", GUILayout.Width(120)))
                     {
                         storyEngine.RetrainKerbal(focusCrew, "Scientist");
                     }
                 }
                 if (focusCrew.Specialty() != "Engineer")
                 {
-                    if (GUILayout.Button("Engineer"))
+                    if (GUILayout.Button("Engineer", GUILayout.Width(120)))
                     {
                         storyEngine.RetrainKerbal(focusCrew, "Engineer");
                     }
@@ -1012,17 +1017,6 @@ namespace Headlines.source.GUI
     
     #endregion
 
-    #region Recruit UI
-
-
-    #endregion
-
-    #region Story UI
-
-    
-
-    #endregion
-    
     /// <summary>
     /// Template for deriving a class
     /// </summary>
