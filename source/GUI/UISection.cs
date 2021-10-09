@@ -3,7 +3,9 @@
 namespace Headlines.source.GUI
 {
     public enum UIBoxState {COMPACT, EXTENDED, HELP}
-    
+
+    public enum BulletEmote { THUMBUP, INFO, THUMBDOWN, WARNING }
+
     public class UISection
     {
         /// <summary>
@@ -174,6 +176,27 @@ namespace Headlines.source.GUI
         protected virtual void DrawHelp()
         {
             GUILayout.Label("Help view");
+        }
+
+        public void WriteBullet(string message, BulletEmote emote = BulletEmote.INFO)
+        {
+            string bullet = "\u8658";
+            switch (emote)
+            {
+                case BulletEmote.THUMBUP:
+                    bullet = "\u8657";
+                    break;
+                case BulletEmote.THUMBDOWN:
+                    bullet = "\u8659";
+                    break;
+                case BulletEmote.WARNING:
+                    bullet = "\u26A0";
+                    break;
+            }
+            GUILayout.BeginHorizontal();
+            GUILayout.Box(bullet, GUILayout.Width(20));
+            GUILayout.Label( message, GUILayout.Width(sectionWidth - 20));
+            GUILayout.EndHorizontal();
         }
     }
 }

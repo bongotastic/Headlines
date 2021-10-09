@@ -84,7 +84,7 @@ namespace Headlines.source.GUI
         {
             hasCompact = true;
             hasExtended = true;
-            hasHelp = false;
+            hasHelp = true;
 
             _state = UIBoxState.COMPACT;
         }
@@ -137,7 +137,52 @@ namespace Headlines.source.GUI
         
         protected override void DrawHelp()
         {
+            GUILayout.BeginVertical();
+            // Launches and experience
+            if (PrgMgr.ManagerLaunches() <= 3)
+            {
+                WriteBullet($"Your PM is very green and will improve after 3 launches.");
+            }
+            else if (PrgMgr.ManagerLaunches() >= 8)
+            {
+                WriteBullet($"Your PM is experienced and has an edge after 8 launches.", BulletEmote.THUMBUP);
+            }
             
+            // background
+            switch (PrgMgr.ManagerBackground())
+            {
+                case "Pilot":
+                    WriteBullet("A pilot redirects resources from the R&D to the VAB for a maximal launch rate.");
+                    break;
+                case "Scientist":
+                    WriteBullet("A scientists optimizes R&D output.", BulletEmote.THUMBUP);
+                    break;
+                case "Engineer":
+                    WriteBullet("An engineer optimizes VAB throughput.", BulletEmote.THUMBUP);
+                    break;
+            }
+            
+            // Personality
+            switch (PrgMgr.ManagerPersonality())
+            {
+                case "genial":
+                    WriteBullet("A genial PM in control promotes collaborations.", BulletEmote.THUMBUP);
+                    break;
+                case "scrapper":
+                    WriteBullet("A scrapper PM in control exacerbates rivalries.", BulletEmote.THUMBDOWN);
+                    break;
+                case "inspiring":
+                    WriteBullet("In inspiring PM has an increased profile in this position.", BulletEmote.THUMBUP);
+                    break;
+                case "bland":
+                    WriteBullet("A bland PM underperforms in this position.", BulletEmote.WARNING);
+                    break;
+                case "charming":
+                    WriteBullet("A charming PM protects the program's reputation with confidence.");
+                    break;
+            }
+
+            GUILayout.EndVertical();
         }
     }
     
