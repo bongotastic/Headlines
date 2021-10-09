@@ -124,6 +124,9 @@ namespace Headlines
         [KSPField(isPersistant = true)] public bool logDebug = true;
         public Queue<NewsStory> headlines = new Queue<NewsStory>();
          
+        // UI states
+        public ConfigNode UIStates = null;
+        
         #endregion
 
         #region UnityStuff
@@ -282,6 +285,11 @@ namespace Headlines
             
             node.AddNode(_reputationManager.AsConfigNode());
             node.AddNode(_programManager.AsConfigNode());
+
+            if (UIStates != null)
+            {
+                node.AddNode("UIStates", UIStates);
+            }
         }
 
         public override void OnLoad(ConfigNode node)
@@ -379,6 +387,11 @@ namespace Headlines
                 }
             }
             visitingScholarEndTimes.Sort();
+
+            if (node.HasNode("UIStates"))
+            {
+                UIStates = node.GetNode("UIStates");
+            }
             
         }
 

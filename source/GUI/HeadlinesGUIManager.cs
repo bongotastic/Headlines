@@ -98,10 +98,13 @@ namespace Headlines.source.GUI
             _section.Add("PersonnelActivity", new UISectionPersonnelActivity(this));
             _section.Add("PersonnelRelationships", new UISectionPersonnelRelationships(this));
             _section.Add("PersonnelNewsFeed", new UISectionPersonnelNewsFeed(this));
+            
+            ReadStates();
         }
 
         protected void OnDestroy()
         {
+            WriteState();
             try
             {
                 GameEvents.onGUIApplicationLauncherReady.Remove(OnGuiAppLauncherReady);
@@ -181,6 +184,29 @@ namespace Headlines.source.GUI
                     resizePosition = false;
                 }
                 position = GUILayout.Window(GetInstanceID(), position, DrawWindow, $"Headlines -- {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()}");
+            }
+        }
+
+        private void ReadStates()
+        {
+            if (storyEngine.UIStates != null)
+            {
+                foreach (ConfigNode.Value section in storyEngine.UIStates.values)
+                {
+                    if (_section.ContainsKey(section.name))
+                    {
+                        _section[section.name]._state = (UIBoxState)int.Parse(section.value);
+                    }
+                }
+            }
+        }
+
+        private void WriteState()
+        {
+            storyEngine.UIStates = new ConfigNode("UIStates");
+            foreach (KeyValuePair<string, UISection> kvp in _section)
+            {
+                storyEngine.UIStates.AddValue(kvp.Key, (int)kvp.Value._state);
             }
         }
         
