@@ -177,6 +177,9 @@ namespace Headlines
             // Do not run Headlines outside of career
             if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER) return;
             
+            // In case of a retirement
+            _peopleManager.DeleteRetirees();
+            
             // Shameless hack.
             if (updateIndex < 10)
             {
