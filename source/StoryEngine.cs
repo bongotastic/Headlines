@@ -2234,6 +2234,8 @@ namespace Headlines
         public void ProgramCheck()
         {
             SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()), GetProgramComplexity());
+            
+            HeadlinesUtil.Report(1, $"Checking program control sk:{GetProbabilisticLevel(_programManager.ManagerProfile())}, df:{GetProgramComplexity()} - {outcome}","PM");
 
             if (outcome == SkillCheckOutcome.CRITICAL & _programManager.ControlLevel() != ProgramControlLevel.HIGH)
             {

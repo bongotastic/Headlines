@@ -272,6 +272,7 @@ namespace Headlines.source
                 RnD += 1;
             }
             
+            HeadlinesUtil.Report(1, $"Applying PM influence as a {GetProgramManagerRecord().background}","PM");
             switch (GetProgramManagerRecord().background)
             {
                 case "Neutral":
@@ -300,6 +301,7 @@ namespace Headlines.source
 
             influenceRnD = RnD * _storyEngine.UpgradeIncrementRnD();
             _storyEngine.AdjustRnD(influenceRnD);
+            HeadlinesUtil.Report(1, $"VAB:{influenceVAB}, R&D:{influenceRnD}","PM");
         }
         
         #endregion
