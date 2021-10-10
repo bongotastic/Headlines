@@ -104,6 +104,11 @@ namespace Headlines.source.GUI
             GUILayout.Label($"Suitability: {_root.storyEngine.GetPeopleManager().QualitativeEffectiveness(_root.PrgMgr.ManagerProfile()-_root.storyEngine.GetProgramComplexity())}", GUILayout.Width(sectionWidth/2));
             GUILayout.EndHorizontal();
             
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"VAB: {PrgMgr.GetVABInfluence()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"R&D: {PrgMgr.GetRnDInfluence()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            
             GUILayout.EndVertical();
         }
 
@@ -124,6 +129,11 @@ namespace Headlines.source.GUI
             GUILayout.EndHorizontal();
             
             GUILayout.BeginHorizontal();
+            GUILayout.Label($"VAB: {PrgMgr.GetVABInfluence()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"R&D: {PrgMgr.GetRnDInfluence()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
             if (PrgMgr.ManagerPersonality() != "")
             {
                 GUILayout.Label($"Trait: {PrgMgr.ManagerPersonality()}", GUILayout.Width(sectionWidth/2));
@@ -140,7 +150,7 @@ namespace Headlines.source.GUI
         {
             GUILayout.BeginVertical();
             // Launches and experience
-            if (PrgMgr.ManagerLaunches() <= 3)
+            if (PrgMgr.ManagerLaunches() < 3)
             {
                 WriteBullet($"Your PM is very green and will improve after 3 launches.");
             }
@@ -291,7 +301,7 @@ namespace Headlines.source.GUI
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(sectionWidth/2));
-            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingSciencePercent()}%", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingScience()}", GUILayout.Width(sectionWidth/2));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label($"VAB Boost: {storyEngine.GUIVABEnhancement()}", GUILayout.Width(sectionWidth/2));
@@ -747,7 +757,7 @@ namespace Headlines.source.GUI
             focusCrew = _root.GetFocusCrew();
             if (focusCrew.Specialty() != "Pilot")
             {
-                string location = focusCrew.Specialty() == "Engineed" ? "VAB": "R&C complex";
+                string location = focusCrew.Specialty() == "Engineer" ? "VAB": "R&D complex";
                 return $"Impact on {location} ({focusCrew.influence + focusCrew.teamInfluence + focusCrew.legacy} pts)";
             }
             return "Impact on space program";

@@ -201,7 +201,7 @@ namespace Headlines.source.GUI
             }
         }
 
-        private void WriteState()
+        public void WriteState()
         {
             storyEngine.UIStates = new ConfigNode("UIStates");
             foreach (KeyValuePair<string, UISection> kvp in _section)

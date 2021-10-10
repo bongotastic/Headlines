@@ -178,7 +178,7 @@ namespace Headlines
             if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER) return;
             
             // In case of a retirement
-            _peopleManager.DeleteRetirees();
+            RemoveRetirees();
             
             // Shameless hack.
             if (updateIndex < 10)
@@ -1855,6 +1855,17 @@ namespace Headlines
             foreach (string registeredStateName in triggerStates)
             {
                 Debug($"Triggering HMM {registeredStateName}");
+
+                // Rogue HMM not deleted in some edge cases
+                if (_liveProcesses[registeredStateName].kerbalName != "")
+                {
+                    if (_peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName) == null)
+                    {
+                        RemoveKerbalHMM(_liveProcesses[registeredStateName].kerbalName);
+                        continue;
+                    }
+                }
+                
                 // Check for validity as it *may* have been removed recently
                 if (_liveProcesses.ContainsKey(registeredStateName) == false)
                 {
@@ -2541,6 +2552,11 @@ namespace Headlines
             return Math.Round(ratio, 1);
         }
 
+        public double GUIVisitingScience()
+        {
+            return Math.Round(visitingScienceTally, 1);
+        }
+
         public double GUIFundraised()
         {
             return Math.Floor(this.fundraisingTally);
@@ -2851,6 +2867,15 @@ namespace Headlines
             }
 
             return output;
+        }
+
+        public void RemoveRetirees()
+        {
+            string retireeName = _peopleManager.DeleteRetirees();
+            if (retireeName != "")
+            {
+                RemoveKerbalHMM(retireeName);
+            }
         }
         #endregion
 

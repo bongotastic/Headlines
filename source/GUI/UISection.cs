@@ -115,8 +115,7 @@ namespace Headlines.source.GUI
                 pad -= 1;
                 if (GUILayout.Button("-", GUILayout.Width(20)))
                 {
-                    _state = UIBoxState.COMPACT;
-                    _root.resizePosition = true;
+                    ChangeState(UIBoxState.COMPACT);
                 }
             }
             if (_state != UIBoxState.EXTENDED & hasExtended)
@@ -124,8 +123,7 @@ namespace Headlines.source.GUI
                 pad -= 1;
                 if (GUILayout.Button("+", GUILayout.Width(20)))
                 {
-                    _state = UIBoxState.EXTENDED;
-                    _root.resizePosition = true;
+                    ChangeState(UIBoxState.EXTENDED);
                 }
             }
             if (_state != UIBoxState.HELP & hasHelp)
@@ -133,8 +131,7 @@ namespace Headlines.source.GUI
                 pad -= 1;
                 if (GUILayout.Button("?", GUILayout.Width(20)))
                 {
-                    _state = UIBoxState.HELP;
-                    _root.resizePosition = true;
+                    ChangeState(UIBoxState.HELP);
                 }
             }
 
@@ -143,6 +140,17 @@ namespace Headlines.source.GUI
                 GUILayout.Box("", GUILayout.Width(20*pad));
             }
             GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// Triggered bu user input on the UI.
+        /// </summary>
+        /// <param name="newState"></param>
+        public void ChangeState(UIBoxState newState)
+        {
+            _state = newState;
+            _root.resizePosition = true;
+            _root.WriteState();
         }
 
         /// <summary>
@@ -180,14 +188,14 @@ namespace Headlines.source.GUI
 
         public void WriteBullet(string message, BulletEmote emote = BulletEmote.INFO)
         {
-            string bullet = "\u8658";
+            string bullet = "\u261B";
             switch (emote)
             {
                 case BulletEmote.THUMBUP:
-                    bullet = "\u8657";
+                    bullet = "\u25B2";
                     break;
                 case BulletEmote.THUMBDOWN:
-                    bullet = "\u8659";
+                    bullet = "\u25BC";
                     break;
                 case BulletEmote.WARNING:
                     bullet = "\u26A0";

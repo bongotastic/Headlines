@@ -453,6 +453,7 @@ namespace Headlines.source
                 if (crew == null)
                 {
                     HeadlinesUtil.Report(1,"PM not retrieved from PeopleManager.");
+                    pmRecord.isNPC = true;
                 }
                 else
                 {
@@ -550,13 +551,16 @@ namespace Headlines.source
             AssignProgramManager(pmRecord.name);
         }
 
+        /// <summary>
+        /// Except if it is the current PM
+        /// </summary>
         public void RemoveDefaultProgramManager()
         {
             string pmName = null;
             int found = 0;
             foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
             {
-                if (kvp.Value.isNPC)
+                if (kvp.Value.isNPC & ManagerName() != kvp.Value.name)
                 {
                     pmName = kvp.Key;
                     found += 1;

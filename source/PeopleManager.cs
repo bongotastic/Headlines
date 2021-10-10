@@ -196,16 +196,18 @@ namespace Headlines
         /// Deletes 1 retiree.
         /// </summary>
         /// <remarks> It is unlikely that two would retire exactly at the same time, and if so, it would be done on the next update.</remarks>
-        public void DeleteRetirees()
+        public string DeleteRetirees()
         {
             foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
             {
-                if (!HighLogic.CurrentGame.CrewRoster.Exists(kvp.Key))
+                if (kvp.Value.GetKSPData().rosterStatus == ProtoCrewMember.RosterStatus.Dead)
                 {
                     RemoveKerbal(kvp.Value);
-                    return;
+                    return kvp.Key;
                 }
             }
+
+            return "";
         }
 
         public void HireApplicant(PersonnelFile pf)
@@ -610,7 +612,6 @@ namespace Headlines
 
             List<string> output = new List<string>();
             
-            // to do Cannot use cached as it causes flickering when PM is not a NPC (?)
             foreach (PersonnelFile pf in temp.OrderByDescending(o=>o.Effectiveness(deterministic:true, quickDirty:false)))
             {
                 output.Add(pf.UniqueName());
