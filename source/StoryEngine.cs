@@ -1523,7 +1523,7 @@ namespace Headlines
             string initialName = _programManager.ManagerName();
             if (newManager != null)
             {
-                _programManager.AssignProgramManager(newManager);
+                _programManager.AssignProgramManager(newManager, _reputationManager.CurrentReputation());
             }
             else
             {

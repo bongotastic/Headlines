@@ -30,16 +30,20 @@ namespace Headlines.source
         public double managerSkill;
         public bool isNPC = true;
         public double lastSeenRetirementDate = 0;
+        public double remainingLaunches = 20;
+        public double initialCredibility = 0;
 
-        public ProgramManagerRecord(string _name = "", string _background = "Neutral", string _personality = "")
+        public ProgramManagerRecord(string _name = "", string _background = "Neutral", string _personality = "", double initialCred = 0)
         {
             name = _name;
             background = _background;
             managerSkill = 4;
             personality = _personality;
+            remainingLaunches = 10 + (double)HeadlinesUtil.Threed6();
+            initialCredibility = initialCred;
         }
 
-        public ProgramManagerRecord(PersonnelFile crewMember)
+        public ProgramManagerRecord(PersonnelFile crewMember, double initialCred = 0)
         {
             name = crewMember.UniqueName();
             background = crewMember.Specialty();
@@ -47,6 +51,8 @@ namespace Headlines.source
             personality = crewMember.personality;
             isNPC = false;
             lastSeenRetirementDate = CrewHandler.Instance.KerbalRetireTimes[crewMember.UniqueName()];
+            remainingLaunches = 10 + (double)HeadlinesUtil.Threed6();
+            initialCredibility = initialCred;
         }
 
         public ProgramManagerRecord(ConfigNode node)
@@ -65,6 +71,8 @@ namespace Headlines.source
             output.AddValue("managerSkill", managerSkill);
             output.AddValue("isNPC", isNPC);
             output.AddValue("lastSeenRetirementDate" , lastSeenRetirementDate);
+            output.AddValue("initialCredibility", initialCredibility);
+            output.AddValue("remainingLaunches", remainingLaunches);
             
             return output;
         }
@@ -78,6 +86,8 @@ namespace Headlines.source
             HeadlinesUtil.SafeDouble("managerSkill", ref managerSkill, node);
             HeadlinesUtil.SafeBool("isNPC", ref isNPC, node);
             HeadlinesUtil.SafeDouble("lastSeenRetirementDate", ref lastSeenRetirementDate, node);
+            HeadlinesUtil.SafeDouble("remainingLaunches", ref remainingLaunches, node);
+            HeadlinesUtil.SafeDouble("initialCredibility", ref initialCredibility, node);
         }
     }
     
@@ -392,7 +402,7 @@ namespace Headlines.source
 
         #region ManagerRole
 
-        public void AssignProgramManager(string pmName)
+        public void AssignProgramManager(string pmName, double initialCred)
         {
             if (!GetProgramManagerRecord().isNPC)
             {
@@ -401,11 +411,15 @@ namespace Headlines.source
             }
             
             managerKey = pmName;
+            if (GetProgramManagerRecord().initialCredibility < initialCred)
+            {
+                GetProgramManagerRecord().initialCredibility = initialCred;
+            }
             HeadlinesUtil.Report(1, $"Assigning {managerKey} as PM.");
             CrewReactToAppointment();
         }
 
-        public void AssignProgramManager(PersonnelFile crew)
+        public void AssignProgramManager(PersonnelFile crew, double initialCred)
         {
             if (!_record.ContainsKey(crew.UniqueName()))
             {
@@ -413,7 +427,7 @@ namespace Headlines.source
                 _record.Add(crew.UniqueName(), newRecord);
                 HeadlinesUtil.Report(1, $"Adding {newRecord.name} to PM records.");
             }
-            AssignProgramManager(crew.UniqueName());
+            AssignProgramManager(crew.UniqueName(), initialCred);
         }
         
         public string ManagerName()
@@ -521,7 +535,7 @@ namespace Headlines.source
 
         public void RevertToDefaultProgramManager()
         {
-            AssignProgramManager(GetDefaultProgramManagerRecord().name);
+            AssignProgramManager(GetDefaultProgramManagerRecord().name, _storyEngine._reputationManager.CurrentReputation());
         }
 
         private ProgramManagerRecord GetDefaultProgramManagerRecord()
@@ -550,7 +564,7 @@ namespace Headlines.source
             ProgramManagerRecord pmRecord = new ProgramManagerRecord(name, background, PersonnelFile.GetRandomPersonality());
             pmRecord.managerSkill = _storyEngine.GetProgramComplexity() + 4;
             _record.Add(pmRecord.name, pmRecord);
-            AssignProgramManager(pmRecord.name);
+            AssignProgramManager(pmRecord.name, _storyEngine._reputationManager.CurrentReputation());
         }
 
         /// <summary>

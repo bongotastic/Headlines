@@ -1,12 +1,22 @@
 ﻿using CommNet.Network;
 using KSP.UI.Screens;
 using Headlines.source.Emissions;
+using UnityEngine;
 
 
 namespace Headlines.source
 {
     public class HeadlinesUtil
     {
+        /// <summary>
+        /// General purpose random number generator
+        /// </summary>
+        public static System.Random randomGenerator = new System.Random();
+        
+        public static int Threed6()
+        {
+            return randomGenerator.Next(1, 7) + randomGenerator.Next(1, 7) + randomGenerator.Next(1, 7);
+        }
         /// <summary>
         /// Output textual information to the user. Significance has a related level of intrusion. 
         /// </summary>
