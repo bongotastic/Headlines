@@ -192,6 +192,22 @@ namespace Headlines
             personnelFolders.Add(newCrew.UniqueName(), newCrew);
         }
 
+        /// <summary>
+        /// Deletes 1 retiree.
+        /// </summary>
+        /// <remarks> It is unlikely that two would retire exactly at the same time, and if so, it would be done on the next update.</remarks>
+        public void DeleteRetirees()
+        {
+            foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
+            {
+                if (!HighLogic.CurrentGame.CrewRoster.Exists(kvp.Key))
+                {
+                    RemoveKerbal(kvp.Value);
+                    return;
+                }
+            }
+        }
+
         public void HireApplicant(PersonnelFile pf)
         {
             if (applicantFolders.ContainsKey(pf.UniqueName())) applicantFolders.Remove(pf.UniqueName());
