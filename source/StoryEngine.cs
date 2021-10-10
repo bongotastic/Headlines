@@ -124,6 +124,9 @@ namespace Headlines
         [KSPField(isPersistant = true)] public bool logDebug = true;
         public Queue<NewsStory> headlines = new Queue<NewsStory>();
          
+        // UI states
+        public ConfigNode UIStates = null;
+        
         #endregion
 
         #region UnityStuff
@@ -173,6 +176,9 @@ namespace Headlines
         {
             // Do not run Headlines outside of career
             if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER) return;
+            
+            // In case of a retirement
+            RemoveRetirees();
             
             // Shameless hack.
             if (updateIndex < 10)
@@ -282,6 +288,11 @@ namespace Headlines
             
             node.AddNode(_reputationManager.AsConfigNode());
             node.AddNode(_programManager.AsConfigNode());
+
+            if (UIStates != null)
+            {
+                node.AddNode("UIStates", UIStates);
+            }
         }
 
         public override void OnLoad(ConfigNode node)
@@ -379,6 +390,11 @@ namespace Headlines
                 }
             }
             visitingScholarEndTimes.Sort();
+
+            if (node.HasNode("UIStates"))
+            {
+                UIStates = node.GetNode("UIStates");
+            }
             
         }
 
@@ -1806,6 +1822,12 @@ namespace Headlines
             {
                 _peopleManager.GetFile(_liveProcesses[registeredStateIdentity].kerbalName).SetInactive(deltaTime);
             }
+            
+            // Same for program managers
+            if (registeredStateIdentity.Contains("program_manager"))
+            {
+                _programManager.InactivatePMasCrewFor(deltaTime);
+            }
         }
 
         /// <summary>
@@ -1833,6 +1855,17 @@ namespace Headlines
             foreach (string registeredStateName in triggerStates)
             {
                 Debug($"Triggering HMM {registeredStateName}");
+
+                // Rogue HMM not deleted in some edge cases
+                if (_liveProcesses[registeredStateName].kerbalName != "")
+                {
+                    if (_peopleManager.GetFile(_liveProcesses[registeredStateName].kerbalName) == null)
+                    {
+                        RemoveKerbalHMM(_liveProcesses[registeredStateName].kerbalName);
+                        continue;
+                    }
+                }
+                
                 // Check for validity as it *may* have been removed recently
                 if (_liveProcesses.ContainsKey(registeredStateName) == false)
                 {
@@ -2519,6 +2552,11 @@ namespace Headlines
             return Math.Round(ratio, 1);
         }
 
+        public double GUIVisitingScience()
+        {
+            return Math.Round(visitingScienceTally, 1);
+        }
+
         public double GUIFundraised()
         {
             return Math.Floor(this.fundraisingTally);
@@ -2567,6 +2605,20 @@ namespace Headlines
             {
                 Debug($"News Feed at {headlines.Count} elements","News Feed");
             }
+        }
+
+        public int GetNumberNewsAbout(string crewName)
+        {
+            int output = 0;
+            foreach (NewsStory ns in headlines)
+            {
+                if (ns.HasActor(crewName))
+                {
+                    output += 1;
+                }
+            }
+
+            return output;
         }
 
         /// <summary>
@@ -2815,6 +2867,15 @@ namespace Headlines
             }
 
             return output;
+        }
+
+        public void RemoveRetirees()
+        {
+            string retireeName = _peopleManager.DeleteRetirees();
+            if (retireeName != "")
+            {
+                RemoveKerbalHMM(retireeName);
+            }
         }
         #endregion
 

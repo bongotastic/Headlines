@@ -4,6 +4,7 @@ using CommNet.Network;
 using Expansions.Missions;
 using HiddenMarkovProcess;
 using Renamer;
+using RP0.Crew;
 using Smooth.Collections;
 
 namespace Headlines.source
@@ -28,6 +29,7 @@ namespace Headlines.source
         public int launches = 0;
         public double managerSkill;
         public bool isNPC = true;
+        public double lastSeenRetirementDate = 0;
 
         public ProgramManagerRecord(string _name = "", string _background = "Neutral", string _personality = "")
         {
@@ -44,6 +46,7 @@ namespace Headlines.source
             managerSkill = crewMember.Effectiveness(deterministic:true);
             personality = crewMember.personality;
             isNPC = false;
+            lastSeenRetirementDate = CrewHandler.Instance.KerbalRetireTimes[crewMember.UniqueName()];
         }
 
         public ProgramManagerRecord(ConfigNode node)
@@ -61,6 +64,7 @@ namespace Headlines.source
             output.AddValue("launches", launches);
             output.AddValue("managerSkill", managerSkill);
             output.AddValue("isNPC", isNPC);
+            output.AddValue("lastSeenRetirementDate" , lastSeenRetirementDate);
             
             return output;
         }
@@ -73,14 +77,7 @@ namespace Headlines.source
             HeadlinesUtil.SafeInt("launches", ref launches, node);
             HeadlinesUtil.SafeDouble("managerSkill", ref managerSkill, node);
             HeadlinesUtil.SafeBool("isNPC", ref isNPC, node);
-            /*
-            name = node.GetValue("name");
-            background = node.GetValue("background");
-            personality = node.GetValue("personality");
-            launches = int.Parse(node.GetValue("launches"));
-            managerSkill = double.Parse(node.GetValue("managerSkill"));
-            isNPC = bool.Parse(node.GetValue("isNPC"));
-            */
+            HeadlinesUtil.SafeDouble("lastSeenRetirementDate", ref lastSeenRetirementDate, node);
         }
     }
     
@@ -439,12 +436,24 @@ namespace Headlines.source
             
             double output = pmRecord.managerSkill;
             
+            // Check for post-retirement extension
+            if (!pmRecord.isNPC && HeadlinesUtil.GetUT() <= pmRecord.lastSeenRetirementDate)
+            {
+                    // Get Rid of old default PM
+                    RemoveDefaultProgramManager();
+                    
+                    // Set as NPC
+                    pmRecord.isNPC = true;
+            }
+            
+
             if (!pmRecord.isNPC)
             {
                 PersonnelFile crew = _peopleManager.GetFile(managerKey);
                 if (crew == null)
                 {
                     HeadlinesUtil.Report(1,"PM not retrieved from PeopleManager.");
+                    pmRecord.isNPC = true;
                 }
                 else
                 {
@@ -540,6 +549,43 @@ namespace Headlines.source
             pmRecord.managerSkill = _storyEngine.GetProgramComplexity() + 4;
             _record.Add(pmRecord.name, pmRecord);
             AssignProgramManager(pmRecord.name);
+        }
+
+        /// <summary>
+        /// Except if it is the current PM
+        /// </summary>
+        public void RemoveDefaultProgramManager()
+        {
+            string pmName = null;
+            int found = 0;
+            foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
+            {
+                if (kvp.Value.isNPC & ManagerName() != kvp.Value.name)
+                {
+                    pmName = kvp.Key;
+                    found += 1;
+                }
+            }
+
+            if (pmName != null)
+            {
+                _record.Remove(pmName);
+            }
+            
+            // Just in case that there is more than one
+            if (found > 1) RemoveDefaultProgramManager();
+        }
+
+        /// <summary>
+        /// Ensures that a Program manager from crew can't be assigned to flight operations.
+        /// </summary>
+        /// <param name="newTime"></param>
+        public void InactivatePMasCrewFor(double newTime)
+        {
+            if (!GetProgramManagerRecord().isNPC)
+            {
+                _peopleManager.GetFile(GetProgramManagerRecord().name).SetInactive(newTime);
+            }
         }
 
         #endregion
