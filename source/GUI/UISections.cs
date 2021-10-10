@@ -3,6 +3,7 @@ using CommNet.Network;
 using Contracts;
 using Headlines.source.Emissions;
 using Headlines.source.GUI;
+using RP0.Crew;
 using UniLinq;
 using UnityEngine;
 
@@ -655,7 +656,7 @@ namespace Headlines.source.GUI
         {
             hasCompact = true;
             hasExtended = true;
-            hasHelp = false;
+            hasHelp = true;
 
             _state = UIBoxState.EXTENDED;
         }
@@ -723,7 +724,8 @@ namespace Headlines.source.GUI
         
         protected override void DrawHelp()
         {
-            
+            double retirementDeltaTime = CrewHandler.Instance.KerbalRetireTimes[focusCrew.UniqueName()] - HeadlinesUtil.GetUT();
+            WriteBullet($"Is set to retire in {KSPUtil.PrintDateDelta(retirementDeltaTime, false)}");
         }
     }
     
@@ -754,13 +756,13 @@ namespace Headlines.source.GUI
         protected override void DrawCompact()
         {
             string toprint = "";
-            if (focusCrew.influence != 0) toprint += $"Influence: {focusCrew.influence}, ";
-            if (focusCrew.teamInfluence != 0) toprint += $"Team: {focusCrew.teamInfluence}, ";
-            if (focusCrew.legacy != 0) toprint += $"Legacy: {focusCrew.legacy}, ";
-            if (focusCrew.lifetimeHype != 0) toprint += $"Hype: {focusCrew.lifetimeHype}, ";
+            if (focusCrew.influence != 0) toprint += $"Influence: {focusCrew.influence}\t";
+            if (focusCrew.teamInfluence != 0) toprint += $"Team: {focusCrew.teamInfluence}\t";
+            if (focusCrew.legacy != 0) toprint += $"Legacy: {focusCrew.legacy}\t";
+            if (focusCrew.lifetimeHype != 0) toprint += $"Hype: {focusCrew.lifetimeHype}\t";
             if (toprint.Length != 0)
             {
-                toprint = toprint.Substring(0, toprint.Length - 2);
+                toprint = toprint.Substring(0, toprint.Length - 1);
             }
             else
             {
@@ -820,7 +822,11 @@ namespace Headlines.source.GUI
         {
             GUILayout.BeginVertical();
             
-            if (focusCrew.IsInactive())
+            if (focusCrew.isProgramManager)
+            {
+                GUILayout.Label($"Currently busy with program manager duties.");
+            }
+            else if (focusCrew.IsInactive())
             {
                 double deltaTime = focusCrew.InactiveDeadline() - HeadlinesUtil.GetUT();
                 GUILayout.Label($"Earliest possible return: {KSPUtil.PrintDateDelta(deltaTime,false, false)}", FullWidth());
@@ -878,7 +884,7 @@ namespace Headlines.source.GUI
                 GUILayout.Label("Reassign as: ", GUILayout.Width(145));
                 if (focusCrew.Specialty() != "Pilot")
                 {
-                    if (GUILayout.Button("Pilot", GUILayout.Width(120)));
+                    if (GUILayout.Button("Pilot", GUILayout.Width(120)))
                     {
                         storyEngine.RetrainKerbal(focusCrew, "Pilot");
                     }

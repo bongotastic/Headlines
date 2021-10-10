@@ -1819,6 +1819,12 @@ namespace Headlines
             {
                 _peopleManager.GetFile(_liveProcesses[registeredStateIdentity].kerbalName).SetInactive(deltaTime);
             }
+            
+            // Same for program managers
+            if (registeredStateIdentity.Contains("program_manager"))
+            {
+                _programManager.InactivatePMasCrewFor(deltaTime);
+            }
         }
 
         /// <summary>
