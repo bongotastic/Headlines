@@ -633,7 +633,7 @@ namespace Headlines
         /// </summary>
         public void CrewedLaunchReputation()
         {
-            // automatically begin a live even if in the media event window
+            // automatically begin a live event if in the media event window
             if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN)
             {
                 double now = HeadlinesUtil.GetUT();
@@ -674,6 +674,18 @@ namespace Headlines
                 }
             }
             newLaunch.Clear();
+            
+            // Program manager burn-out 
+            // Campaigns are hard
+            double pmBurnout = _reputationManager.currentMode == MediaRelationMode.CAMPAIGN ? -2 : -1;
+            // Waning star effect
+            if (_programManager.ManagerInitialCredibility() / _reputationManager.CurrentReputation() <= 0.8)
+                pmBurnout -= 1;
+            // Success high
+            if (_reputationManager.CurrentReputation() - _programManager.ManagerInitialCredibility() >= 50)
+                pmBurnout += 0.5;
+            _programManager.AdjustRemainingLaunches(pmBurnout);
+
         }
 
         /// <summary>
@@ -2762,6 +2774,7 @@ namespace Headlines
                 _reputationManager.airTimeEnds < HeadlinesUtil.GetUT())
             {
                 _reputationManager.CancelMediaEvent();
+                _programManager.AdjustRemainingLaunches(-0.5);
             }
 
             if (_reputationManager.currentMode == MediaRelationMode.LIVE & _reputationManager.airTimeEnds < HeadlinesUtil.GetUT())
@@ -2778,6 +2791,7 @@ namespace Headlines
                 {
                     ns.AddToStory($"The media crews are leaving impressed. (Hype: {Math.Round(_reputationManager.Hype(),2)})");
                     ns.headline = "Media debrief: Success";
+                    _programManager.AdjustRemainingLaunches(0.5);
                 }
                 FileHeadline(ns);
             }
@@ -2871,12 +2885,24 @@ namespace Headlines
             return output;
         }
 
+        /// <summary>
+        /// Handles both crew and program managers
+        /// </summary>
         public void RemoveRetirees()
         {
             string retireeName = _peopleManager.DeleteRetirees();
             if (retireeName != "")
             {
                 RemoveKerbalHMM(retireeName);
+            }
+
+            if (_programManager.ManagerRemainingLaunches() <= 0)
+            {
+                string message = $"{_programManager.ManagerName()} retires as PM and is replaces by ";
+                _programManager.RevertToDefaultProgramManager();
+                message += _programManager.ManagerName();
+                NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "PM retires", message);
+                FileHeadline(ns);
             }
         }
         #endregion

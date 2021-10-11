@@ -192,6 +192,26 @@ namespace Headlines.source.GUI
                     WriteBullet("A charming PM protects the program's reputation with confidence.");
                     break;
             }
+            
+            // Burnout
+            if (PrgMgr.ManagerRemainingLaunches() < 3)
+            {
+                WriteBullet("May leave after the next launch.", BulletEmote.WARNING);
+            }
+            else
+            {
+                WriteBullet($"Approximate remaining launches: {PrgMgr.ManagerRemainingLaunches()}");
+            }
+
+            double initCred = PrgMgr.ManagerInitialCredibility();
+            if (initCred / RepMgr.CurrentReputation() <= 0.8)
+            {
+                WriteBullet("Has seen better days and is out of touch a bit.", BulletEmote.THUMBDOWN);
+            }
+            if (RepMgr.CurrentReputation() - initCred >= 50)
+            {
+                WriteBullet("Is on a high due to their successes.", BulletEmote.THUMBUP);
+            }
 
             GUILayout.EndVertical();
         }

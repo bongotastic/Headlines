@@ -411,9 +411,17 @@ namespace Headlines.source
             }
             
             managerKey = pmName;
+            
+            // How was the program when they got there
             if (GetProgramManagerRecord().initialCredibility < initialCred)
             {
                 GetProgramManagerRecord().initialCredibility = initialCred;
+            }
+            
+            // Length of appointment
+            if (GetProgramManagerRecord().remainingLaunches <= 6)
+            {
+                GetProgramManagerRecord().remainingLaunches += (double)HeadlinesUtil.randomGenerator.Next(1, 7);
             }
             HeadlinesUtil.Report(1, $"Assigning {managerKey} as PM.");
             CrewReactToAppointment();
@@ -421,9 +429,10 @@ namespace Headlines.source
 
         public void AssignProgramManager(PersonnelFile crew, double initialCred)
         {
+            ProgramManagerRecord newRecord;
             if (!_record.ContainsKey(crew.UniqueName()))
             {
-                ProgramManagerRecord newRecord = new ProgramManagerRecord(crew);
+                newRecord = new ProgramManagerRecord(crew, initialCred);
                 _record.Add(crew.UniqueName(), newRecord);
                 HeadlinesUtil.Report(1, $"Adding {newRecord.name} to PM records.");
             }
@@ -496,6 +505,11 @@ namespace Headlines.source
                 output++;
             }
 
+            // Morale due to successes
+            double cr =  StoryEngine.Instance._reputationManager.CurrentReputation();
+            if (pmRecord.initialCredibility / cr <= 0.8) output--;
+            else if (cr - pmRecord.initialCredibility >= 50) output++;
+
             return output;
         }
 
@@ -512,6 +526,16 @@ namespace Headlines.source
         public int ManagerLaunches()
         {
             return GetProgramManagerRecord().launches;
+        }
+
+        public double ManagerInitialCredibility()
+        {
+            return GetProgramManagerRecord().initialCredibility;
+        }
+
+        public double ManagerRemainingLaunches()
+        {
+            return GetProgramManagerRecord().remainingLaunches;
         }
 
         private ProgramManagerRecord GetProgramManagerRecord()
@@ -602,6 +626,15 @@ namespace Headlines.source
             {
                 _peopleManager.GetFile(GetProgramManagerRecord().name).SetInactive(newTime);
             }
+        }
+
+        /// <summary>
+        /// Modify the number of launches left.
+        /// </summary>
+        /// <param name="delta"></param>
+        public void AdjustRemainingLaunches(double delta)
+        {
+            GetProgramManagerRecord().remainingLaunches += delta;
         }
 
         #endregion
