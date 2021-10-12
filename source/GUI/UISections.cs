@@ -69,10 +69,30 @@ namespace Headlines.source.GUI
             _root.GUIPad();
             GUILayout.EndVertical();
         }
-        
+
         protected override void DrawHelp()
         {
-            GUILayout.Label("Hype is more volatile than real reputation when your overvaluation is large.", GUILayout.Width(_root.widthUI - _root.widthMargin));
+            GUILayout.BeginVertical();
+            if (RepMgr.Credibility() < 200)
+            {
+                WriteBullet(
+                    $"You credibility is {200 - Math.Round(RepMgr.Credibility(), 0)} short of getting three-star contracts offered.",
+                    BulletEmote.WARNING);
+            }
+
+            if (RepMgr.Peak() >= 0.8)
+            {
+                WriteBullet($"Your program is seen to be at its peak.", BulletEmote.THUMBUP);
+            }
+            else
+            {
+                WriteBullet($"Your program had better days and may struggle to attract top-candidates.", BulletEmote.THUMBDOWN);
+            }
+
+            double meanDecay = Math.Pow(0.933, 365 / storyEngine.GetProcess("reputation_decay").period);
+            WriteBullet($"Projected drop in reputation in 1 year: {Math.Round( 100*(1 - meanDecay),1)}%");
+            
+            GUILayout.EndVertical();
         }
     }
     

@@ -365,7 +365,6 @@ namespace Headlines.source
 
         private void RegisterProgramCheckSuccess()
         {
-            if (controlLevel >= ProgramControlLevel.NOMINAL) return;
             if (controlLevel == ProgramControlLevel.CHAOS)
             {
                 controlLevel = ProgramControlLevel.WEAK;
@@ -378,6 +377,7 @@ namespace Headlines.source
                 _storyEngine.programPayrollRebate =
                     (_storyEngine.programPayrollRebate == 0) ? 1 : _storyEngine.programPayrollRebate;
             }
+            CancelInfluence();
             ApplyInfluence();
             controlLevel = ProgramControlLevel.NOMINAL;
         }
@@ -586,6 +586,10 @@ namespace Headlines.source
             string background = new List<string>() {"Neutral", "Pilot", "Engineer", "Scientist"}[rnd.Next(3)];
             
             ProgramManagerRecord pmRecord = new ProgramManagerRecord(name, background, PersonnelFile.GetRandomPersonality());
+            if (_storyEngine == null)
+            {
+                _storyEngine = StoryEngine.Instance;
+            }
             pmRecord.managerSkill = _storyEngine.GetProgramComplexity() + 4;
             _record.Add(pmRecord.name, pmRecord);
             AssignProgramManager(pmRecord.name, _storyEngine._reputationManager.CurrentReputation());
@@ -637,6 +641,13 @@ namespace Headlines.source
             GetProgramManagerRecord().remainingLaunches += delta;
         }
 
+        public void SetInitialReputation(double cred)
+        {
+            foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
+            {
+                if (kvp.Value.initialCredibility == 0) kvp.Value.initialCredibility = cred;
+            }
+        }
         #endregion
 
         #region HMM modifiers

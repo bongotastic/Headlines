@@ -210,6 +210,9 @@ namespace Headlines
                     _peopleManager.initialized = true;
                 }
                 updateIndex += 1;
+                
+                // todo delete 0.6.1 backward compatibility in a while 
+                _programManager.SetInitialReputation(_reputationManager.CurrentReputation());
             }
             
             _reputationManager.SetLastKnownCredibility(Reputation.CurrentRep);
@@ -882,7 +885,7 @@ namespace Headlines
             }
             else if (deltaHype < 1f)
             {
-                adjective = ", however, innefectively ";
+                adjective = ", however, ineffectively ";
                 deltaHype = 1f;
             }
 
@@ -894,6 +897,7 @@ namespace Headlines
             ns.AddToStory($"They are{adjective}in the public eye. Hype gain is {deltaHype}.");
             FileHeadline(ns);
             kerbalFile.AddLifetimeHype((int)deltaHype);
+            AdjustHype(deltaHype);
         }
 
         /// <summary>
@@ -1793,6 +1797,21 @@ namespace Headlines
             return outValue * _assumedPeriod;
         }
 
+        /// <summary>
+        /// Easy access to live processes by name
+        /// </summary>
+        /// <param name="processName">name as registered</param>
+        /// <returns></returns>
+        public HiddenState GetProcess(string processName)
+        {
+            if (_liveProcesses.ContainsKey(processName))
+            {
+                return _liveProcesses[processName];
+            }
+
+            return null;
+        }
+
         #endregion
 
         #region Scheduling
@@ -2170,7 +2189,7 @@ namespace Headlines
             {
                 Emissions em = new Emissions("attention_span_short");
                 NewsStory ns = new NewsStory(em);
-                ns.headline = "Space craze is low";
+                ns.headline = "Space craze is high";
                 ns.AddToStory(em.GenerateStory());
                 FileHeadline(ns);
             }
@@ -2905,6 +2924,7 @@ namespace Headlines
                 FileHeadline(ns);
             }
         }
+        
         #endregion
 
         #region RP1

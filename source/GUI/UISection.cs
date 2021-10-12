@@ -198,7 +198,7 @@ namespace Headlines.source.GUI
                     bullet = "\u25BC";
                     break;
                 case BulletEmote.WARNING:
-                    bullet = "\u26A0";
+                    bullet = "!";
                     break;
             }
             GUILayout.BeginHorizontal();
