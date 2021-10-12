@@ -73,6 +73,19 @@ namespace Headlines.source.GUI
         protected override void DrawHelp()
         {
             GUILayout.BeginVertical();
+            if (RepMgr.currentMode == MediaRelationMode.LOWPROFILE)
+            {
+                WriteBullet($"You maximum credibility gain is {RepMgr.Hype()}. Excess is converter to new hype.");
+            }
+            else if (RepMgr.currentMode == MediaRelationMode.CAMPAIGN)
+            {
+                WriteBullet($"Media Campaign: All reputation gains are converted to hype.");
+            }
+            else
+            {
+                WriteBullet($"Reputation gains under {Math.Round(RepMgr.Hype(),1)} are 100% gained without losing hype.");
+            }
+            
             if (RepMgr.Credibility() < 200)
             {
                 WriteBullet(
@@ -252,7 +265,7 @@ namespace Headlines.source.GUI
         {
             hasCompact = true;
             hasExtended = true;
-            hasHelp = false;
+            hasHelp = true;
 
             _state = UIBoxState.COMPACT;
         }
@@ -306,7 +319,27 @@ namespace Headlines.source.GUI
         
         protected override void DrawHelp()
         {
+            GUILayout.BeginVertical();
+            _root.OrderNewPriority(GUILayout.SelectionGrid(_root._priority, HeadlinesGUIManager.priorities,4 , FullWidth()));
+
             
+            if (PrgMgr.GetPriority() == ProgramPriority.REPUTATION)
+            {
+                WriteBullet("Pilots should mainly be in media blitzes");
+                WriteBullet("Non-pilot are likely to participate in media blitzes and less likely to be leading their teams.");
+            }
+            else if (PrgMgr.GetPriority() == ProgramPriority.PRODUCTION)
+            {
+                WriteBullet("Pilots should mainly be in media blitzes");
+                WriteBullet("Non-pilot are clearing their schedule to work at the KSC.");
+            }
+            else if (PrgMgr.GetPriority() == ProgramPriority.CAPACITY)
+            {
+                WriteBullet("Pilots are training, scouting, fundraising.");
+                WriteBullet("Non-pilot studying, mentoring, attempting legacy-building.");
+            }
+            
+            GUILayout.EndVertical();
         }
     }
     
