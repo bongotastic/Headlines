@@ -127,6 +127,9 @@ namespace Headlines
         // UI states
         public ConfigNode UIStates = null;
         
+        // HMM to remove
+        private List<string> _hmmToRemove = new List<string>();
+        
         #endregion
 
         #region UnityStuff
@@ -1517,8 +1520,15 @@ namespace Headlines
 
             NewsStory ns = new NewsStory(HeadlineScope.SCREEN, Story: message + ".");
             FileHeadline(ns);
-            
-            EmitEvent(personnelFile.kerbalTask, personnelFile);
+
+            if (personnelFile.kerbalTask.StartsWith("accelerate_") || personnelFile.kerbalTask.EndsWith("_blitz"))
+            {
+                EmitEvent("impact", personnelFile);
+            }
+            else
+            {
+                EmitEvent(personnelFile.kerbalTask, personnelFile);
+            }
         }
 
         /// <summary>
@@ -1540,6 +1550,9 @@ namespace Headlines
             if (newManager != null)
             {
                 _programManager.AssignProgramManager(newManager, _reputationManager.CurrentReputation());
+                
+                // Set manager as inactive until next program check
+                newManager.SetInactive(_hmmScheduler["program_manager"]);
             }
             else
             {
@@ -1844,7 +1857,14 @@ namespace Headlines
         public void ReScheduleHMM(string registeredStateIdentity, double baseTime)
         {
             double deltaTime = GeneratePeriod(_liveProcesses[registeredStateIdentity].period, registeredStateIdentity.Contains("_decay"));
-           
+            
+            // pilots during a campaign are at 2X speed (This would be best encoded in the HMM period)
+            if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN &&
+                registeredStateIdentity.Contains("role_Pilot"))
+            {
+                deltaTime /= 2;
+            }
+
             _hmmScheduler[registeredStateIdentity] = HeadlinesUtil.GetUT() + deltaTime;
             Debug( $"Rescheduling HMM {registeredStateIdentity} to +{deltaTime}", "HMM");
 
@@ -1966,6 +1986,12 @@ namespace Headlines
                     ReScheduleHMM(registeredStateName, _liveProcesses[registeredStateName].period);
                 }
             }
+            
+            // Remove HMM
+            foreach (string registeredKey in _hmmToRemove)
+            {
+                RemoveHMM(registeredKey);
+            }
 
             SchedulerCacheNextTime();
             CullNewsFeed();
@@ -2004,7 +2030,7 @@ namespace Headlines
                     DecayReputation();
                     break;
                 case "reality_check":
-                    RealityCheck();
+                    RealityCheck(true);
                     break;
                 case "new_applicant":
                     NewRandomApplicant();
@@ -2247,6 +2273,11 @@ namespace Headlines
         /// </summary>
         public void RealityCheck(bool withStory = true)
         {
+            // Reality checks can be prevented during a campaign only
+            if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN && KerbalProtectReputationDecay())
+            {
+                return;
+            }
             double hypeLoss = _reputationManager.RealityCheck();
             if (hypeLoss >= 1)
             {
@@ -2480,19 +2511,13 @@ namespace Headlines
         /// </summary>
         private void DebrisConclude()
         {
-            string stateToRemove = "";
             foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
             {
                 if (kvp.Key.StartsWith("debris_endangerment"))
                 {
-                    stateToRemove = kvp.Key;
+                    _hmmToRemove.Add(kvp.Key);
                     break;
                 }
-            }
-
-            if (stateToRemove != "")
-            {
-                RemoveHMM(stateToRemove);
             }
         }
 
