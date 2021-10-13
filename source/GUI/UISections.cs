@@ -472,7 +472,7 @@ namespace Headlines.source.GUI
             }
             else
             {
-                storyEngine.InvitePress(GUILayout.Button($"Invite Press (√{cost})", GUILayout.Width(200)), _root.mediaInvitationDelay);
+                storyEngine.StartMediaCampaign(GUILayout.Button($"Invite Press (√{cost})", GUILayout.Width(200)), _root.mediaInvitationDelay);
             }
             GUILayout.Label("  in ", GUILayout.Width(25));
             _root.mediaInvitationDelay = Math.Max(Int32.Parse(GUILayout.TextField($"{_root.mediaInvitationDelay}", GUILayout.Width(40))), 1);

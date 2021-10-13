@@ -1900,7 +1900,7 @@ namespace Headlines
                 // Check for validity as it *may* have been removed recently
                 if (_liveProcesses.ContainsKey(registeredStateName) == false)
                 {
-                    Debug($"{registeredStateName} schedule, but doesn't exist");
+                    Debug($"{registeredStateName} scheduled, but doesn't exist");
                     continue;
                 }
                 
@@ -1927,7 +1927,7 @@ namespace Headlines
                         // Program managers don't generate speciality-specific events.
                         if (registeredStateName.Contains(personnelFile.Specialty()) &
                             personnelFile.UniqueName() == _programManager.ManagerName()) continue;
-                        
+
                         if (personnelFile.coercedTask)
                         {
                             EmitEvent(personnelFile.kerbalTask, personnelFile);
@@ -2770,12 +2770,29 @@ namespace Headlines
             return cost;
         }
 
-        public void InvitePress(bool invite, int nDays)
+        public void StartMediaCampaign(bool invite, int nDays)
         {
             if (_reputationManager.currentMode == MediaRelationMode.LOWPROFILE & invite)
             {
                 double campaignLength = nDays * (3600 * 24);
                 _reputationManager.LaunchCampaign(campaignLength);
+                
+                // Ensures that any crew able will make a media appearance
+                foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
+                {
+                    if (kvp.Value.Specialty() == "Pilot")
+                    {
+                        // Guarantees a media event per pilot during a campaign
+                        HiddenState hmm = GetRoleHMM(kvp.Value);
+                        double newTime = storytellerRand.NextDouble() * campaignLength + HeadlinesUtil.GetUT();
+                        if (_hmmScheduler.ContainsKey(hmm.RegisteredName()))
+                        {
+                            _hmmScheduler[hmm.RegisteredName()] = Math.Min(_hmmScheduler[hmm.RegisteredName()], newTime);
+                        }
+
+                        kvp.Value.OrderTask("media_blitz");
+                    }
+                }
             }
         }
 
