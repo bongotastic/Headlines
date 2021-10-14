@@ -408,9 +408,17 @@ namespace Headlines.source
             {
                 PersonnelFile oldManager = _peopleManager.GetFile(managerKey);
                 oldManager.isProgramManager = false;
+                //oldManager.GetKSPData().rosterStatus = ProtoCrewMember.RosterStatus.Available;
             }
             
             managerKey = pmName;
+            
+            // Remove from flight ops
+            if (!GetProgramManagerRecord().isNPC)
+            {
+                PersonnelFile newManager = _peopleManager.GetFile(managerKey);
+                //newManager.GetKSPData().rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
+            }
             
             // How was the program when they got there
             if (GetProgramManagerRecord().initialCredibility < initialCred)
@@ -559,11 +567,18 @@ namespace Headlines.source
 
         public void RevertToDefaultProgramManager()
         {
+            // Prevent being stuck with only one PM
+            if (_record.Count == 1)
+            {
+                _record.Clear();
+            }
+            
             AssignProgramManager(GetDefaultProgramManagerRecord().name, _storyEngine._reputationManager.CurrentReputation());
         }
 
         private ProgramManagerRecord GetDefaultProgramManagerRecord()
         {
+
             foreach (KeyValuePair<string, ProgramManagerRecord> pmr in _record)
             {
                 if (pmr.Value.isNPC) return pmr.Value;

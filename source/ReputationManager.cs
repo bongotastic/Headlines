@@ -384,7 +384,7 @@ namespace Headlines.source
             }
             else
             {
-                AdjustHype(factor:1 - OverRating());
+                AdjustHype(-1*hypeLoss);
             }
             return hypeLoss;
         }
@@ -573,6 +573,10 @@ namespace Headlines.source
 
         public bool EventSuccess()
         {
+            if (mediaContracts.Count == 0)
+            {
+                return true;
+            }
             return Math.Round(Credibility(),0,MidpointRounding.AwayFromZero)  >= Math.Round(mediaOpsTarget,0,MidpointRounding.AwayFromZero);
         }
 

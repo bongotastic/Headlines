@@ -73,6 +73,19 @@ namespace Headlines.source.GUI
         protected override void DrawHelp()
         {
             GUILayout.BeginVertical();
+            if (RepMgr.currentMode == MediaRelationMode.LOWPROFILE)
+            {
+                WriteBullet($"You maximum credibility gain is {Math.Round(RepMgr.Hype(),MidpointRounding.AwayFromZero)}. Excess is converter to new hype.");
+            }
+            else if (RepMgr.currentMode == MediaRelationMode.CAMPAIGN)
+            {
+                WriteBullet($"Media Campaign: All reputation gains are converted to hype.");
+            }
+            else
+            {
+                WriteBullet($"Reputation gains under {Math.Round(RepMgr.Hype(),1)} are 100% gained without losing hype.");
+            }
+            
             if (RepMgr.Credibility() < 200)
             {
                 WriteBullet(
@@ -89,8 +102,14 @@ namespace Headlines.source.GUI
                 WriteBullet($"Your program had better days and may struggle to attract top-candidates.", BulletEmote.THUMBDOWN);
             }
 
-            double meanDecay = Math.Pow(0.933, 365 / storyEngine.GetProcess("reputation_decay").period);
+            // Expected decay in 12 months of inaction
+            double meanDecay = Math.Pow(0.933, 365 / (0.8 * storyEngine.GetProcess("reputation_decay").period * storyEngine.attentionSpanFactor));
             WriteBullet($"Projected drop in reputation in 1 year: {Math.Round( 100*(1 - meanDecay),1)}%");
+
+            if (RepMgr.OverRating() > 0.07)
+            {
+                WriteBullet($"Hype is {Math.Round(RepMgr.OverRating()/(1-0.933),1)}X more volatile than your reputation.");
+            }
             
             GUILayout.EndVertical();
         }
@@ -246,7 +265,7 @@ namespace Headlines.source.GUI
         {
             hasCompact = true;
             hasExtended = true;
-            hasHelp = false;
+            hasHelp = true;
 
             _state = UIBoxState.COMPACT;
         }
@@ -300,7 +319,27 @@ namespace Headlines.source.GUI
         
         protected override void DrawHelp()
         {
+            GUILayout.BeginVertical();
+            _root.OrderNewPriority(GUILayout.SelectionGrid(_root._priority, HeadlinesGUIManager.priorities,4 , FullWidth()));
+
             
+            if (PrgMgr.GetPriority() == ProgramPriority.REPUTATION)
+            {
+                WriteBullet("Pilots should mainly be in media blitzes");
+                WriteBullet("Non-pilot are likely to participate in media blitzes and less likely to be leading their teams.");
+            }
+            else if (PrgMgr.GetPriority() == ProgramPriority.PRODUCTION)
+            {
+                WriteBullet("Pilots should mainly be in media blitzes");
+                WriteBullet("Non-pilot are clearing their schedule to work at the KSC.");
+            }
+            else if (PrgMgr.GetPriority() == ProgramPriority.CAPACITY)
+            {
+                WriteBullet("Pilots are training, scouting, fundraising.");
+                WriteBullet("Non-pilot studying, mentoring, attempting legacy-building.");
+            }
+            
+            GUILayout.EndVertical();
         }
     }
     
@@ -433,7 +472,7 @@ namespace Headlines.source.GUI
             }
             else
             {
-                storyEngine.InvitePress(GUILayout.Button($"Invite Press (√{cost})", GUILayout.Width(200)), _root.mediaInvitationDelay);
+                storyEngine.StartMediaCampaign(GUILayout.Button($"Invite Press (√{cost})", GUILayout.Width(200)), _root.mediaInvitationDelay);
             }
             GUILayout.Label("  in ", GUILayout.Width(25));
             _root.mediaInvitationDelay = Math.Max(Int32.Parse(GUILayout.TextField($"{_root.mediaInvitationDelay}", GUILayout.Width(40))), 1);

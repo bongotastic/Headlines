@@ -333,8 +333,7 @@ namespace Headlines.source.GUI
             
             
             GUILayout.BeginVertical();
-            DrawSection("ProgramCredibility");
-            
+
             if (!HighLogic.LoadedSceneIsFlight)
             {
                 DrawSection("ProgramManagement");
@@ -349,6 +348,7 @@ namespace Headlines.source.GUI
         /// </summary>
         public void DrawPressRoom()
         {
+            DrawSection("ProgramCredibility");
             DrawSection("MediaEvent");
             if (RepMgr.shelvedAchievements.Count != 0)
             {
@@ -417,10 +417,12 @@ namespace Headlines.source.GUI
             
             bool drawfeed = false;
             int height = crewSpecific ? 100 : 430;
+            
             if (storyEngine.headlines.Count == 0 & !crewSpecific)
             {
                 GUILayout.Label("This is soon to become a busy feed. Enjoy the silence while it lasts.");
             }
+            
             foreach (NewsStory ns in storyEngine.headlines.Reverse())
             {
                 if (crewSpecific)
