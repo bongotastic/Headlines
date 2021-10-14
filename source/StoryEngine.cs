@@ -2959,7 +2959,7 @@ namespace Headlines
 
             if (_programManager.ManagerRemainingLaunches() <= 0)
             {
-                string message = $"{_programManager.ManagerName()} retires as PM and is replaces by ";
+                string message = $"{_programManager.ManagerName()} retires as PM and is replaced by ";
                 _programManager.RevertToDefaultProgramManager();
                 message += _programManager.ManagerName();
                 NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "PM retires", message);
