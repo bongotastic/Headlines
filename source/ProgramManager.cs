@@ -32,6 +32,7 @@ namespace Headlines.source
         public double lastSeenRetirementDate = 0;
         public double remainingLaunches = 20;
         public double initialCredibility = 0;
+        public bool reactionRecorded = false;
 
         public ProgramManagerRecord(string _name = "", string _background = "Neutral", string _personality = "", double initialCred = 0)
         {
@@ -73,6 +74,7 @@ namespace Headlines.source
             output.AddValue("lastSeenRetirementDate" , lastSeenRetirementDate);
             output.AddValue("initialCredibility", initialCredibility);
             output.AddValue("remainingLaunches", remainingLaunches);
+            output.AddValue("reactionRecorded", reactionRecorded);
             
             return output;
         }
@@ -88,6 +90,7 @@ namespace Headlines.source
             HeadlinesUtil.SafeDouble("lastSeenRetirementDate", ref lastSeenRetirementDate, node);
             HeadlinesUtil.SafeDouble("remainingLaunches", ref remainingLaunches, node);
             HeadlinesUtil.SafeDouble("initialCredibility", ref initialCredibility, node);
+            HeadlinesUtil.SafeBool("reactionRecorded", ref reactionRecorded, node);
         }
     }
     
@@ -431,8 +434,7 @@ namespace Headlines.source
                 GetProgramManagerRecord().remainingLaunches += (double)HeadlinesUtil.randomGenerator.Next(1, 7);
             }
             HeadlinesUtil.Report(1, $"Assigning {managerKey} as PM.");
-            CrewReactToAppointment();
-            
+
             PerformIntegrityCheckonRecord();
         }
 
@@ -828,6 +830,10 @@ namespace Headlines.source
         /// </summary>
         public void CrewReactToAppointment()
         {
+            // react only once
+            if (GetProgramManagerRecord().reactionRecorded) return;
+            GetProgramManagerRecord().reactionRecorded = true;
+            
             int reaction;
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.applicantFolders)
             {

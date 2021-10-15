@@ -179,10 +179,7 @@ namespace Headlines
         {
             // Do not run Headlines outside of career
             if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER) return;
-            
-            // In case of a retirement
-            RemoveRetirees();
-            
+
             // Shameless hack.
             if (updateIndex < 10)
             {
@@ -2297,6 +2294,12 @@ namespace Headlines
         /// </summary>
         public void ProgramCheck()
         {
+            // In case of a retirement
+            RemoveRetirees();
+            
+            // In ase of a brand new PM
+            _programManager.CrewReactToAppointment();
+
             SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()), GetProgramComplexity());
             
             HeadlinesUtil.Report(1, $"Checking program control sk:{GetProbabilisticLevel(_programManager.ManagerProfile())}, df:{GetProgramComplexity()} - {outcome}","PM");
