@@ -1546,6 +1546,8 @@ namespace Headlines
 
         public void KerbalAppointProgramManager(PersonnelFile newManager)
         {
+            _programManager.PerformIntegrityCheckonRecord();
+            
             string initialName = _programManager.ManagerName();
             if (newManager != null)
             {
