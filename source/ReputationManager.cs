@@ -444,6 +444,9 @@ namespace Headlines.source
         /// <returns></returns>
         public double DaylightAtKSC()
         {
+            // Do not bog down high warp with this
+            if (TimeWarp.CurrentRateIndex > 5) return _daylight;
+            
             // Avoid the very expensive computation most of the time
             if (HeadlinesUtil.GetUT() - _lastDaylight < 360 && _daylight != 0)
             {
