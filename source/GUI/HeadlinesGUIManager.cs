@@ -340,6 +340,10 @@ namespace Headlines.source.GUI
                 DrawSection("ProgramPriority");
                 DrawSection("ProgramImpact");
             }
+            else
+            {
+                DrawSection("ProgramManagement");
+            }
             GUILayout.EndVertical();
         }
         

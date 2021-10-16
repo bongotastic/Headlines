@@ -131,7 +131,7 @@ namespace Headlines.source.GUI
 
         protected override string HeadString()
         {
-            return $"Program status: {_root.PrgMgr.ControlLevelQualitative()}";
+            return $"Program: {_root.PrgMgr.ControlLevelQualitative()}";
         }
 
         protected override void DrawCompact()
@@ -570,6 +570,14 @@ namespace Headlines.source.GUI
                 {
                     RepMgr.CallMediaDebrief();
 
+                }
+
+                if (Funding.Instance.Funds > 1000)
+                {
+                    if (GUILayout.Button("Extend live event (√1K)"))
+                    {
+                        storyEngine.ExtendLiveEvent();
+                    }
                 }
             }
         }

@@ -104,7 +104,6 @@ namespace Headlines.source
         {
             foreach (Contract contract in ContractSystem.Instance.GetCurrentContracts<Contract>())
             {
-                HeadlinesUtil.Report(1, $"Trying {contract.Title} == {title}");
                 if (contract.Title == title) return contract;
             }
             
@@ -319,7 +318,6 @@ namespace Headlines.source
             // LOW Profile mode cause a cancellation of credibility unless allowed through
             if (currentMode == MediaRelationMode.LOWPROFILE)
             {
-                HeadlinesUtil.Report(1, $"LOW PROFILE with {credibilityGainAllowed} bypasses.");
                 if (credibilityGainAllowed == 0)
                 {
                     IgnoreLastCredibilityChange();
@@ -327,7 +325,6 @@ namespace Headlines.source
                 }
                 else
                 {
-                    HeadlinesUtil.Report(1, $"And letting it through.");
                     credibilityGainAllowed = Math.Max(0, credibilityGainAllowed - 1);
                 }
                 
@@ -527,7 +524,7 @@ namespace Headlines.source
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
             announcedSuccess = false;
             // Set end time to 48h later
-            airTimeEnds = HeadlinesUtil.GetUT() + (48*3600);
+            airTimeEnds = HeadlinesUtil.GetUT() + (4*24*3600);
             if (KACWrapper.APIReady)
             {
                 airTimeEndAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Live event ends", airTimeEnds);
@@ -655,6 +652,14 @@ namespace Headlines.source
             }
 
             return Math.Max(wager, 1f);
+        }
+
+        /// <summary>
+        /// Add 10 days to a live event
+        /// </summary>
+        public void ExtendLiveEvent()
+        {
+            airTimeEnds += 3600 * 24 * 10;
         }
         
         #endregion
