@@ -178,7 +178,6 @@ namespace Headlines.source.Emissions
         /// <returns>expanded text for this label</returns>
         private string ResolveLabel(string label)
         {
-            HeadlinesUtil.Report(1, $"Generating label {label} from emission {nodeName}");
             _recursionDepth += 1;
             
             string outputText = $"[{label}]";

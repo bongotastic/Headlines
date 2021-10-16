@@ -10,6 +10,7 @@ using KerbalConstructionTime;
 using Renamer;
 using Headlines.source;
 using Headlines.source.Emissions;
+using KSP.IO;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -179,10 +180,7 @@ namespace Headlines
         {
             // Do not run Headlines outside of career
             if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER) return;
-            
-            // In case of a retirement
-            RemoveRetirees();
-            
+
             // Shameless hack.
             if (updateIndex < 10)
             {
@@ -309,7 +307,6 @@ namespace Headlines
             _liveProcesses.Clear();
             _hmmScheduler.Clear();
             
-            Debug("Loading HEADLINESFEED");
             ConfigNode hlNode = node.GetNode("HEADLINESFEED");
             if (hlNode != null)
             {
@@ -319,40 +316,17 @@ namespace Headlines
                 }
             }
             
-            Debug("Loading REPUTATIONMANAGER");
             foreach (ConfigNode rmNode in node.GetNodes("REPUTATIONMANAGER"))
             {
                 _reputationManager.FromConfigNode(rmNode);
             }
-            /*
-            if (needUpgrade)
-            {
-                HeadlinesUtil.Report(1, "REPUTATIONMANAGER not found");
-                
-                // TODO backward compatibility from 0.3 stuff to delete some day
-                if (mediaSpotlight)
-                {
-                    _reputationManager.LaunchCampaign(HeadlinesUtil.GetUT());
-                    mediaSpotlight = false;
-                }
-                _reputationManager.ResetHype(programHype);
-                _reputationManager.SetScore(headlinesScore);
-                _reputationManager.SetlastScoreTimeStamp(lastScoreTimestamp);
-                _reputationManager.SetLastKnownCredibility(programLastKnownReputation);
-                _reputationManager.SetHighestReputation(programHighestValuation);
-                
-            }*/
-            
-            
-            Debug("Loading PROGRAMMANAGER");
+
             ConfigNode pmNode = node.GetNode("PROGRAMMANAGER");
             if (pmNode != null)
             {
-                Debug("Node found");
                 _programManager.FromConfigNode(pmNode);
             }
-
-            Debug("Loading HIDDENMODELS");
+            
             ConfigNode hmNode = node.GetNode("HIDDENMODELS");
             if (hmNode != null)
             {
@@ -386,7 +360,6 @@ namespace Headlines
                 }
             }
             
-            Debug("Loading VISITINGSCHOLAR");
             ConfigNode vsNode = node.GetNode("VISITINGSCHOLAR");
             if (vsNode != null)
             {
@@ -957,9 +930,6 @@ namespace Headlines
                         message = $"{kerbalFile.DisplayName()} earns their pay at the R&D complex.";
                         notification_level--;
                         break;
-                    default:
-                        Debug( $"This should never happen {impactType}");
-                        break;
                 }
             }
 
@@ -1023,9 +993,6 @@ namespace Headlines
                         kerbalFile.influence += deltaVAB;
                         message = $"{kerbalFile.DisplayName()} earns their pay at the VAB.";
                         notification_level--;
-                        break;
-                    default:
-                        Debug( $"This should never happen {impactType}");
                         break;
                 }
             }
@@ -1137,8 +1104,6 @@ namespace Headlines
                     KerbalResignation(personnelFile, emitData);
                     return;
             }
-
-            Debug( $"{personnelFile.DisplayName()}'s discontent is {personnelFile.GetDiscontent()}.");
         }
 
         /// <summary>
@@ -1546,6 +1511,8 @@ namespace Headlines
 
         public void KerbalAppointProgramManager(PersonnelFile newManager)
         {
+            _programManager.PerformIntegrityCheckonRecord();
+            
             string initialName = _programManager.ManagerName();
             if (newManager != null)
             {
@@ -1597,7 +1564,6 @@ namespace Headlines
         /// <param name="registeredStateIdentity">The identifier as registered in the scheduler</param>
         private void InitializeHMM(string registeredStateIdentity, double timestamp = 0, string kerbalName = "")
         {
-            Debug($"Initializing {registeredStateIdentity} for '{kerbalName}'");
             string templateStateIdentity = registeredStateIdentity;
 
             // Split template and kerbal parts when initialized from a save node
@@ -1607,7 +1573,6 @@ namespace Headlines
                 templateStateIdentity = registeredStateIdentity.Substring(splitter + 1);
                 kerbalName = registeredStateIdentity.Substring(0, splitter);
             }
-            Debug( $"Initializing {templateStateIdentity} for {kerbalName}");
 
             HiddenState newState = new HiddenState(templateStateIdentity, kerbalName);
 
@@ -1716,7 +1681,6 @@ namespace Headlines
         /// <param name="registeredStateIdentity">The identifier for this HMM</param>
         private void RemoveHMM(string registeredStateIdentity)
         {
-            Debug( $"Removing HMM {registeredStateIdentity}", "HMM");
             if (_hmmScheduler.ContainsKey(registeredStateIdentity)) _hmmScheduler.Remove(registeredStateIdentity);
             if (_liveProcesses.ContainsKey(registeredStateIdentity)) _liveProcesses.Remove(registeredStateIdentity);
         }
@@ -1728,7 +1692,6 @@ namespace Headlines
         /// <param name="kerbalName">a unique name</param>
         private void RemoveKerbalHMM(string kerbalName)
         {
-            Debug( $"Removing HMM for {kerbalName}", "HMM");
             List<string> choppingBlock = new List<string>();
             foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
             {
@@ -1836,14 +1799,35 @@ namespace Headlines
         {
             _nextUpdate = HeadlinesUtil.GetUT();
 
+            List<string> missingCrew = new List<string>();
+
             double minVal = 60;
             foreach (KeyValuePair<string, double> kvp in _hmmScheduler)
             {
                 if (minVal == 60) minVal = kvp.Value;
                 else
                 {
+                    if (kvp.Value < _nextUpdate)
+                    {
+                        Debug($"HMM {kvp.Key} failed.", "HMM");
+                        
+                        // Should be deleted?
+                        HiddenState hmm = _liveProcesses[kvp.Key];
+                        if (hmm.kerbalName != "" && _peopleManager.GetFile(hmm.kerbalName) == null)
+                        {
+                            missingCrew.Add(hmm.kerbalName);
+                        }
+                        
+                        ReScheduleHMM(kvp.Key, hmm.period);
+
+                    }
                     if (kvp.Value < minVal) minVal = kvp.Value;
                 }
+            }
+
+            foreach (string name in missingCrew)
+            {
+                RemoveKerbalHMM(name);
             }
 
             _nextUpdate = minVal;
@@ -1866,7 +1850,6 @@ namespace Headlines
             }
 
             _hmmScheduler[registeredStateIdentity] = HeadlinesUtil.GetUT() + deltaTime;
-            Debug( $"Rescheduling HMM {registeredStateIdentity} to +{deltaTime}", "HMM");
 
             // Punt injury inactivation into the future
             if (registeredStateIdentity.Contains("kerbal_injured"))
@@ -1920,7 +1903,6 @@ namespace Headlines
                 // Check for validity as it *may* have been removed recently
                 if (_liveProcesses.ContainsKey(registeredStateName) == false)
                 {
-                    Debug($"{registeredStateName} scheduled, but doesn't exist");
                     continue;
                 }
                 
@@ -1975,7 +1957,6 @@ namespace Headlines
                 
                 // HMM transition determination
                 nextTransitionState = _liveProcesses[registeredStateName].Transition();
-                Debug( $"HMM {registeredStateName} transitions to {nextTransitionState}", "HMM");
 
                 if (nextTransitionState != _liveProcesses[registeredStateName].TemplateStateName())
                 {
@@ -2008,8 +1989,6 @@ namespace Headlines
         /// <param name="eventName"></param>
         public void EmitEvent(string eventName)
         {
-            Debug( $"[Emission] {eventName} at time {KSPUtil.PrintDate(GetUT(), true, false)}");
-
             //Emissions emitData = new Emissions(eventName);
 
             switch (eventName)
@@ -2295,10 +2274,14 @@ namespace Headlines
         /// </summary>
         public void ProgramCheck()
         {
+            // In case of a retirement
+            RemoveRetirees();
+            
+            // In ase of a brand new PM
+            _programManager.CrewReactToAppointment();
+
             SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()), GetProgramComplexity());
             
-            HeadlinesUtil.Report(1, $"Checking program control sk:{GetProbabilisticLevel(_programManager.ManagerProfile())}, df:{GetProgramComplexity()} - {outcome}","PM");
-
             if (outcome == SkillCheckOutcome.CRITICAL & _programManager.ControlLevel() != ProgramControlLevel.HIGH)
             {
                 NewsStory ns = new NewsStory(HeadlineScope.FEATURE, "KSC in high-gear");
@@ -2369,10 +2352,6 @@ namespace Headlines
             {
                 HeadlinesUtil.Report(2, "New Applicant to review");
                 TimeWarp.SetRate(0,false);
-            }
-            else
-            {
-                HeadlinesUtil.Report(1, $"New applicant {pf.DisplayName()} quietly added.");
             }
         }
 
@@ -2659,10 +2638,6 @@ namespace Headlines
                 headlines = nq;
                 Debug($"News Feed culled to {headlines.Count} elements","News Feed");
             }
-            else
-            {
-                Debug($"News Feed at {headlines.Count} elements","News Feed");
-            }
         }
 
         public int GetNumberNewsAbout(string crewName)
@@ -2841,10 +2816,10 @@ namespace Headlines
             if (_reputationManager.currentMode == MediaRelationMode.LIVE & _reputationManager.airTimeEnds < HeadlinesUtil.GetUT())
             {
                 double credibilityAdjustment = _reputationManager.EndLIVE();
-                HeadlinesUtil.Report(2, $"Coming off live with a credibility loss of {credibilityAdjustment}");
                 NewsStory ns = new NewsStory(HeadlineScope.FEATURE);
                 if (credibilityAdjustment < 0)
                 {
+                    HeadlinesUtil.Report(2, $"Coming off live with a credibility loss of {credibilityAdjustment}");
                     ns.AddToStory($"The media crews are leaving disappointed. (Rep: {Math.Round(credibilityAdjustment,2)})");
                     ns.headline = "Media debrief: failure";
                 }
@@ -2965,6 +2940,20 @@ namespace Headlines
                 NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "PM retires", message);
                 FileHeadline(ns);
             }
+        }
+
+        /// <summary>
+        /// Add 10 days to a live event, against cash and diminishing hype.
+        /// </summary>
+        public void ExtendLiveEvent()
+        {
+            _reputationManager.ExtendLiveEvent();
+            RealityCheck();
+            AdjustFunds(-1 * _reputationManager.MediaCampaignCost(10));
+
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "Keep on watching!");
+            ns.AddToStory("The program asks the press to stay posted up to an additional 10 days.");
+            FileHeadline(ns);
         }
         
         #endregion

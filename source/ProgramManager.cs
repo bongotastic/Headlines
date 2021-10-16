@@ -32,6 +32,7 @@ namespace Headlines.source
         public double lastSeenRetirementDate = 0;
         public double remainingLaunches = 20;
         public double initialCredibility = 0;
+        public bool reactionRecorded = false;
 
         public ProgramManagerRecord(string _name = "", string _background = "Neutral", string _personality = "", double initialCred = 0)
         {
@@ -73,6 +74,7 @@ namespace Headlines.source
             output.AddValue("lastSeenRetirementDate" , lastSeenRetirementDate);
             output.AddValue("initialCredibility", initialCredibility);
             output.AddValue("remainingLaunches", remainingLaunches);
+            output.AddValue("reactionRecorded", reactionRecorded);
             
             return output;
         }
@@ -88,6 +90,7 @@ namespace Headlines.source
             HeadlinesUtil.SafeDouble("lastSeenRetirementDate", ref lastSeenRetirementDate, node);
             HeadlinesUtil.SafeDouble("remainingLaunches", ref remainingLaunches, node);
             HeadlinesUtil.SafeDouble("initialCredibility", ref initialCredibility, node);
+            HeadlinesUtil.SafeBool("reactionRecorded", ref reactionRecorded, node);
         }
     }
     
@@ -142,7 +145,6 @@ namespace Headlines.source
 
         public void FromConfigNode(ConfigNode node)
         {
-            KSPLog.print($"reading {node}");
             HeadlinesUtil.SafeString("managerKey", ref managerKey, node);
             if (node.HasValue("controlLevel"))
             {
@@ -311,7 +313,6 @@ namespace Headlines.source
 
             influenceRnD = RnD * _storyEngine.UpgradeIncrementRnD();
             _storyEngine.AdjustRnD(influenceRnD);
-            HeadlinesUtil.Report(1, $"VAB:{influenceVAB}, R&D:{influenceRnD}","PM");
         }
         
         #endregion
@@ -408,7 +409,6 @@ namespace Headlines.source
             {
                 PersonnelFile oldManager = _peopleManager.GetFile(managerKey);
                 oldManager.isProgramManager = false;
-                //oldManager.GetKSPData().rosterStatus = ProtoCrewMember.RosterStatus.Available;
             }
             
             managerKey = pmName;
@@ -417,7 +417,7 @@ namespace Headlines.source
             if (!GetProgramManagerRecord().isNPC)
             {
                 PersonnelFile newManager = _peopleManager.GetFile(managerKey);
-                //newManager.GetKSPData().rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
+                newManager.SetInactive(HeadlinesUtil.GetUT() + (3600*24*30));
             }
             
             // How was the program when they got there
@@ -432,7 +432,8 @@ namespace Headlines.source
                 GetProgramManagerRecord().remainingLaunches += (double)HeadlinesUtil.randomGenerator.Next(1, 7);
             }
             HeadlinesUtil.Report(1, $"Assigning {managerKey} as PM.");
-            CrewReactToAppointment();
+
+            PerformIntegrityCheckonRecord();
         }
 
         public void AssignProgramManager(PersonnelFile crew, double initialCred)
@@ -546,6 +547,10 @@ namespace Headlines.source
             return GetProgramManagerRecord().remainingLaunches;
         }
 
+        /// <summary>
+        /// Retrieves the data structure defined by managerkey. If there is no PM, it creates one.
+        /// </summary>
+        /// <returns>The PM record of the active PM.</returns>
         private ProgramManagerRecord GetProgramManagerRecord()
         {
             if (_record.Count == 0)
@@ -565,6 +570,9 @@ namespace Headlines.source
             
         }
 
+        /// <summary>
+        /// Seek the NPC program manager. If there are none, generate a new one.
+        /// </summary>
         public void RevertToDefaultProgramManager()
         {
             // Prevent being stuck with only one PM
@@ -576,6 +584,20 @@ namespace Headlines.source
             AssignProgramManager(GetDefaultProgramManagerRecord().name, _storyEngine._reputationManager.CurrentReputation());
         }
 
+        public bool CanBeAppointed(string name)
+        {
+            if (_record.ContainsKey(name))
+            {
+                if (_record[name].remainingLaunches <= 0) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Scan _record for the first and only isNPC PM.
+        /// </summary>
+        /// <returns></returns>
         private ProgramManagerRecord GetDefaultProgramManagerRecord()
         {
 
@@ -589,6 +611,9 @@ namespace Headlines.source
             return GetDefaultProgramManagerRecord();
         }
 
+        /// <summary>
+        /// Random generation of a non-staff PM and add it to _record.
+        /// </summary>
         private void GenerateDefaultProgramManager()
         {
             Random rnd = new Random();
@@ -611,7 +636,7 @@ namespace Headlines.source
         }
 
         /// <summary>
-        /// Except if it is the current PM
+        /// Removes the default PM unless they are appointed.
         /// </summary>
         public void RemoveDefaultProgramManager()
         {
@@ -633,6 +658,65 @@ namespace Headlines.source
             
             // Just in case that there is more than one
             if (found > 1) RemoveDefaultProgramManager();
+        }
+
+        // Ensures that there is only 1 default PM, and remove staff PM that no longer exists.
+        public void PerformIntegrityCheckonRecord()
+        {
+            List<string> NPCs = new List<string>();
+            List<string> delPMs = new List<string>();
+
+            foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
+            {
+                if (kvp.Value.isNPC)
+                {
+                    NPCs.Add(kvp.Key);
+                    if (kvp.Value.remainingLaunches <= 0)
+                    {
+                        delPMs.Add(kvp.Key);
+                    }
+                }
+                else
+                {
+                    // Check to see if valid still
+                    if (!_peopleManager.personnelFolders.ContainsKey(kvp.Key))
+                    {
+                        delPMs.Add(kvp.Key);
+                    }
+                }
+            }
+
+            if (NPCs.Count > 1)
+            {
+                if (GetProgramManagerRecord().isNPC)
+                {
+                    foreach (string pmName in NPCs)
+                    {
+                        if (pmName != managerKey)
+                        {
+                            _record.Remove(pmName);
+                        }
+                    }
+                }
+                else
+                {
+                    while (NPCs.Count > 1)
+                    {
+                        _record.Remove(NPCs[0]);
+                        NPCs.Remove(NPCs[0]);
+                    }
+                }
+            }
+            
+            foreach (string name in delPMs)
+            {
+                _record.Remove(name);
+            }
+
+            if (!_record.ContainsKey(managerKey))
+            {
+                RevertToDefaultProgramManager();
+            }
         }
 
         /// <summary>
@@ -744,6 +828,10 @@ namespace Headlines.source
         /// </summary>
         public void CrewReactToAppointment()
         {
+            // react only once
+            if (GetProgramManagerRecord().reactionRecorded) return;
+            GetProgramManagerRecord().reactionRecorded = true;
+            
             int reaction;
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.applicantFolders)
             {

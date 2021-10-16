@@ -131,7 +131,7 @@ namespace Headlines.source.GUI
 
         protected override string HeadString()
         {
-            return $"Program status: {_root.PrgMgr.ControlLevelQualitative()}";
+            return $"Program: {_root.PrgMgr.ControlLevelQualitative()}";
         }
 
         protected override void DrawCompact()
@@ -235,7 +235,14 @@ namespace Headlines.source.GUI
             // Burnout
             if (PrgMgr.ManagerRemainingLaunches() < 3)
             {
-                WriteBullet("May leave after the next launch.", BulletEmote.WARNING);
+                if (PrgMgr.ManagerRemainingLaunches() < 0)
+                {
+                    WriteBullet("Is stepping down in the next few days.", BulletEmote.WARNING);
+                }
+                else
+                {
+                    WriteBullet("Is talking about retiring at some point.");
+                }
             }
             else
             {
@@ -410,7 +417,7 @@ namespace Headlines.source.GUI
         {
             hasCompact = false;
             hasExtended = true;
-            hasHelp = false;
+            hasHelp = true;
 
             _state = UIBoxState.EXTENDED;
         }
@@ -457,7 +464,18 @@ namespace Headlines.source.GUI
         
         protected override void DrawHelp()
         {
-            
+            switch (RepMgr.currentMode)
+            {
+                case MediaRelationMode.LOWPROFILE:
+                    DrawLowProfileAnalysis();
+                    break;
+                case MediaRelationMode.CAMPAIGN:
+                    DrawCampaignAnalysis();
+                    break;
+                case MediaRelationMode.LIVE:
+                    DrawLiveAnalysis();
+                    break;
+            }
         }
         
         public void DrawPressGalleryLowProfile()
@@ -553,6 +571,14 @@ namespace Headlines.source.GUI
                     RepMgr.CallMediaDebrief();
 
                 }
+
+                if (Funding.Instance.Funds > 1000)
+                {
+                    if (GUILayout.Button("Extend live event (√1K)"))
+                    {
+                        storyEngine.ExtendLiveEvent();
+                    }
+                }
             }
         }
 
@@ -573,6 +599,24 @@ namespace Headlines.source.GUI
             GUILayout.BeginHorizontal();
             GUILayout.Toggle(contract.ReputationCompletion <= RepMgr.Hype(), $"   {contract.Title} ({contract.ReputationCompletion})", GUILayout.Width(sectionWidth));
             GUILayout.EndHorizontal();
+        }
+
+        public void DrawLowProfileAnalysis()
+        {
+            if (RepMgr.mediaContracts.Count != 0)
+            {
+                WriteBullet("Are you sure that your contract will complete within the 48h of live event?");
+            }
+        }
+        
+        public void DrawCampaignAnalysis()
+        {
+            WriteBullet("All rep gains turn to hype during a campaign.");
+        }
+        
+        public void DrawLiveAnalysis()
+        {
+            WriteBullet($"All rep gains smaller than {RepMgr.Hype()} are fully rewarded without affecting hype.");
         }
     }
     
@@ -998,7 +1042,7 @@ namespace Headlines.source.GUI
             {
                 if (PrgMgr.ManagerName() != focusCrew.UniqueName())
                 {
-                    if (focusCrew.Effectiveness(deterministic: true) > PrgMgr.ManagerProfile(deterministic:true))
+                    if (focusCrew.Effectiveness(deterministic: true) >= PrgMgr.ManagerProfile(deterministic:true) && PrgMgr.CanBeAppointed(focusCrew.UniqueName()))
                     {
                         if (GUILayout.Button("Promote to Program Manager", FullWidth()))
                         {
