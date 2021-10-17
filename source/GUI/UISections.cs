@@ -103,7 +103,7 @@ namespace Headlines.source.GUI
             }
 
             // Expected decay in 12 months of inaction
-            double meanDecay = Math.Pow(0.933, 365 / (0.8 * storyEngine.GetProcess("reputation_decay").period * storyEngine.attentionSpanFactor));
+            double meanDecay = Math.Pow(0.933, 365 / (1.25 * storyEngine.GetProcess("reputation_decay").period * storyEngine.attentionSpanFactor));
             WriteBullet($"Projected drop in reputation in 1 year: {Math.Round( 100*(1 - meanDecay),1)}%");
 
             if (RepMgr.OverRating() > 0.07)
