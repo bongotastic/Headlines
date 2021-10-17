@@ -75,7 +75,7 @@ namespace Headlines.source.GUI
             GUILayout.BeginVertical();
             if (RepMgr.currentMode == MediaRelationMode.LOWPROFILE)
             {
-                WriteBullet($"You maximum credibility gain is {Math.Round(RepMgr.Hype(),MidpointRounding.AwayFromZero)}. Excess is converter to new hype.");
+                WriteBullet($"You maximum credibility gain is {Math.Round(RepMgr.Hype(),MidpointRounding.AwayFromZero)}. Excess is converted to new hype.");
             }
             else if (RepMgr.currentMode == MediaRelationMode.CAMPAIGN)
             {
@@ -97,7 +97,7 @@ namespace Headlines.source.GUI
             {
                 WriteBullet($"Your program is seen to be at its peak.", BulletEmote.THUMBUP);
             }
-            else
+            else if (RepMgr.Peak() >= 200)
             {
                 WriteBullet($"Your program had better days and may struggle to attract top-candidates.", BulletEmote.THUMBDOWN);
             }
@@ -390,7 +390,7 @@ namespace Headlines.source.GUI
         {
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"Capital Funding: {storyEngine.GUIFundraised()/1000}K", GUILayout.Width(sectionWidth/2));
             GUILayout.Label($"Science Data   : {storyEngine.GUIVisitingScience()}", GUILayout.Width(sectionWidth/2));
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
@@ -607,15 +607,38 @@ namespace Headlines.source.GUI
 
         public void DrawLowProfileAnalysis()
         {
+            GUILayout.BeginVertical();
             if (RepMgr.mediaContracts.Count != 0)
             {
-                WriteBullet("Are you sure that your contract will complete within the 48h of live event?");
+                WriteBullet("Are you sure that your contract will complete within the 4 days of going live?");
             }
+
+            int nAppearance = 0;
+            double expectedEarnings = 0;
+            storyEngine.ExpectedCampaignEarnings(ref nAppearance, ref expectedEarnings, _root.mediaInvitationDelay*24*3600 + HeadlinesUtil.GetUT());
+            double var = expectedEarnings / 2;
+            if (nAppearance != 0)
+            {
+                WriteBullet($" Expect {Math.Round(expectedEarnings - var, MidpointRounding.AwayFromZero)}-{Math.Round(expectedEarnings + var, MidpointRounding.AwayFromZero)} hype over {nAppearance} media appearance(s).");
+            }
+            GUILayout.EndVertical();
+
         }
         
         public void DrawCampaignAnalysis()
         {
+            GUILayout.BeginVertical();
             WriteBullet("All rep gains turn to hype during a campaign.");
+            
+            int nAppearance = 0;
+            double expectedEarnings = 0;
+            storyEngine.ExpectedCampaignEarnings(ref nAppearance, ref expectedEarnings);
+            double var = expectedEarnings / 2;
+            if (nAppearance != 0)
+            {
+                WriteBullet($" Expect {Math.Round(expectedEarnings - var, MidpointRounding.AwayFromZero)}-{Math.Round(expectedEarnings + var, MidpointRounding.AwayFromZero)} hype over {nAppearance} media appearance(s).");
+            }
+            GUILayout.EndVertical();
         }
         
         public void DrawLiveAnalysis()

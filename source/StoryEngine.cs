@@ -1471,13 +1471,23 @@ namespace Headlines
             double stubbornFactor = personnelFile.HasAttribute("stubborn") ? 1.5 : 1;
             
             string message = $"{personnelFile.DisplayName()} is told to {personnelFile.kerbalTask} ";
-            if (storytellerRand.NextDouble() < 0.5 * stubbornFactor)
+
+            bool justDoingMyJob = false;
+            if (personnelFile.Specialty() == "Pilot" && 
+                _reputationManager.currentMode == MediaRelationMode.CAMPAIGN &&
+                _reputationManager.CampaignHype() < _reputationManager.GetMediaEventWager()
+                )
+            {
+                message += "and will keep on going ";
+                justDoingMyJob = true;
+            }
+            else if (storytellerRand.NextDouble() < 0.5 * stubbornFactor)
             {
                 message += "one last time ";
                 personnelFile.coercedTask = false;
             }
 
-            if (storytellerRand.NextDouble() < 0.20 * stubbornFactor)
+            if (!justDoingMyJob && storytellerRand.NextDouble() < 0.20 * stubbornFactor)
             {
                 message += "and isn't happy";
                 personnelFile.AdjustDiscontent(1);
@@ -2862,7 +2872,7 @@ namespace Headlines
         }
 
         /// <summary>
-        /// Determines whether crew on staff are protecting against decay.
+        /// Determines whether crew on staff are protecting against decay. Pilots are at a disadvantage (-1) in this case.
         /// </summary>
         /// <returns></returns>
         public bool KerbalProtectReputationDecay()
@@ -2877,7 +2887,7 @@ namespace Headlines
                 if (kvp.Value.IsInactive() || kvp.Value.isProgramManager) continue;
                 if (kvp.Value.kerbalTask != "media_blitz") continue;
 
-                outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true));
+                outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true)-1);
                 if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
             }
 
@@ -2954,6 +2964,58 @@ namespace Headlines
             NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "Keep on watching!");
             ns.AddToStory("The program asks the press to stay posted up to an additional 10 days.");
             FileHeadline(ns);
+        }
+        
+        /// <summary>
+        /// Compute the number of guaranteed appearances, and their expected earnings. 
+        /// </summary>
+        /// <param name="nAppearance"></param>
+        /// <param name="expectedHype"></param>
+        public void ExpectedCampaignEarnings(ref int nAppearance, ref double expectedHype, double deadline = -1)
+        {
+            nAppearance = 0;
+            expectedHype = 0;
+            
+            if (deadline == -1)
+            {
+                deadline = _reputationManager.airTimeEnds;
+            }
+
+            PersonnelFile crew;
+            int skill = 0;
+            double oneEarning = 0;
+            double nEvents = 0;
+            double nAppDouble = 0;
+            foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
+            {
+                
+                if (kvp.Value.RegisteredName().Contains("role_"))
+                {
+                    crew = _peopleManager.GetFile(kvp.Value.kerbalName);
+                    if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN && crew.coercedTask && crew.kerbalTask == "media_blitz")
+                    {
+                        if (_hmmScheduler[kvp.Key] <= deadline)
+                        {
+                            skill = crew.Effectiveness(deterministic: true);
+                            oneEarning = 2 * skill * HeadlinesUtil.Pvalue(skill);
+                            nEvents = 1 + (deadline - _hmmScheduler[kvp.Key])/ (2 * kvp.Value.period*24*3600);
+                            expectedHype += oneEarning * nEvents;
+                            nAppDouble += nEvents;
+                        }
+                    }
+                    else if (_reputationManager.currentMode == MediaRelationMode.LOWPROFILE &&
+                             crew.Specialty() == "Pilot")
+                    {
+                        skill = crew.Effectiveness(deterministic: true);
+                        oneEarning = 2 * skill * HeadlinesUtil.Pvalue(skill);
+                        nEvents = 1 + (deadline - HeadlinesUtil.GetUT())/ (2 * kvp.Value.period*24*3600);
+                        expectedHype += oneEarning * nEvents;
+                        nAppDouble += nEvents;
+                    }
+                }
+            }
+
+            nAppearance = (int)Math.Round(nAppDouble, MidpointRounding.AwayFromZero);
         }
         
         #endregion

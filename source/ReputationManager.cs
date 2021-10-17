@@ -661,7 +661,7 @@ namespace Headlines.source
         {
             airTimeEnds += 3600 * 24 * 10;
         }
-        
+
         #endregion
 
         #endregion

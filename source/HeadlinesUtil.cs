@@ -125,5 +125,27 @@ namespace Headlines.source
                 dataHolder = float.Parse(cfg.GetValue(stringName));
             }
         }
+
+        public static double Pvalue(int skillLevel)
+        {
+            switch (skillLevel)
+            {
+                case 0:
+                    return 0;
+                case 1:
+                    return 0.0046;
+                case 2:
+                    return 0.095;
+                case 3:
+                    return 0.375;
+                case 4:
+                    return 0.74;
+                case 5:
+                    return 0.954;
+                default:
+                    return 1.0;
+                    
+            }
+        }
     }
 }
