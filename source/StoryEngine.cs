@@ -1475,8 +1475,8 @@ namespace Headlines
             bool justDoingMyJob = false;
             if (personnelFile.Specialty() == "Pilot" && 
                 _reputationManager.currentMode == MediaRelationMode.CAMPAIGN &&
-                _reputationManager.CampaignHype() < _reputationManager.GetMediaEventWager()
-                )
+                _reputationManager.CampaignHype() < _reputationManager.GetMediaEventWager() &&
+                personnelFile.personality != "stubborn")
             {
                 message += "and will keep on going ";
                 justDoingMyJob = true;
