@@ -250,7 +250,7 @@ namespace Headlines.source.GUI
             }
 
             double initCred = PrgMgr.ManagerInitialCredibility();
-            if (initCred / RepMgr.CurrentReputation() <= 0.8)
+            if (RepMgr.CurrentReputation() / initCred <= 0.8)
             {
                 WriteBullet("Has seen better days and is out of touch a bit.", BulletEmote.THUMBDOWN);
             }
@@ -344,6 +344,10 @@ namespace Headlines.source.GUI
             {
                 WriteBullet("Pilots are training, scouting, fundraising.");
                 WriteBullet("Non-pilot studying, mentoring, attempting legacy-building.");
+            }
+            else
+            {
+                WriteBullet("Avoiding to micromanage crew is best for their morale.");
             }
             
             GUILayout.EndVertical();
@@ -574,7 +578,7 @@ namespace Headlines.source.GUI
 
                 if (Funding.Instance.Funds > 1000)
                 {
-                    if (GUILayout.Button("Extend live event (√1K)"))
+                    if (GUILayout.Button("Extend live event (√ 1000)"))
                     {
                         storyEngine.ExtendLiveEvent();
                     }
