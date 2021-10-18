@@ -12,6 +12,12 @@ namespace Headlines.source
         /// General purpose random number generator
         /// </summary>
         public static System.Random randomGenerator = new System.Random();
+
+        /// <summary>
+        /// Time elements
+        /// </summary>
+        public static double OneDay = 3600 * 24;
+        public static double OneYear = OneDay * 365;
         
         public static int Threed6()
         {

@@ -30,9 +30,10 @@ namespace Headlines.source
         public double managerSkill;
         public bool isNPC = true;
         public double lastSeenRetirementDate = 0;
-        public double remainingLaunches = 20;
+        public double remainingLaunches = 30;
         public double initialCredibility = 0;
         public bool reactionRecorded = false;
+        public double timeOfAppointment = 0;
 
         public ProgramManagerRecord(string _name = "", string _background = "Neutral", string _personality = "", double initialCred = 0)
         {
@@ -75,6 +76,7 @@ namespace Headlines.source
             output.AddValue("initialCredibility", initialCredibility);
             output.AddValue("remainingLaunches", remainingLaunches);
             output.AddValue("reactionRecorded", reactionRecorded);
+            output.AddValue("timeOfAppointment", timeOfAppointment);
             
             return output;
         }
@@ -91,6 +93,13 @@ namespace Headlines.source
             HeadlinesUtil.SafeDouble("remainingLaunches", ref remainingLaunches, node);
             HeadlinesUtil.SafeDouble("initialCredibility", ref initialCredibility, node);
             HeadlinesUtil.SafeBool("reactionRecorded", ref reactionRecorded, node);
+            HeadlinesUtil.SafeDouble("timeOfAppointment", ref timeOfAppointment, node);
+            
+            // compatibility <-0.8.2
+            if (timeOfAppointment == 0)
+            {
+                timeOfAppointment = HeadlinesUtil.GetUT();
+            }
         }
     }
     
@@ -545,6 +554,12 @@ namespace Headlines.source
         public double ManagerRemainingLaunches()
         {
             return GetProgramManagerRecord().remainingLaunches;
+        }
+        
+        public bool ManagerIsTired()
+        {
+            return HeadlinesUtil.randomGenerator.NextDouble() <
+                    (HeadlinesUtil.GetUT() - GetProgramManagerRecord().timeOfAppointment) / (HeadlinesUtil.OneYear * 3);
         }
 
         /// <summary>

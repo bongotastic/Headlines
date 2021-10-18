@@ -655,8 +655,13 @@ namespace Headlines
             newLaunch.Clear();
             
             // Program manager burn-out 
-            // Campaigns are hard
-            double pmBurnout = _reputationManager.currentMode == MediaRelationMode.CAMPAIGN ? -2 : -1;
+            // Slowly happens over time
+            double pmBurnout = 0;
+            if (_programManager.ManagerIsTired())
+            {
+                // Campaigns are hard
+                pmBurnout = _reputationManager.currentMode == MediaRelationMode.CAMPAIGN ? -2 : -1;
+            }
             // Waning star effect
             if (_programManager.ManagerInitialCredibility() / _reputationManager.CurrentReputation() <= 0.8)
                 pmBurnout -= 1;
