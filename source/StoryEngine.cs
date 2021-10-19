@@ -514,6 +514,11 @@ namespace Headlines
             
             // Add to credibility
             _reputationManager.AdjustCredibility(newCrew.Effectiveness(deterministic:true));
+            
+            while (_peopleManager.applicantFolders.Count <= 1)
+            {
+                _peopleManager.GenerateRandomApplicant();
+            }
         }
 
         public void EventCrewKilled(EventReport data)
@@ -2371,12 +2376,18 @@ namespace Headlines
         }
 
         /// <summary>
-        /// Random select then delete of an applicant.
+        /// Random select then delete of an applicant. Never let the pool go under 2 kerbals. One isn't enough since the
+        /// player may decide to hire them, leaving the pool empty.
         /// </summary>
         /// <remarks>This probably should be split into two: select random applicant, delete applicant.</remarks>
         /// todo Split the two procedure into two methods.
         public void WithdrawRandomApplication()
         {
+            while (_peopleManager.applicantFolders.Count <= 1)
+            {
+                _peopleManager.GenerateRandomApplicant();
+            }
+            
             if (_peopleManager.applicantFolders.Count > 1)
             {
                 PersonnelFile dropOut = (PersonnelFile) null;

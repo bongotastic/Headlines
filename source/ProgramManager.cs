@@ -823,7 +823,7 @@ namespace Headlines.source
                 {
                     hmm.AdjustEmission("mentor_peer", 2f);
                     hmm.AdjustEmission("study_leave", 2f);
-                    hmm.AdjustEmission("scout_talents", 2f);
+                    hmm.AdjustEmission("scout_talent", 2f);
                     hmm.AdjustEmission("fundraise", 2f);
                     hmm.AdjustEmission("media_blitz", 0.2f);
                     if (controlLevel == ProgramControlLevel.HIGH)
