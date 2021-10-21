@@ -2270,10 +2270,10 @@ namespace Headlines
         /// <summary>
         /// Public reevaluation of the hype around a program versus its actual reputation, and a proportional correction.
         /// </summary>
-        public void RealityCheck(bool withStory = true)
+        public void RealityCheck(bool withStory = true, bool noProtection = false)
         {
             // Reality checks can be prevented during a campaign only
-            if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN && KerbalProtectReputationDecay())
+            if (!noProtection && _reputationManager.currentMode == MediaRelationMode.CAMPAIGN && KerbalProtectReputationDecay())
             {
                 return;
             }

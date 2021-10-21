@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using Contracts;
 using KSP.UI;
 using RP0;
@@ -550,6 +551,8 @@ namespace Headlines.source
             {
                 double credibilityLoss = Credibility() - mediaOpsTarget;
                 AdjustCredibility(credibilityLoss);
+                StoryEngine.Instance.RealityCheck(false, true);
+                StoryEngine.Instance.RealityCheck(false);
                 return credibilityLoss;
             }
             
