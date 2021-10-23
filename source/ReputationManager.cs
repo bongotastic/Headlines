@@ -32,6 +32,7 @@ namespace Headlines.source
         public double airTimeEnds = 0;
         private double mediaOpsTarget = 0;
         private double mediaInitialHype = 0;
+        private double mediaFreeLiveHype = 0;
         public List<Contract> mediaContracts = new List<Contract>();
         private List<string> _contractNames = new List<string>();
         private string airTimeOpenAlarm = "";
@@ -66,6 +67,7 @@ namespace Headlines.source
             HeadlinesUtil.SafeDouble("airTimeEnds", ref airTimeEnds, node);
             HeadlinesUtil.SafeDouble("mediaOpsTarget", ref mediaOpsTarget, node);
             HeadlinesUtil.SafeDouble("mediaInitialHype", ref mediaInitialHype, node);
+            HeadlinesUtil.SafeDouble("mediaFreeLiveHype", ref mediaFreeLiveHype, node);
             
             HeadlinesUtil.SafeDouble("_daylight", ref _daylight, node);
 
@@ -144,6 +146,7 @@ namespace Headlines.source
             output.AddValue("airTimeEnds", airTimeEnds);
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
             output.AddValue("mediaInitialHype", mediaInitialHype);
+            output.AddValue("mediaFreeLiveHype", mediaFreeLiveHype);
             
             output.AddValue("airTimeOpenAlarm", airTimeOpenAlarm);
             output.AddValue("airTimeCloseAlarm", airTimeCloseAlarm);
@@ -352,6 +355,10 @@ namespace Headlines.source
                 {
                     AdjustHype(-1*deltaReputation);
                 }
+                else
+                {
+                    mediaFreeLiveHype += deltaReputation;
+                }
             }
             else
             {
@@ -522,6 +529,7 @@ namespace Headlines.source
         {
             currentMode = MediaRelationMode.LIVE;
             mediaOpsTarget = Credibility() + GetMediaEventWager();
+            mediaFreeLiveHype = 0;
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
             announcedSuccess = false;
             // Set end time to 48h later
@@ -547,19 +555,28 @@ namespace Headlines.source
                 KACWrapper.KAC.DeleteAlarm(airTimeEndAlarm);
             }
             
+            double credibilityLoss = Credibility() - mediaOpsTarget;
+            
             if (!EventSuccess())
             {
-                double credibilityLoss = Credibility() - mediaOpsTarget;
                 AdjustCredibility(credibilityLoss);
                 StoryEngine.Instance.RealityCheck(false, true);
                 StoryEngine.Instance.RealityCheck(false);
                 return credibilityLoss;
             }
+            else
+            {
+                // Perform the conversion of free hype to hype loss (albeit delayed as hype can be used more than once in some cases)
+                AdjustHype(-1 * mediaFreeLiveHype);
+                
+                // Sucess is useful anyhow
+                AdjustHype(5);
+            }
             
             mediaContracts.Clear();
             
-            AdjustHype(5);
             announcedSuccess = false;
+            mediaFreeLiveHype = 0;
 
             airTimeEnds = HeadlinesUtil.GetUT() - 1;
 
