@@ -2195,7 +2195,6 @@ namespace Headlines
             }
 
             attentionSpanFactor *= power;
-            _reputationManager.AdjustHype(factor:power);
 
             // Clamp this factor within reasonable boundaries
             attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // min is 0.47
