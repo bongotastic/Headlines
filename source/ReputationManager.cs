@@ -287,7 +287,7 @@ namespace Headlines.source
                 if (scalar > 0) scalar *= 2;
                 if (factor > 1) factor = 1 + (1-factor)*2;
             }
-            
+
             programHype += scalar;
             programHype *= factor;
             programHype = Math.Max(0, programHype);
@@ -560,6 +560,10 @@ namespace Headlines.source
             if (!EventSuccess())
             {
                 AdjustCredibility(credibilityLoss);
+                
+                // partial rep gains degrade hype
+                AdjustHype(-1 * mediaFreeLiveHype);
+                
                 StoryEngine.Instance.RealityCheck(false, true);
                 StoryEngine.Instance.RealityCheck(false);
                 return credibilityLoss;
