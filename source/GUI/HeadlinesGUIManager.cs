@@ -200,6 +200,17 @@ namespace Headlines.source.GUI
                         _section[section.name]._state = (UIBoxState)int.Parse(section.value);
                     }
                 }
+                
+                // Window positions
+                float uiX = 200;
+                float uiY = 200;
+                HeadlinesUtil.SafeFloat("windowX", ref uiX, storyEngine.UIStates);
+                HeadlinesUtil.SafeFloat("windowY", ref uiY, storyEngine.UIStates);
+                if (uiX != 200 && uiY != 200)
+                {
+                    position.x = uiX;
+                    position.y = uiY;
+                }
             }
         }
 
@@ -210,6 +221,10 @@ namespace Headlines.source.GUI
             {
                 storyEngine.UIStates.AddValue(kvp.Key, (int)kvp.Value._state);
             }
+            
+            // window position
+            storyEngine.UIStates.AddValue("windowX", position.x);
+            storyEngine.UIStates.AddValue("windowY", position.y);
         }
         
         #endregion
