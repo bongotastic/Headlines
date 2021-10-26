@@ -601,7 +601,7 @@ namespace Headlines.source.GUI
         public void DrawPressGalleryContractItem(Contract contract)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Toggle(contract.ReputationCompletion <= RepMgr.Hype(), $"   {contract.Title} ({contract.ReputationCompletion})", GUILayout.Width(sectionWidth));
+            GUILayout.Toggle(contract.ReputationCompletion <= RepMgr.Hype(), $"   {contract.Title} ({RepMgr.TransformReputation(contract.ReputationCompletion)})", GUILayout.Width(sectionWidth));
             GUILayout.EndHorizontal();
         }
 
