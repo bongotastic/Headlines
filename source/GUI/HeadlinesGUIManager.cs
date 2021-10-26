@@ -16,6 +16,8 @@ namespace Headlines.source.GUI
     public class HeadlinesGUIManager : MonoBehaviour
     {
         #region declarations
+        
+        public static HeadlinesGUIManager Instance = null;
 
         internal StoryEngine storyEngine;
         internal ReputationManager RepMgr;
@@ -72,6 +74,8 @@ namespace Headlines.source.GUI
         
         protected void Awake()
         {
+            Instance = this;
+            
             try
             {
                 GameEvents.onGUIApplicationLauncherReady.Add(OnGuiAppLauncherReady);
@@ -81,13 +85,13 @@ namespace Headlines.source.GUI
                 Debug.LogError("[Headlines] failed to register UIHolder.OnGuiAppLauncherReady");
                 Debug.LogException(ex);
             }
+            position = new Rect(100f, 150f, 300f, 575f);
         }
         
         public void Start()
         {
             storyEngine = StoryEngine.Instance;
-            position = new Rect(100f, 150f, 300f, 575f);
-            
+
             _section.Add("ProgramCredibility", new UISectionProgramCredibility(this));
             _section.Add("ProgramManagement", new UISectionProgramManagement(this));
             _section.Add("ProgramPriority", new UISectionProgramPriority(this));
@@ -121,7 +125,12 @@ namespace Headlines.source.GUI
                 Debug.LogException(ex);
             }
         }
-        
+
+        protected void OnMouseUp()
+        {
+            WriteState();
+        }
+
         private void OnGuiAppLauncherReady()
         {
             if (stockButton == null && HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
@@ -201,7 +210,7 @@ namespace Headlines.source.GUI
                     }
                 }
                 
-                // Window positions
+                // Window position
                 float uiX = 200;
                 float uiY = 200;
                 HeadlinesUtil.SafeFloat("windowX", ref uiX, storyEngine.UIStates);

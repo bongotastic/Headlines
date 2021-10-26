@@ -313,7 +313,14 @@ namespace Headlines.source
         /// <param name="newHype"></param>
         public void ResetHype(double newHype = 0)
         {
-            programHype = newHype;
+            if (newHype == 0)
+            {
+                programHype = 0;
+            }
+            else
+            {
+                programHype = TransformReputation(newHype);
+            }
         }
         
         #endregion

@@ -10,6 +10,7 @@ using KerbalConstructionTime;
 using Renamer;
 using Headlines.source;
 using Headlines.source.Emissions;
+using Headlines.source.GUI;
 using KSP.IO;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -293,6 +294,10 @@ namespace Headlines
             node.AddNode(_reputationManager.AsConfigNode());
             node.AddNode(_programManager.AsConfigNode());
 
+            if (HeadlinesGUIManager.Instance != null)
+            {
+                HeadlinesGUIManager.Instance.WriteState();
+            }
             if (UIStates != null)
             {
                 node.AddNode("UIStates", UIStates);
