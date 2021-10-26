@@ -601,7 +601,7 @@ namespace Headlines.source
             {
                 return true;
             }
-            return Math.Round(Credibility(),0,MidpointRounding.AwayFromZero)  >= Math.Round(mediaOpsTarget,0,MidpointRounding.AwayFromZero);
+            return Math.Round(Credibility(), MidpointRounding.AwayFromZero)  >= Math.Round(mediaOpsTarget, MidpointRounding.AwayFromZero);
         }
 
         public double WageredCredibilityToGo()

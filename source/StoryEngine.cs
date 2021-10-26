@@ -2441,6 +2441,11 @@ namespace Headlines
             {
                 _reputationManager.FilePressRelease(ns);
             }
+
+            if (_reputationManager.mediaContracts.Contains(contract))
+            {
+                _reputationManager.mediaContracts.Remove(contract);
+            }
         }
 
         public void EventContractAccepted(Contract contract)
