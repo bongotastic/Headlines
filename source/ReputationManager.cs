@@ -287,9 +287,11 @@ namespace Headlines.source
                 if (scalar > 0) scalar *= 2;
                 if (factor > 1) factor = 1 + (1-factor)*2;
             }
+            
+            // turn factor to a scalar
+            scalar += (factor * programHype) - programHype;
 
-            programHype += scalar;
-            programHype *= factor;
+            programHype += TransformReputation(scalar, CurrentReputation());
             programHype = Math.Max(0, programHype);
             
             UpdatePeakReputation();
@@ -675,6 +677,9 @@ namespace Headlines.source
                 wager += contract.ReputationCompletion;
             }
 
+            // Non-linear transform
+            wager = (float)TransformReputation(wager, Credibility());
+
             return Math.Max(wager, 1f);
         }
 
@@ -710,6 +715,63 @@ namespace Headlines.source
         public void SetHighestReputation(double value)
         {
             highestReputation = value;
+        }
+
+        #endregion
+
+        #region KSP
+
+        /// <summary>
+        /// Emulate KSP's nonlinear reputation.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public double TransformReputation(double value, double fictionalAnchor = -1)
+        {
+            if (fictionalAnchor == -1)
+            {
+                fictionalAnchor = Credibility();
+            }
+            
+            int iterator = (int) Math.Abs(value);
+            double deltaUnit = 1 * Math.Sign(value);
+            double runningTally = 0.0;
+            double microBump = 0.0;
+            for (int index = 0; index <= iterator; ++index)
+            {
+                if (index != iterator)
+                {
+                    microBump = IncrementalReputation(deltaUnit, fictionalAnchor);
+                }
+                else
+                {
+                    double residual = Math.Abs(value) - (double)iterator;
+                    microBump = IncrementalReputation(deltaUnit * residual, fictionalAnchor);
+                }
+
+                runningTally += microBump;
+                fictionalAnchor += microBump;
+            }
+
+            return runningTally;
+        }
+
+        /// <summary>
+        ///  Accessory to the non-linear transformation.
+        /// </summary>
+        /// <param name="deltaRep"></param>
+        /// <returns></returns>
+        public double IncrementalReputation(double deltaRep, double anchor)
+        {
+            float interpolationPoint = (float)anchor / Reputation.RepRange;
+            if (deltaRep > 0.0)
+            {
+                return deltaRep * GameVariables.Instance.reputationAddition.Evaluate(interpolationPoint);
+            }
+            else
+            {
+                return deltaRep * GameVariables.Instance.reputationSubtraction.Evaluate(interpolationPoint);
+            }
         }
 
         #endregion

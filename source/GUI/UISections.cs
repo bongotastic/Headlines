@@ -591,7 +591,7 @@ namespace Headlines.source.GUI
             
             if (RepMgr.mediaContracts.Count == 0) return;
             
-            GUILayout.Box($"Pledged objectives: {RepMgr.GetMediaEventWager()} reputation");
+            GUILayout.Box($"Pledged objectives: {Math.Round(RepMgr.GetMediaEventWager(),1) } reputation");
             foreach (Contract contract in RepMgr.mediaContracts.OrderByDescending(c=>c.ReputationCompletion))
             {
                 DrawPressGalleryContractItem(contract);

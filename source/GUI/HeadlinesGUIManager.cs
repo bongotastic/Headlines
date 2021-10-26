@@ -64,6 +64,8 @@ namespace Headlines.source.GUI
         /// </summary>
         private Dictionary<string, UISection> _section = new Dictionary<string, UISection>();
         
+        private double  _debugRepDelta = 0;
+        
         #endregion
 
         #region Unity stuff
@@ -674,6 +676,19 @@ namespace Headlines.source.GUI
                             HeadlinesUtil.Report(1, $"{pc.ToString()}");
                         }
                     }
+                    
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("Simulate Rep change"))
+                    {
+                        HeadlinesUtil.Report(2, $"Once {_debugRepDelta}, now {RepMgr.TransformReputation(_debugRepDelta)}");
+                    }
+                    if (GUILayout.Button("Simulate hype change"))
+                    {
+                        HeadlinesUtil.Report(2, $"Once {_debugRepDelta}, now {RepMgr.TransformReputation(_debugRepDelta, RepMgr.CurrentReputation())}");
+                    }
+
+                    _debugRepDelta = double.Parse(GUILayout.TextField($"{_debugRepDelta}"));
+                    GUILayout.EndHorizontal();
 
                     GUIPad();
                     GUILayout.Box("Random processes");
