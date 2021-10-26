@@ -3035,6 +3035,9 @@ namespace Headlines
                 }
             }
 
+            // Non-linear transform
+            expectedHype = _reputationManager.TransformReputation(expectedHype, _reputationManager.CurrentReputation());
+
             nAppearance = (int)Math.Round(nAppDouble, MidpointRounding.AwayFromZero);
         }
         

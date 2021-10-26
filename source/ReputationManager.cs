@@ -278,7 +278,7 @@ namespace Headlines.source
         /// <param name="scalar"></param>
         /// <param name="factor"></param>
         /// <returns>the effective delta in hype</returns>
-        public double AdjustHype(double scalar = 0, double factor = 1)
+        public double AdjustHype(double scalar = 0, double factor = 1, bool noTransform = false)
         {
             double initHype = programHype;
             // Hype increases are doubled during a campaign
@@ -291,7 +291,15 @@ namespace Headlines.source
             // turn factor to a scalar
             scalar += (factor * programHype) - programHype;
 
-            programHype += TransformReputation(scalar, CurrentReputation());
+            if (noTransform)
+            {
+                programHype += scalar;
+            }
+            else
+            {
+                programHype += TransformReputation(scalar, CurrentReputation());
+            }
+            
             programHype = Math.Max(0, programHype);
             
             UpdatePeakReputation();
@@ -341,7 +349,7 @@ namespace Headlines.source
             {
                 double timetoLIVE = airTimeStarts - HeadlinesUtil.GetUT();
                 HeadlinesUtil.Report(2,$"NEWSFEED: Expect greater things in {KSPUtil.PrintDateDelta(timetoLIVE,false,false)} days. Hype +{newCredibility - lastKnownCredibility}");
-                AdjustHype(newCredibility - lastKnownCredibility);
+                AdjustHype(newCredibility - lastKnownCredibility, noTransform:true);
                 IgnoreLastCredibilityChange();
                 return;
             }
@@ -355,7 +363,7 @@ namespace Headlines.source
                 // Anything less than Hype() doesn't take away from Hype() when LIVE
                 if (currentMode != MediaRelationMode.LIVE)
                 {
-                    AdjustHype(-1*deltaReputation);
+                    AdjustHype(-1*deltaReputation, noTransform:true);
                 }
                 else
                 {
@@ -366,7 +374,8 @@ namespace Headlines.source
             {
                 double outstanding = deltaReputation - Hype();
                 KSPLog.print($"Excess rep:{outstanding}");
-                AdjustCredibility(-1 * outstanding, reason:TransactionReasons.None);
+                //AdjustCredibility(-1 * outstanding, reason:TransactionReasons.None);
+                Reputation.Instance.SetReputation(Reputation.CurrentRep - (float)outstanding, TransactionReasons.None);
                 ResetHype(outstanding);
                 if (currentMode == MediaRelationMode.LIVE & Credibility() >= mediaOpsTarget & !announcedSuccess)
                 {
@@ -564,7 +573,7 @@ namespace Headlines.source
                 AdjustCredibility(credibilityLoss);
                 
                 // partial rep gains degrade hype
-                AdjustHype(-1 * mediaFreeLiveHype);
+                AdjustHype(-1 * mediaFreeLiveHype, noTransform:true);
                 
                 StoryEngine.Instance.RealityCheck(false, true);
                 StoryEngine.Instance.RealityCheck(false);
