@@ -355,7 +355,7 @@ namespace Headlines.source
             }
             
             // During a campaign, legit credibility is converted to hype. 
-            if (currentMode == MediaRelationMode.CAMPAIGN)
+            if (currentMode == MediaRelationMode.CAMPAIGN && newCredibility - lastKnownCredibility > 0)
             {
                 double timetoLIVE = airTimeStarts - HeadlinesUtil.GetUT();
                 HeadlinesUtil.Report(2,$"NEWSFEED: Expect greater things in {KSPUtil.PrintDateDelta(timetoLIVE,false,false)} days. Hype +{newCredibility - lastKnownCredibility}");
@@ -636,9 +636,13 @@ namespace Headlines.source
         public void CancelMediaEvent()
         {
             double penalty = (Hype() - mediaInitialHype)/2;
-            AdjustHype(-1*penalty);
-            penalty /= 2;
-            AdjustCredibility(-1 * penalty);
+            if (penalty > 0)
+            {
+                AdjustHype(-1*penalty);
+                penalty /= 2;
+                AdjustCredibility(-1 * penalty);
+            }
+            
             currentMode = MediaRelationMode.LOWPROFILE;
 
             if (KACWrapper.APIReady)

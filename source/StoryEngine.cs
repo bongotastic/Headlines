@@ -2556,7 +2556,7 @@ namespace Headlines
             NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "High drama on TV");
             ns.AddToStory($"Dramatic tension for {FlightGlobals.ActiveVessel.name} is captured on live TV.");
             FileHeadline(ns);
-            _reputationManager.AdjustHype(_reputationManager.Hype()*0.2);
+            _reputationManager.AdjustHype(5);
         }
 
         public void VisibleShowOverUrban()
@@ -2565,7 +2565,7 @@ namespace Headlines
             NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "This is not a UFO!");
             ns.AddToStory($"Sightings of {FlightGlobals.ActiveVessel.name} over the city are captured on live TV.");
             FileHeadline(ns);
-            _reputationManager.AdjustHype(_reputationManager.Hype()*0.1);
+            _reputationManager.AdjustHype(5);
         }
 
         #endregion
