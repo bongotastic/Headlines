@@ -2458,7 +2458,7 @@ namespace Headlines
             if (contract.AutoAccept) return;
 
             NewsStory ns = new NewsStory(HeadlineScope.FEATURE, "Challenge Accepted!");
-            ns.AddToStory($"Multiple reports covering the pledge to complete {contract.Title} by {KSPUtil.PrintDate(contract.DateExpire, false, false)}.");
+            ns.AddToStory($"Multiple reports covering the pledge to complete {contract.Title} by {KSPUtil.PrintDate(contract.DateDeadline, false, false)}.");
             if (contract.FundsAdvance != 0)
             {
                 ns.AddToStory($" A sum of √{contract.FundsAdvance} was advanced to help in this commitment.");
