@@ -736,7 +736,7 @@ namespace Headlines.source.GUI
                     }
                     else UnityEngine.GUI.contentColor = Color.red;
                     
-                    GUILayout.Label($"{myContract.Title} (Cred: {Math.Round(transformedReward, 2) }, {ratioString}" , GUILayout.Width(sectionWidth-20));
+                    GUILayout.Label($"{myContract.Title} (Cred: {Math.Round(transformedReward, 2) }, {ratioString})" , GUILayout.Width(sectionWidth-20));
                     UnityEngine.GUI.contentColor = originalColor;
                     
                     GUILayout.EndHorizontal();

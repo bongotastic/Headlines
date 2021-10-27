@@ -67,7 +67,7 @@ namespace Headlines
         private double _assumedPeriod = 3600 * 24;
 
         // Prevent infinite recursion
-        private bool _scienceManipultation = false;
+        private bool _scienceManipulation = false;
 
         // Multiplier to the _assumedPeriod when it comes to HMM triggering
         [KSPField(isPersistant = true)] public double attentionSpanFactor = 1;
@@ -458,9 +458,9 @@ namespace Headlines
         private void EventScienceChanged(float newScience, TransactionReasons reason)
         {
             // Kills recursion
-            if (_scienceManipultation)
+            if (_scienceManipulation)
             {
-                _scienceManipultation = false;
+                _scienceManipulation = false;
                 return;
             }
             
@@ -475,7 +475,7 @@ namespace Headlines
                 {
                     visitingScienceTally += deltaScience;
 
-                    _scienceManipultation = true;
+                    _scienceManipulation = true;
                     ResearchAndDevelopment.Instance.CheatAddScience(deltaScience);
                     HeadlinesUtil.Report(3, $"Visiting scholar bonus: {deltaScience}", "Science");
                 }
@@ -1428,6 +1428,7 @@ namespace Headlines
             PersonnelFile newApplicant = _peopleManager.GenerateRandomApplicant(GetValuationLevel() + 2);
 
             NewsStory ns = new NewsStory(emitData);
+            ns.headline = $"Scouted a new {newApplicant.Specialty()}";
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             emitData.AddStoryElement("recruit_name", newApplicant.DisplayName());
             ns.AddToStory(emitData.GenerateStory());
