@@ -101,6 +101,9 @@ namespace Headlines.source
             {
                 shelvedAchievements.Add(new NewsStory(ShA));
             }
+            
+            //backward compatibility to 0.10 beta
+            if (CurrentReputation() > 1000) programHype = 950 - Credibility();
         }
 
         private Contract GetContractFromTitle(string title)

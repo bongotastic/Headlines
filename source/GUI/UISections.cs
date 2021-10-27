@@ -550,14 +550,6 @@ namespace Headlines.source.GUI
             GUILayout.BeginHorizontal();
             GUILayout.Label("Live for ", GUILayout.Width(100));
             GUILayout.Box($"{KSPUtil.PrintDateDeltaCompact(timeToLive, true, false)}", GUILayout.Width(135));
-            if (RepMgr.WageredCredibilityToGo() > 0)
-            {
-                GUILayout.Label($"  Cred. Target:{Math.Round(RepMgr.WageredCredibilityToGo(), MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
-            }
-            else
-            {
-                GUILayout.Label($"  Exceeded by:{Math.Round(RepMgr.WageredCredibilityToGo()*-1, MidpointRounding.AwayFromZero)}", GUILayout.Width(120));
-            }
             GUILayout.EndHorizontal();
             
             if (RepMgr.EventSuccess())
@@ -601,7 +593,7 @@ namespace Headlines.source.GUI
         public void DrawPressGalleryContractItem(Contract contract)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Toggle(contract.ReputationCompletion <= RepMgr.Hype(), $"   {contract.Title} ({RepMgr.TransformReputation(contract.ReputationCompletion)})", GUILayout.Width(sectionWidth));
+            GUILayout.Toggle(contract.ReputationCompletion <= RepMgr.Hype(), $"   {contract.Title} ({Math.Round(RepMgr.TransformReputation(contract.ReputationCompletion), 2) })", GUILayout.Width(sectionWidth));
             GUILayout.EndHorizontal();
         }
 
@@ -719,10 +711,12 @@ namespace Headlines.source.GUI
                             }
                         }
                     }
-                    
+
+                    double transformedReward = 0;
                     if (myContract.ReputationCompletion > 0)
                     {
-                        ratio = (float)storyEngine._reputationManager.Hype() / myContract.ReputationCompletion;
+                        transformedReward = RepMgr.TransformReputation(myContract.ReputationCompletion);
+                        ratio = (float)storyEngine._reputationManager.Hype() / (float)transformedReward;
                     }
                     else
                     {
@@ -742,7 +736,7 @@ namespace Headlines.source.GUI
                     }
                     else UnityEngine.GUI.contentColor = Color.red;
                     
-                    GUILayout.Label($"{myContract.Title} (Cred: {myContract.ReputationCompletion}, {ratioString}" , GUILayout.Width(sectionWidth-20));
+                    GUILayout.Label($"{myContract.Title} (Cred: {Math.Round(transformedReward, 2) }, {ratioString}" , GUILayout.Width(sectionWidth-20));
                     UnityEngine.GUI.contentColor = originalColor;
                     
                     GUILayout.EndHorizontal();
