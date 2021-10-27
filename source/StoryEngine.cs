@@ -98,6 +98,9 @@ namespace Headlines
 
         // sum of raised funds
         [KSPField(isPersistant = true)] public double fundraisingTally = 0;
+        
+        // Cool off on fundraising
+        [KSPField(isPersistant = true)] public double fundraisingLastTime = 0;
 
         // Visiting scholars
         public List<double> visitingScholarEndTimes = new List<double>();
@@ -1341,8 +1344,16 @@ namespace Headlines
             ns = new NewsStory(emitData);
             ns.headline = "Capital funding raised";
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
+            
+            // cool off is linear over 4 months
+            double timeElapseSinceLast = HeadlinesUtil.GetUT() - fundraisingLastTime;
+            timeElapseSinceLast /= (3600*24*30);
+            double cooloffPenalty = Math.Max(0, 4 - timeElapseSinceLast);
 
-            SkillCheckOutcome outcome = SkillCheck(personnelFile.Effectiveness());
+            int modifiedSkill = Math.Min(5, personnelFile.Effectiveness() - (int)cooloffPenalty);
+            modifiedSkill = Math.Max(0, modifiedSkill);
+
+            SkillCheckOutcome outcome = SkillCheck(modifiedSkill);
 
             double funds = 0;
 
@@ -1370,6 +1381,7 @@ namespace Headlines
                 Funding.Instance.AddFunds(funds, TransactionReasons.Any);
                 this.fundraisingTally += funds;
                 personnelFile.fundRaised += (int)funds;
+                fundraisingLastTime = HeadlinesUtil.GetUT();
             }
 
         }
