@@ -368,7 +368,7 @@ namespace Headlines.source
             double deltaReputation = newCredibility - lastKnownCredibility;
             KSPLog.print($"Delta: {deltaReputation}, hype:{Hype()}");
             
-            if (deltaReputation <= Hype())
+            if (deltaReputation <= Hype() && deltaReputation > 0)
             {
                 // Anything less than Hype() doesn't take away from Hype() when LIVE
                 if (currentMode != MediaRelationMode.LIVE)
