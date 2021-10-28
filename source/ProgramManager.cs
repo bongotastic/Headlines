@@ -581,6 +581,10 @@ namespace Headlines.source
             else
             {
                 HeadlinesUtil.Report(1, $"[PROGRAMMANAGER] PM key not found: {managerKey}");
+                
+                // Debug 
+                HeadlinesUtil.Report(1, $"PM: {AsConfigNode()}");
+                HeadlinesUtil.Report(1, $"RM: {_storyEngine._reputationManager.AsConfigNode()}");
                 return GetDefaultProgramManagerRecord();
             }
             

@@ -279,13 +279,9 @@ namespace Headlines
                 hmmSet.AddNode("hmm", temporaryNode);
             }
             node.AddNode(hmmSet);
-
-            ConfigNode headlineFeed = new ConfigNode("HEADLINESFEED");
-            foreach (NewsStory ns in headlines)
-            {
-                headlineFeed.AddNode("headline", ns.AsConfigNode());
-            }
-            node.AddNode(headlineFeed);
+            
+            node.AddNode(_reputationManager.AsConfigNode());
+            node.AddNode(_programManager.AsConfigNode());
 
             ConfigNode visitingEndTimes = new ConfigNode("VISITINGSCHOLAR");
             foreach (double time in visitingScholarEndTimes)
@@ -293,9 +289,13 @@ namespace Headlines
                 visitingEndTimes.AddValue("time", time);
             }
             node.AddNode(visitingEndTimes);
-            
-            node.AddNode(_reputationManager.AsConfigNode());
-            node.AddNode(_programManager.AsConfigNode());
+
+            ConfigNode headlineFeed = new ConfigNode("HEADLINESFEED");
+            foreach (NewsStory ns in headlines)
+            {
+                headlineFeed.AddNode("headline", ns.AsConfigNode());
+            }
+            node.AddNode(headlineFeed);
 
             if (HeadlinesGUIManager.Instance != null)
             {
