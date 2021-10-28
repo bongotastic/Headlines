@@ -154,8 +154,9 @@ namespace Headlines.source
 
         public void FromConfigNode(ConfigNode node)
         {
+            HeadlinesUtil.Report(1, $"Loading PROGRAMMANAGER");
             HeadlinesUtil.SafeString("managerKey", ref managerKey, node);
-            
+
             if (node.HasValue("controlLevel"))
             {
                 controlLevel = (ProgramControlLevel) int.Parse(node.GetValue("controlLevel"));
@@ -581,10 +582,7 @@ namespace Headlines.source
             else
             {
                 HeadlinesUtil.Report(1, $"[PROGRAMMANAGER] PM key not found: {managerKey}");
-                
-                // Debug 
-                HeadlinesUtil.Report(1, $"PM: {AsConfigNode()}");
-                HeadlinesUtil.Report(1, $"RM: {_storyEngine._reputationManager.AsConfigNode()}");
+
                 return GetDefaultProgramManagerRecord();
             }
             

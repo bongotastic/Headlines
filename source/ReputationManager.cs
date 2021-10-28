@@ -484,36 +484,40 @@ namespace Headlines.source
 
             if (HighLogic.LoadedSceneIsFlight) return _daylight;
             
-            Vector3d kscVectorPosition =
-                ((FlagPoleFacility)SpaceCenter.FindObjectOfType(typeof(FlagPoleFacility)))
-                .transform
-                .position;
-
-            Vector3d earthVectorPosition = Planetarium.fetch.Home.transform.position;
-            Vector3d sunVectorPosition = Planetarium.fetch.Sun.transform.position;
-            
-            
-            Vector3d earthKSC = kscVectorPosition - earthVectorPosition;
-            Vector3d earthSun = sunVectorPosition - earthVectorPosition;
-
-            double angle = Vector3d.Angle(earthSun, earthKSC);
             double output = 1;
-            if (angle <= 70)
+            if (SpaceCenter.FindObjectOfType(typeof(FlagPoleFacility)) != null)
             {
-                output = 1.2;
+                Vector3d kscVectorPosition =
+                    ((FlagPoleFacility)SpaceCenter.FindObjectOfType(typeof(FlagPoleFacility)))
+                    .transform
+                    .position;
+
+                Vector3d earthVectorPosition = Planetarium.fetch.Home.transform.position;
+                Vector3d sunVectorPosition = Planetarium.fetch.Sun.transform.position;
+            
+            
+                Vector3d earthKSC = kscVectorPosition - earthVectorPosition;
+                Vector3d earthSun = sunVectorPosition - earthVectorPosition;
+
+                double angle = Vector3d.Angle(earthSun, earthKSC);
+                if (angle <= 70)
+                {
+                    output = 1.2;
+                }
+                else if (angle <= 80)
+                {
+                    output = 1;
+                }
+                else if (angle <= 90)
+                {
+                    output = 0.9;
+                }
+                else
+                {
+                    output = 0.8;
+                }
             }
-            else if (angle <= 80)
-            {
-                output = 1;
-            }
-            else if (angle <= 90)
-            {
-                output = 0.9;
-            }
-            else
-            {
-                output = 0.8;
-            }
+            
 
             _daylight = output;
             _lastDaylight = HeadlinesUtil.GetUT();
@@ -802,6 +806,9 @@ namespace Headlines.source
 
         #endregion
 
+        /// <summary>
+        /// COntracts are not always loaded by the time we de-serialize this class. So, trying again.
+        /// </summary>
         public void ReattemptLoadContracts()
         {
             bool success = false;
