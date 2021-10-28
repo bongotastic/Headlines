@@ -35,6 +35,7 @@ namespace Headlines.source
         private double mediaFreeLiveHype = 0;
         public List<Contract> mediaContracts = new List<Contract>();
         private List<string> _contractNames = new List<string>();
+        public bool mediaLaunchTriggersLive = true;
         private string airTimeOpenAlarm = "";
         private string airTimeCloseAlarm = "";
         private string airTimeEndAlarm = "";
@@ -66,6 +67,7 @@ namespace Headlines.source
             HeadlinesUtil.SafeDouble("airTimeStarts", ref airTimeStarts, node);
             HeadlinesUtil.SafeDouble("airTimeEnds", ref airTimeEnds, node);
             HeadlinesUtil.SafeDouble("mediaOpsTarget", ref mediaOpsTarget, node);
+            HeadlinesUtil.SafeBool("mediaLaunchTriggersLive", ref mediaLaunchTriggersLive, node);
             HeadlinesUtil.SafeDouble("mediaInitialHype", ref mediaInitialHype, node);
             HeadlinesUtil.SafeDouble("mediaFreeLiveHype", ref mediaFreeLiveHype, node);
             
@@ -150,6 +152,7 @@ namespace Headlines.source
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
             output.AddValue("mediaInitialHype", mediaInitialHype);
             output.AddValue("mediaFreeLiveHype", mediaFreeLiveHype);
+            output.AddValue("mediaLaunchTriggersLive", mediaLaunchTriggersLive);
             
             output.AddValue("airTimeOpenAlarm", airTimeOpenAlarm);
             output.AddValue("airTimeCloseAlarm", airTimeCloseAlarm);

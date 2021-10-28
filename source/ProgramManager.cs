@@ -155,6 +155,7 @@ namespace Headlines.source
         public void FromConfigNode(ConfigNode node)
         {
             HeadlinesUtil.SafeString("managerKey", ref managerKey, node);
+            
             if (node.HasValue("controlLevel"))
             {
                 controlLevel = (ProgramControlLevel) int.Parse(node.GetValue("controlLevel"));

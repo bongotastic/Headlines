@@ -44,6 +44,7 @@ namespace Headlines.source.GUI
         // location of the Window
         public Rect position;
         public bool resizePosition = true;
+        public bool stateRead = false;
 
         private Vector2 scrollFeedView = new Vector2(0,0);
         private Vector2 scrollHMMView = new Vector2(0,0);
@@ -194,6 +195,8 @@ namespace Headlines.source.GUI
                     position.height = 100f;
                     resizePosition = false;
                 }
+                if (!stateRead) ReadStates();
+                
                 position = GUILayout.Window(GetInstanceID(), position, DrawWindow, $"Headlines -- {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()}");
             }
         }
@@ -202,6 +205,7 @@ namespace Headlines.source.GUI
         {
             if (storyEngine.UIStates != null)
             {
+                stateRead = true;
                 foreach (ConfigNode.Value section in storyEngine.UIStates.values)
                 {
                     if (_section.ContainsKey(section.name))
@@ -225,6 +229,11 @@ namespace Headlines.source.GUI
 
         public void WriteState()
         {
+            if (storyEngine == null)
+            {
+                storyEngine = StoryEngine.Instance;
+            }
+            
             storyEngine.UIStates = new ConfigNode("UIStates");
             foreach (KeyValuePair<string, UISection> kvp in _section)
             {
