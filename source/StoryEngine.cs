@@ -238,6 +238,9 @@ namespace Headlines
             // End of Media spotlight?
             MediaEventUpdate();
             
+            // Run AI routines for project manager
+            _programManager.AI_releaseAchievements();
+            
             // Minimizing the profile of this method's call.
             if (_nextUpdate <= GetUT()) SchedulerUpdate(GetUT());
         }

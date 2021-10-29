@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using CommNet.Network;
 using Expansions.Missions;
+using Headlines.source.Emissions;
 using HiddenMarkovProcess;
 using Renamer;
 using RP0.Crew;
@@ -119,7 +120,15 @@ namespace Headlines.source
         /// </summary>
         private ProgramControlLevel controlLevel = ProgramControlLevel.NOMINAL;
 
+        /// <summary>
+        /// The mode of operation for the program manager
+        /// </summary>
         private ProgramPriority programPriority = ProgramPriority.NONE;
+
+        /// <summary>
+        /// Whether the player has delegated the release of news to the PM
+        /// </summary>
+        public bool delegateNewsReleases = false;
         
         /// <summary>
         /// Instances to work with
@@ -155,7 +164,9 @@ namespace Headlines.source
         public void FromConfigNode(ConfigNode node)
         {
             HeadlinesUtil.Report(1, $"Loading PROGRAMMANAGER");
+            
             HeadlinesUtil.SafeString("managerKey", ref managerKey, node);
+            HeadlinesUtil.SafeBool("delegateNewsReleases", ref delegateNewsReleases, node);
 
             if (node.HasValue("controlLevel"))
             {
@@ -188,6 +199,7 @@ namespace Headlines.source
             node.AddValue("managerKey", managerKey);
             node.AddValue("influenceVAB", influenceVAB);
             node.AddValue("influenceRnD", influenceRnD);
+            node.AddValue("delegateNewsReleases", delegateNewsReleases);
 
             foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
             {
@@ -835,6 +847,52 @@ namespace Headlines.source
                     }
                 }
             }
+        }
+
+        #endregion
+
+        #region AI
+
+        /// <summary>
+        /// AI routine delegating news release to the PM by releasing as soon as hype covers an achievement, starting
+        /// with the largest available candidate.
+        /// </summary>
+        public void AI_releaseAchievements()
+        {
+            if (!delegateNewsReleases) return;
+            
+            ReputationManager rm = _storyEngine._reputationManager;
+            double currentHype = rm.Hype();
+
+            bool searchDone = true;
+
+            NewsStory candidate = null;
+
+            foreach (var ns in rm.shelvedAchievements)
+            {
+                if (ns.reputationValue <= currentHype)
+                {
+                    if (candidate == null) 
+                    {
+                        candidate = ns;
+                    }
+                    else if (ns.reputationValue > candidate.reputationValue)
+                    {
+                        candidate = ns;
+                        searchDone = false;
+                    }
+                }
+            }
+            
+            rm.IssuePressReleaseFor(candidate);
+
+            if (rm.shelvedAchievements.Count == 0)
+            {
+                // reset the behaviour
+                delegateNewsReleases = false;
+            }
+            
+            if (!searchDone) AI_releaseAchievements();
         }
 
         #endregion

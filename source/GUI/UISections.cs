@@ -777,6 +777,11 @@ namespace Headlines.source.GUI
             {
                 DrawUnreleasedNews(ns);
             }
+
+            if (RepMgr.shelvedAchievements.Count > 0)
+            {
+                PrgMgr.delegateNewsReleases = GUILayout.Toggle(PrgMgr.delegateNewsReleases, $"Delegate release to {PrgMgr.ManagerName()}");
+            }
             GUILayout.EndVertical();
         }
         
