@@ -481,31 +481,63 @@ namespace Headlines.source.GUI
                     break;
             }
         }
-        
+
         public void DrawPressGalleryLowProfile()
         {
-            double cost = RepMgr.MediaCampaignCost(_root.mediaInvitationDelay);
+            if (RepMgr.mediaContracts.Count == 0)
+            {
+                GUILayout.Label("You must first make a pledge to complete 1+ contracts");
+                return;
+            }
             
-            GUILayout.BeginHorizontal();
+            double cost = RepMgr.MediaCampaignCost(_root.mediaCampaignLength);
+            
             if (cost > Funding.Instance.Funds)
             {
-                _root.mediaInvitationDelay -= 1;
+                _root.mediaCampaignLength -= 1;
                 GUILayout.Button($"Insufficient fund for ", GUILayout.Width(200));
             }
             else
             {
-                storyEngine.StartMediaCampaign(GUILayout.Button($"Invite Press (√{cost})", GUILayout.Width(200)), _root.mediaInvitationDelay);
+                GUILayout.BeginHorizontal();
+                storyEngine.StartMediaCampaign(GUILayout.Button($"Invite Press on {KSPUtil.PrintDate(HeadlinesUtil.GetUT()+(_root.mediaInvitationDelay * 24 * 3600), false, false )} (√{cost})", FullWidth()), _root.mediaInvitationDelay, _root.mediaCampaignLength);
+                GUILayout.EndHorizontal();
             }
-            GUILayout.Label("  in ", GUILayout.Width(25));
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Go live in ", GUILayout.Width(145));
             _root.mediaInvitationDelay = Math.Max(Int32.Parse(GUILayout.TextField($"{_root.mediaInvitationDelay}", GUILayout.Width(40))), 1);
             GUILayout.Label("  days");
             GUILayout.EndHorizontal();
+            
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"NB: Invite the press if you expect to exceed earnings of {Math.Round(RepMgr.GetMediaEventWager(),MidpointRounding.AwayFromZero)} on that day. They will report negatively otherwise.", GUILayout.Width(sectionWidth-20));
+            GUILayout.Label("Campaign length: ", GUILayout.Width(120));
+            if (GUILayout.Button("-", GUILayout.Width(20)))
+            {
+                _root.mediaCampaignLength--;
+                _root.mediaCampaignLength = Math.Max(0, _root.mediaCampaignLength);
+            }
+            _root.mediaCampaignLength = Math.Max(Int32.Parse(GUILayout.TextField($"{_root.mediaCampaignLength}", GUILayout.Width(40))), 1);
+            if (GUILayout.Button("+", GUILayout.Width(20))) _root.mediaCampaignLength++;
+            _root.mediaCampaignLength = Math.Min(_root.mediaCampaignLength, _root.mediaInvitationDelay);
+            GUILayout.Label("  days");
             GUILayout.EndHorizontal();
             
+            int nAppearance = 0;
+            double expectedEarnings = 0;
+            double campaignEnds = _root.mediaCampaignLength * 24 * 3600 + HeadlinesUtil.GetUT();
+            double campaignStarts = campaignEnds - (_root.mediaCampaignLength * 3600 * 24);
+            storyEngine.ExpectedCampaignEarnings(ref nAppearance, ref expectedEarnings, campaignEnds, campaignStarts);
+
+            double minHype = RepMgr.GetMediaEventHype();
+            double currenHype = RepMgr.Hype();
+            string assessment = "unlikely to be";
+            if (currenHype >= minHype) assessment = "already fully";
+            else if (currenHype + expectedEarnings * 2 >= minHype) assessment = "likely to be";
+            else if (currenHype + expectedEarnings > minHype) assessment = "possibly going to be";
+            string message = $"This live event is {assessment} hyped.";
+            WriteBullet(message);
         }
-        
+
         public void DrawPressGalleryCampaign()
         {
             double now = HeadlinesUtil.GetUT();
@@ -609,7 +641,9 @@ namespace Headlines.source.GUI
 
             int nAppearance = 0;
             double expectedEarnings = 0;
-            storyEngine.ExpectedCampaignEarnings(ref nAppearance, ref expectedEarnings, _root.mediaInvitationDelay*24*3600 + HeadlinesUtil.GetUT());
+            double campaignEnds = _root.mediaCampaignLength * 24 * 3600 + HeadlinesUtil.GetUT();
+            double campaignStarts = campaignEnds - (_root.mediaCampaignLength * 3600 * 24);
+            storyEngine.ExpectedCampaignEarnings(ref nAppearance, ref expectedEarnings, campaignEnds, campaignStarts);
             double var = expectedEarnings / 2;
             if (nAppearance != 0)
             {
@@ -623,15 +657,6 @@ namespace Headlines.source.GUI
         {
             GUILayout.BeginVertical();
             WriteBullet("All rep gains turn to hype during a campaign.");
-            
-            int nAppearance = 0;
-            double expectedEarnings = 0;
-            storyEngine.ExpectedCampaignEarnings(ref nAppearance, ref expectedEarnings);
-            double var = expectedEarnings / 2;
-            if (nAppearance != 0)
-            {
-                WriteBullet($" Expect {Math.Round(expectedEarnings - var, MidpointRounding.AwayFromZero)}-{Math.Round(expectedEarnings + var, MidpointRounding.AwayFromZero)} hype over {nAppearance} media appearance(s).");
-            }
             GUILayout.EndVertical();
         }
         
@@ -791,6 +816,7 @@ namespace Headlines.source.GUI
             if (GUILayout.Button("Release", GUILayout.Width(60)))
             {
                 storyEngine.IssuePressRelease(ns);
+                _root.resizePosition = true;
             }
             GUILayout.Label($"{ns.headline} ({Math.Round(ns.reputationValue,1,MidpointRounding.AwayFromZero)})", GUILayout.Width(sectionWidth-60));
             GUILayout.EndHorizontal();

@@ -1560,7 +1560,7 @@ namespace Headlines
                 _programManager.AssignProgramManager(newManager, _reputationManager.CurrentReputation());
                 
                 // Set manager as inactive until next program check
-                newManager.SetInactive(_hmmScheduler["program_manager"]);
+                newManager.SetInactive(_hmmScheduler["program_manager"] - HeadlinesUtil.GetUT());
             }
             else
             {
@@ -2821,26 +2821,52 @@ namespace Headlines
             return cost;
         }
 
-        public void StartMediaCampaign(bool invite, int nDays)
+        /// <summary>
+        /// Begin a campaign
+        /// </summary>
+        /// <param name="invite">Input from UI button</param>
+        /// <param name="campaignEndsinDays">Number of day for the end of the campaign</param>
+        /// <param name="campaignDurationinDays">Number of days for the campaign duration</param>
+        public void StartMediaCampaign(bool invite, int campaignEndsinDays, int campaignDurationinDays)
         {
-            if (_reputationManager.currentMode == MediaRelationMode.LOWPROFILE & invite)
+            if (invite && _reputationManager.currentMode == MediaRelationMode.LOWPROFILE)
             {
-                double campaignLength = nDays * (3600 * 24);
-                _reputationManager.LaunchCampaign(campaignLength);
+                // Pay the cost
+                double cost = _reputationManager.MediaCampaignCost(campaignDurationinDays);
+                AdjustFunds(-1 * cost);
+                
+                // ensures that no campaigns happen in the past (should never happen... I know)
+                campaignDurationinDays = Math.Min(campaignDurationinDays, campaignEndsinDays);
+                
+                // Setup timelines
+                double secondsToEndCampaign = campaignEndsinDays * HeadlinesUtil.OneDay;
+                double campaignLength = campaignDurationinDays * HeadlinesUtil.OneDay;
+                _reputationManager.LaunchCampaign(campaignLength, secondsToEndCampaign);
+                
+                // Penalty on short campaigns
+                double probabilityMobilization = Math.Min(1, (double)campaignDurationinDays/5);
                 
                 // Ensures that any crew able will make a media appearance
                 foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.personnelFolders)
                 {
+                    // Campaign is too short? Magic number is 5 days for enough lead time
+                    if (storytellerRand.NextDouble() > probabilityMobilization) continue;
+                    
                     if (kvp.Value.Specialty() == "Pilot")
                     {
-                        // Guarantees a media event per pilot during a campaign
+                        // Guarantees a media event per pilot during a campaign (unless it aborted above)
                         HiddenState hmm = GetRoleHMM(kvp.Value);
-                        double newTime = storytellerRand.NextDouble() * campaignLength + HeadlinesUtil.GetUT();
+                        double newTime = storytellerRand.NextDouble() * campaignLength + _reputationManager.campaignTimeStarts;
                         if (_hmmScheduler.ContainsKey(hmm.RegisteredName()))
                         {
+                            // reschedule event during the campaign if planned too late
                             _hmmScheduler[hmm.RegisteredName()] = Math.Min(_hmmScheduler[hmm.RegisteredName()], newTime);
+                            
+                            // Delay too early events to be during the campaign for maximal effect
+                            _hmmScheduler[hmm.RegisteredName()] = Math.Max(_hmmScheduler[hmm.RegisteredName()], _reputationManager.campaignTimeStarts + 60);
                         }
 
+                        // Make media activity compulsory
                         kvp.Value.OrderTask("media_blitz");
                     }
                 }
@@ -3006,21 +3032,30 @@ namespace Headlines
             ns.AddToStory("The program asks the press to stay posted up to an additional 10 days.");
             FileHeadline(ns);
         }
-        
+
         /// <summary>
         /// Compute the number of guaranteed appearances, and their expected earnings. 
         /// </summary>
         /// <param name="nAppearance"></param>
         /// <param name="expectedHype"></param>
-        public void ExpectedCampaignEarnings(ref int nAppearance, ref double expectedHype, double deadline = -1)
+        /// <param name="campaignEnds"></param>
+        public void ExpectedCampaignEarnings(ref int nAppearance, ref double expectedHype, double campaignEnds = -1, double campaignStart = -1)
         {
             nAppearance = 0;
             expectedHype = 0;
             
-            if (deadline == -1)
+            if (campaignEnds == -1)
             {
-                deadline = _reputationManager.airTimeEnds;
+                campaignEnds = _reputationManager.airTimeEnds;
             }
+
+            if (campaignStart == -1)
+            {
+                campaignStart = HeadlinesUtil.GetUT();
+            }
+            
+            // Short duration campaign effect
+            double probEffect = Math.Min(1, (campaignEnds - campaignStart) / (3600 * 24 * 5));
 
             PersonnelFile crew;
             int skill = 0;
@@ -3030,26 +3065,26 @@ namespace Headlines
             foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
             {
                 
-                if (kvp.Value.RegisteredName().Contains("role_"))
+                if (kvp.Value.RegisteredName().Contains("role_Pilot"))
                 {
                     crew = _peopleManager.GetFile(kvp.Value.kerbalName);
-                    if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN && crew.coercedTask && crew.kerbalTask == "media_blitz")
+                    if (_reputationManager.isCampaignActive() && crew.coercedTask && crew.kerbalTask == "media_blitz")
                     {
-                        if (_hmmScheduler[kvp.Key] <= deadline)
+                        if (_hmmScheduler[kvp.Key] <= campaignEnds)
                         {
                             skill = crew.Effectiveness(deterministic: true);
                             oneEarning = 2 * skill * HeadlinesUtil.Pvalue(skill);
-                            nEvents = 1 + (deadline - _hmmScheduler[kvp.Key])/ (2 * kvp.Value.period*24*3600);
+                            nEvents = probEffect + (campaignEnds - _hmmScheduler[kvp.Key])/ (2 * kvp.Value.period*24*3600);
                             expectedHype += oneEarning * nEvents;
                             nAppDouble += nEvents;
                         }
                     }
-                    else if (_reputationManager.currentMode == MediaRelationMode.LOWPROFILE &&
-                             crew.Specialty() == "Pilot")
+                    else
                     {
+                        // This is possible only before a campaign start or in low profile mode
                         skill = crew.Effectiveness(deterministic: true);
-                        oneEarning = 2 * skill * HeadlinesUtil.Pvalue(skill);
-                        nEvents = 1 + (deadline - HeadlinesUtil.GetUT())/ (2 * kvp.Value.period*24*3600);
+                        oneEarning = 2 * skill * HeadlinesUtil.Pvalue(skill) * probEffect;
+                        nEvents =  probEffect + (campaignEnds - campaignStart)/ (2 * kvp.Value.period*24*3600);
                         expectedHype += oneEarning * nEvents;
                         nAppDouble += nEvents;
                     }

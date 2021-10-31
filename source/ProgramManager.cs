@@ -883,8 +883,11 @@ namespace Headlines.source
                     }
                 }
             }
-            
-            rm.IssuePressReleaseFor(candidate);
+
+            if (candidate != null)
+            {
+                rm.IssuePressReleaseFor(candidate);
+            }
 
             if (rm.shelvedAchievements.Count == 0)
             {

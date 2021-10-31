@@ -30,6 +30,7 @@ namespace Headlines.source
         // Media event
         public double airTimeStarts = 0;
         public double airTimeEnds = 0;
+        public double campaignTimeStarts = Double.MaxValue;
         private double mediaOpsTarget = 0;
         private double mediaInitialHype = 0;
         private double mediaFreeLiveHype = 0;
@@ -39,6 +40,7 @@ namespace Headlines.source
         private string airTimeOpenAlarm = "";
         private string airTimeCloseAlarm = "";
         private string airTimeEndAlarm = "";
+        private string airtimeCampaignAlarm = "";
         
         private bool announcedSuccess = false;
 
@@ -66,6 +68,7 @@ namespace Headlines.source
             
             HeadlinesUtil.SafeDouble("airTimeStarts", ref airTimeStarts, node);
             HeadlinesUtil.SafeDouble("airTimeEnds", ref airTimeEnds, node);
+            HeadlinesUtil.SafeDouble("campaignTimeStarts", ref campaignTimeStarts, node);
             HeadlinesUtil.SafeDouble("mediaOpsTarget", ref mediaOpsTarget, node);
             HeadlinesUtil.SafeBool("mediaLaunchTriggersLive", ref mediaLaunchTriggersLive, node);
             HeadlinesUtil.SafeDouble("mediaInitialHype", ref mediaInitialHype, node);
@@ -78,6 +81,7 @@ namespace Headlines.source
                 airTimeOpenAlarm = node.GetValue("airTimeOpenAlarm");
                 airTimeCloseAlarm = node.GetValue("airTimeCloseAlarm");
                 airTimeEndAlarm = node.GetValue("airTimeEndAlarm");
+                airtimeCampaignAlarm = node.GetValue("airtimeCampaignAlarm");
             }
             
             ConfigNode nodePledged = node.GetNode("PLEDGED");
@@ -149,6 +153,7 @@ namespace Headlines.source
             
             output.AddValue("airTimeStarts", airTimeStarts);
             output.AddValue("airTimeEnds", airTimeEnds);
+            output.AddValue("campaignTimeStarts", campaignTimeStarts);
             output.AddValue("mediaOpsTarget", mediaOpsTarget);
             output.AddValue("mediaInitialHype", mediaInitialHype);
             output.AddValue("mediaFreeLiveHype", mediaFreeLiveHype);
@@ -157,6 +162,7 @@ namespace Headlines.source
             output.AddValue("airTimeOpenAlarm", airTimeOpenAlarm);
             output.AddValue("airTimeCloseAlarm", airTimeCloseAlarm);
             output.AddValue("airTimeEndAlarm", airTimeEndAlarm);
+            output.AddValue("airtimeCampaignAlarm", airtimeCampaignAlarm);
             
             output.AddValue("_daylight", _daylight);
 
@@ -530,23 +536,25 @@ namespace Headlines.source
         /// <summary>
         /// begin a media blitz ahead of a live event
         /// </summary>
-        /// <param name="lenghtCampaign">lenght of campaign</param>
-        public void LaunchCampaign(double lenghtCampaign)
+        /// <param name="lengthCampaign">lenght of campaign</param>
+        /// <param name="secondsToEndCampaign"></param>
+        public void LaunchCampaign(double lengthCampaign, double secondsToEndCampaign)
         {
             currentMode = MediaRelationMode.CAMPAIGN;
             mediaOpsTarget = Credibility() + GetMediaEventWager();
             mediaInitialHype = Hype();
-            airTimeStarts = HeadlinesUtil.GetUT() + lenghtCampaign * 0.9;
-            airTimeEnds = HeadlinesUtil.GetUT() + lenghtCampaign * 1.1;
-            KSPLog.print($"[MEDIA] Campaign mode engaged.");
-            KSPLog.print($"[MEDIA] Targeting credibility of {mediaOpsTarget}.");
-            KSPLog.print($"[MEDIA] Going live at {KSPUtil.PrintDate(airTimeStarts, true, false)}.");
-            KSPLog.print($"[MEDIA] Going dark at {KSPUtil.PrintDate(airTimeEnds, true, false)}.");
+            airTimeStarts = HeadlinesUtil.GetUT() + secondsToEndCampaign * 0.9;
+            airTimeEnds = HeadlinesUtil.GetUT() + secondsToEndCampaign * 1.1;
+            campaignTimeStarts = HeadlinesUtil.GetUT() + secondsToEndCampaign - lengthCampaign;
 
             if (KACWrapper.APIReady)
             {
                 airTimeOpenAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Earliest live launch", airTimeStarts);
                 airTimeCloseAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Latest live launch", airTimeEnds);
+                if (campaignTimeStarts - HeadlinesUtil.GetUT() > HeadlinesUtil.OneDay)
+                {
+                    airtimeCampaignAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Campaign Kick-off", campaignTimeStarts);
+                }
             }
         }
         
@@ -558,10 +566,13 @@ namespace Headlines.source
             currentMode = MediaRelationMode.LIVE;
             mediaOpsTarget = Credibility() + GetMediaEventWager();
             mediaFreeLiveHype = 0;
+            campaignTimeStarts = Double.MaxValue;
+            
             HeadlinesUtil.ScreenMessage("Going LIVE now!");
             announcedSuccess = false;
-            // Set end time to 48h later
-            airTimeEnds = HeadlinesUtil.GetUT() + (4*24*3600);
+            
+            // Set end time to 4 days later
+            airTimeEnds = HeadlinesUtil.GetUT() + (4 * HeadlinesUtil.OneDay);
             if (KACWrapper.APIReady)
             {
                 airTimeEndAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Live event ends", airTimeEnds);
@@ -601,7 +612,7 @@ namespace Headlines.source
                 // Perform the conversion of free hype to hype loss (albeit delayed as hype can be used more than once in some cases)
                 AdjustHype(-1 * mediaFreeLiveHype);
                 
-                // Sucess is useful anyhow
+                // Success is useful anyhow
                 AdjustHype(5);
             }
             
@@ -651,10 +662,12 @@ namespace Headlines.source
             }
             
             currentMode = MediaRelationMode.LOWPROFILE;
+            campaignTimeStarts = Double.MaxValue;
 
             if (KACWrapper.APIReady)
             {
                 KACWrapper.KAC.DeleteAlarm(airTimeCloseAlarm);
+                KACWrapper.KAC.DeleteAlarm(airtimeCampaignAlarm);
             }
         }
 
@@ -663,7 +676,7 @@ namespace Headlines.source
         /// </summary>
         /// <param name="nDays"></param>
         /// <returns></returns>
-        public double MediaCampaignCost(int nDays)
+        public double MediaCampaignCost(int nDays = -1)
         {
             double output = 100;
             output += Math.Min(nDays, 10) * 90;
@@ -714,11 +727,39 @@ namespace Headlines.source
         }
 
         /// <summary>
+        /// Returns the minimum amount of hype to fully reward an event.
+        /// </summary>
+        /// <returns></returns>
+        public float GetMediaEventHype()
+        {
+            float maxHype = 0;
+            foreach (Contract contract in mediaContracts)
+            {
+                maxHype = Math.Max(maxHype, contract.ReputationCompletion);
+            }
+
+            // Non-linear transform
+            maxHype = (float)TransformReputation(maxHype, Credibility());
+
+            return Math.Max(maxHype, 0.1f);
+            
+        }
+
+        /// <summary>
         /// Add 10 days to a live event
         /// </summary>
         public void ExtendLiveEvent()
         {
             airTimeEnds += 3600 * 24 * 10;
+        }
+
+        /// <summary>
+        /// Is the program paying for campaign effect at this time
+        /// </summary>
+        /// <returns></returns>
+        public bool isCampaignActive()
+        {
+            return currentMode == MediaRelationMode.CAMPAIGN && HeadlinesUtil.GetUT() > campaignTimeStarts;
         }
 
         #endregion

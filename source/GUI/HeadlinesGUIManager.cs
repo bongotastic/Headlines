@@ -61,6 +61,7 @@ namespace Headlines.source.GUI
         public static string[] priorities = new[] { "Balanced", "Reputation", "Production", "Growth"};
 
         public int mediaInvitationDelay = 1;
+        public int mediaCampaignLength = 1;
 
         /// <summary>
         /// UISections
@@ -280,7 +281,10 @@ namespace Headlines.source.GUI
             {
                 resizePosition = true;
                 _activeTabIndex = selectedActiveTab;
+                // Time to launch
                 mediaInvitationDelay = (int)Math.Ceiling(storyEngine.GetNextLaunchDeltaTime() / (3600*24));
+                // Assume 100% of time is for campaign
+                mediaCampaignLength = mediaInvitationDelay;
             }
         }
         
@@ -702,11 +706,14 @@ namespace Headlines.source.GUI
                         storyEngine.RealityCheck();
                     }
 
-                    if (GUILayout.Button("Part categories researched"))
+                    if (GUILayout.Button("Remove long inactivity periods"))
                     {
-                        foreach (PartCategories pc in storyEngine.GetPartCategoriesUnderResearch())
+                        foreach (var kvp in storyEngine.GetPeopleManager().personnelFolders)
                         {
-                            HeadlinesUtil.Report(1, $"{pc.ToString()}");
+                            if ((kvp.Value.InactiveDeadline() - HeadlinesUtil.GetUT()) / HeadlinesUtil.OneDay > 100)
+                            {
+                                kvp.Value.SetInactive(0);
+                            }
                         }
                     }
                     
