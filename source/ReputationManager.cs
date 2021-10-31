@@ -438,7 +438,7 @@ namespace Headlines.source
                 return 0.5 * margin;
             }
             
-            return (1 - 0.933) * margin;
+            return (1 - GetDecayRatio()) * margin;
         }
 
         /// <summary>
@@ -528,6 +528,20 @@ namespace Headlines.source
             _daylight = output;
             _lastDaylight = HeadlinesUtil.GetUT();
             return output;
+        }
+
+        /// <summary>
+        /// Voodoo method to scale decay to represent how hard it is to maintain (real) reputation over 500.
+        /// </summary>
+        /// <returns></returns>
+        public double GetDecayRatio()
+        {
+            double ratio = 0.933;
+            if (Credibility() > 500)
+            {
+                ratio -= ((Credibility() - 500) / 500) * 0.08;
+            }
+            return ratio;
         }
 
 

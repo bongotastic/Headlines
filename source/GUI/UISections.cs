@@ -102,13 +102,9 @@ namespace Headlines.source.GUI
                 WriteBullet($"Your program had better days and may struggle to attract top-candidates.", BulletEmote.THUMBDOWN);
             }
 
-            // Expected decay in 12 months of inaction
-            double meanDecay = Math.Pow(0.933, 365 / (1.25 * storyEngine.GetProcess("reputation_decay").period * storyEngine.attentionSpanFactor));
-            WriteBullet($"Projected drop in reputation in 1 year: {Math.Round( 100*(1 - meanDecay),1)}%");
-
             if (RepMgr.OverRating() > 0.07)
             {
-                WriteBullet($"Hype is {Math.Round(RepMgr.OverRating()/(1-0.933),1)}X more volatile than your reputation.");
+                WriteBullet($"Hype is {Math.Round(RepMgr.OverRating()/(1-RepMgr.GetDecayRatio()),1)}X more volatile than your reputation.");
             }
             
             GUILayout.EndVertical();

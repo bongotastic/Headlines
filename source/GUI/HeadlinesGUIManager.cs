@@ -118,6 +118,8 @@ namespace Headlines.source.GUI
                 GameEvents.onGUIApplicationLauncherReady.Remove(OnGuiAppLauncherReady);
                 GameEvents.onGameSceneLoadRequested.Remove(OnSceneChange);
                 GameEvents.onGameSceneSwitchRequested.Remove(OnSceneChange);
+                GameEvents.onHideUI.Remove(HideWindow);
+                GameEvents.onShowUI.Remove(ShowWindow);
 
                 if (stockButton != null)
                     ApplicationLauncher.Instance.RemoveModApplication(stockButton);
@@ -150,6 +152,8 @@ namespace Headlines.source.GUI
 
                 GameEvents.onGameSceneLoadRequested.Add(OnSceneChange);
                 GameEvents.onGameSceneSwitchRequested.Add(OnSceneChange);
+                GameEvents.onHideUI.Add(HideWindow);
+                GameEvents.onShowUI.Add(ShowWindow);
             }
         }
         

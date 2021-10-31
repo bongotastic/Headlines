@@ -2945,7 +2945,7 @@ namespace Headlines
         public bool KerbalProtectReputationDecay()
         {
             // Step 1: the program manager
-            SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()) );
+            SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()) - 2 );
             if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
             
             // Step 2: Any crew in media_relation mode
@@ -2954,7 +2954,7 @@ namespace Headlines
                 if (kvp.Value.IsInactive() || kvp.Value.isProgramManager) continue;
                 if (kvp.Value.kerbalTask != "media_blitz") continue;
 
-                outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true)-1);
+                outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true) - 3);
                 if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
             }
 
