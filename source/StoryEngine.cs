@@ -1334,6 +1334,9 @@ namespace Headlines
         /// <param name="emitData">the event</param>
         public void KerbalFundRaise(PersonnelFile personnelFile, Emissions emitData)
         {
+            // Dumb path to event double firing (shame on me for this)
+            if (Math.Abs(fundraisingLastTime - HeadlinesUtil.GetUT()) < 60) return;
+            
             NewsStory ns;
             if (fundraisingBlackout)
             {
@@ -1381,7 +1384,7 @@ namespace Headlines
                 ns.AddToStory($"{personnelFile.DisplayName()} finalizes a gift agreement for ${(int) (funds / 1000)}K.");
                 FileHeadline(ns);
                 
-                Funding.Instance.AddFunds(funds, TransactionReasons.Any);
+                AdjustFunds(funds);
                 this.fundraisingTally += funds;
                 personnelFile.fundRaised += (int)funds;
                 fundraisingLastTime = HeadlinesUtil.GetUT();
@@ -1399,7 +1402,7 @@ namespace Headlines
             double stupidity = personnelFile.Stupidity() * 10;
             stupidity = Math.Min(4, stupidity);
 
-            NewsStory ns = new NewsStory(emitData, Headline:$"{personnelFile.DisplayName()} injured");
+            NewsStory ns = new NewsStory(emitData, Headline:$"{personnelFile.DisplayName()} is off-duty");
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             
             SkillCheckOutcome outcome = SkillCheck((int) stupidity);
