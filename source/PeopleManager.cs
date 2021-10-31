@@ -526,7 +526,7 @@ namespace Headlines
         }
 
         /// <summary>
-        /// Sums all staff effectiveness as a program profile extimate.
+        /// Sums all staff effectiveness as a program profile estimate.
         /// </summary>
         /// <returns></returns>
         public double ProgramProfile(bool deterministic = false)

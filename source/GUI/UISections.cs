@@ -859,8 +859,13 @@ namespace Headlines.source.GUI
                 effectiveness -= storyEngine.GetProgramComplexity();
                 return $"{peopleManager.QualitativeEffectiveness(effectiveness)} Program Manager ({focusCrew.Specialty()}{personality})";
             }
-            
-            return $"{peopleManager.QualitativeEffectiveness(effectiveness)} {focusCrew.Specialty().ToLower()}{personality}";
+
+            int complexity = 0;
+            if (focusCrew.Specialty() == "Engineer")
+                complexity = storyEngine.GetProgramComplexity(complexityDepartment.VAB);
+            else if (focusCrew.Specialty() == "Scientist")
+                complexity = storyEngine.GetProgramComplexity(complexityDepartment.RnD);
+            return $"{peopleManager.QualitativeEffectiveness(effectiveness-complexity)} {focusCrew.Specialty().ToLower()}{personality}";
             
         }
 
@@ -907,8 +912,23 @@ namespace Headlines.source.GUI
         
         protected override void DrawHelp()
         {
+            GUILayout.BeginVertical();
+            
             double retirementDeltaTime = CrewHandler.Instance.KerbalRetireTimes[focusCrew.UniqueName()] - HeadlinesUtil.GetUT();
             WriteBullet($"Is set to retire in {KSPUtil.PrintDateDelta(retirementDeltaTime, false)}");
+
+            int complexity = 0;
+            if (focusCrew.Specialty() == "Engineer")
+                complexity = storyEngine.GetProgramComplexity(complexityDepartment.VAB);
+            else if (focusCrew.Specialty() == "Scientist") 
+                complexity = storyEngine.GetProgramComplexity(complexityDepartment.RnD);
+            if (complexity != 0)
+            {
+                WriteBullet($"The KSC complexity (due to upgrades) hinders this crew by {complexity}.");
+            }
+            
+            
+            GUILayout.EndVertical();
         }
     }
     

@@ -721,6 +721,11 @@ namespace Headlines.source.GUI
                         }
                     }
                     
+                    if (GUILayout.Button("Output Program Complexity"))
+                    {
+                        HeadlinesUtil.Report(2, $"Program complexity: {storyEngine.GetProgramComplexity()}");
+                    }
+                    
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button("Simulate Rep change"))
                     {

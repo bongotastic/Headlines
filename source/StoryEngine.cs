@@ -33,6 +33,14 @@ namespace Headlines
     {
         FUMBLE, FAILURE, SUCCESS, CRITICAL
     }
+    
+    /// <summary>
+    /// Defines parts of the KSC for complexity calculations
+    /// </summary>
+    public enum complexityDepartment
+    {
+        ALL, VAB, RnD
+    }
 
     //[KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
     //    GameScenes.SPACECENTER | GameScenes.FLIGHT )]
@@ -134,6 +142,14 @@ namespace Headlines
         
         // HMM to remove
         private List<string> _hmmToRemove = new List<string>();
+        
+        // Weights for complexity
+        private static Dictionary<complexityDepartment, List<int>> complexityWeights = new Dictionary<complexityDepartment, List<int>>()
+        {
+            {complexityDepartment.ALL, new List<int> {2,2,1,1}},
+            {complexityDepartment.VAB, new List<int>() {1,1,1,3}},
+            {complexityDepartment.RnD, new List<int>() {1,1,3,1}}
+        };
         
         #endregion
 
@@ -799,7 +815,12 @@ namespace Headlines
             }
 
             int skillLevel = kerbalFile.Effectiveness(isMedia);
-            int difficulty = GetProgramComplexity();
+
+            complexityDepartment department = complexityDepartment.ALL;
+            if (kerbalFile.Specialty() == "Engineer") department = complexityDepartment.VAB;
+            else if (kerbalFile.Specialty() == "Scientist") department = complexityDepartment.RnD;
+            int difficulty = GetProgramComplexity(department);
+            
             if (_programManager.ControlLevel() == ProgramControlLevel.HIGH)
             {
                 difficulty -= 1;
@@ -808,6 +829,7 @@ namespace Headlines
             {
                 difficulty += 1;
             }
+            difficulty = Math.Max(0, difficulty);
             
             SkillCheckOutcome successLevel = SkillCheck(skillLevel, difficulty);
             HeadlinesUtil.Report(1, $"Skill check (impact)-{skillLevel} diff:{difficulty}, outcome: {successLevel}","SKILLCHECK");
@@ -1356,7 +1378,7 @@ namespace Headlines
             timeElapseSinceLast /= (3600*24*30);
             double cooloffPenalty = Math.Max(0, 4 - timeElapseSinceLast);
 
-            int modifiedSkill = Math.Min(5, personnelFile.Effectiveness() - (int)cooloffPenalty);
+            int modifiedSkill = Math.Min(4, personnelFile.Effectiveness() - (int)cooloffPenalty);
             modifiedSkill = Math.Max(0, modifiedSkill);
 
             SkillCheckOutcome outcome = SkillCheck(modifiedSkill);
@@ -1367,11 +1389,11 @@ namespace Headlines
             {
                 case SkillCheckOutcome.SUCCESS:
                     KerbalRegisterSuccess(personnelFile);
-                    funds = 20000;
+                    funds = 10000 * (1 + GetProgramComplexity());
                     break;
                 case SkillCheckOutcome.CRITICAL:
                     KerbalRegisterSuccess(personnelFile, true);
-                    funds = 100000;
+                    funds = 50000 * (1 + GetProgramComplexity());
                     break;
                 case SkillCheckOutcome.FUMBLE:
                     fundraisingBlackout = true;
@@ -2742,15 +2764,15 @@ namespace Headlines
         /// <returns>FUMBLE|FAILURE|SUCCESS|CRITICAL</returns>
         public static SkillCheckOutcome SkillCheck(int skillLevel, int difficulty = 0)
         {
-            int upperlimit = 3 * skillLevel;
-            int lowerlimit = 3 * difficulty;
+            // Transform to a 3d6 level scale
+            int upperlimit = 4 + (2 * Math.Max(0, skillLevel - difficulty));
 
             SkillCheckOutcome outcome = SkillCheckOutcome.FAILURE;
 
             int die = storytellerRand.Next(1, 7) + storytellerRand.Next(1, 7) + storytellerRand.Next(1, 7);
             
-            if ((die <= upperlimit & die > lowerlimit) | (upperlimit <= 4 & die <= 4)) outcome = SkillCheckOutcome.SUCCESS; 
-            else if (die <= 4 | upperlimit - die >= 10 ) outcome = SkillCheckOutcome.CRITICAL;
+            if (die <= 4 | upperlimit - die >= 10 ) outcome = SkillCheckOutcome.CRITICAL;
+            else if ((die <= upperlimit) | (upperlimit <= 4 & die <= upperlimit)) outcome = SkillCheckOutcome.SUCCESS; 
             else if (die >= 17 ) outcome = SkillCheckOutcome.FUMBLE;
             
             return outcome;
@@ -2973,13 +2995,14 @@ namespace Headlines
         /// How difficult it is for the program manager to do their job.
         /// </summary>
         /// <returns>A difficulty for a SkillCheck</returns>
-        public int GetProgramComplexity()
+        public int GetProgramComplexity(complexityDepartment department = complexityDepartment.ALL)
         {
+            List<int> wts = complexityWeights[department];
             double level = 0;
-            level += GetFacilityLevel(SpaceCenterFacility.MissionControl) * 2;
-            level += GetFacilityLevel(SpaceCenterFacility.AstronautComplex) * 2;
-            level += GetFacilityLevel(SpaceCenterFacility.ResearchAndDevelopment);
-            level += GetFacilityLevel(SpaceCenterFacility.VehicleAssemblyBuilding);
+            level += GetFacilityLevel(SpaceCenterFacility.MissionControl) * wts[0];
+            level += GetFacilityLevel(SpaceCenterFacility.AstronautComplex) * wts[1];
+            level += GetFacilityLevel(SpaceCenterFacility.ResearchAndDevelopment) * wts[2];
+            level += GetFacilityLevel(SpaceCenterFacility.VehicleAssemblyBuilding) * wts[3];
             level /= 6;
 
             return (int) Math.Round(level, MidpointRounding.AwayFromZero);
