@@ -7,6 +7,7 @@ using HiddenMarkovProcess;
 using Renamer;
 using RP0.Crew;
 using Smooth.Collections;
+using UniLinq;
 
 namespace Headlines.source
 {
@@ -147,6 +148,13 @@ namespace Headlines.source
         {
             _storyEngine = storyEngine;
             _peopleManager = _storyEngine.GetPeopleManager();
+            
+            // todo remove backward compatibility fix
+            if (_peopleManager.personnelFolders.ContainsKey(managerKey))
+            {
+                _peopleManager.GetFile(managerKey).isProgramManager = true;
+                GetProgramManagerRecord().isNPC = false;
+            }
         }
 
         public int GetVABInfluence()
@@ -466,6 +474,7 @@ namespace Headlines.source
             {
                 newRecord = new ProgramManagerRecord(crew, initialCred);
                 _record.Add(crew.UniqueName(), newRecord);
+                crew.isProgramManager = true;
                 HeadlinesUtil.Report(1, $"Adding {newRecord.name} to PM records.");
             }
             AssignProgramManager(crew.UniqueName(), initialCred);
@@ -698,6 +707,9 @@ namespace Headlines.source
 
             foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
             {
+                // Should this not be a NPC
+                if (_peopleManager.personnelFolders.ContainsKey(kvp.Key)) kvp.Value.isNPC = false;
+                
                 if (kvp.Value.isNPC)
                 {
                     NPCs.Add(kvp.Key);

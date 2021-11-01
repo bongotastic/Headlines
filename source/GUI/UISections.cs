@@ -500,7 +500,7 @@ namespace Headlines.source.GUI
                 GUILayout.EndHorizontal();
             }
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Go live in ", GUILayout.Width(145));
+            GUILayout.Label("Go live in: ", GUILayout.Width(145));
             _root.mediaInvitationDelay = Math.Max(Int32.Parse(GUILayout.TextField($"{_root.mediaInvitationDelay}", GUILayout.Width(40))), 1);
             GUILayout.Label("  days");
             GUILayout.EndHorizontal();
@@ -515,7 +515,7 @@ namespace Headlines.source.GUI
             _root.mediaCampaignLength = Math.Max(Int32.Parse(GUILayout.TextField($"{_root.mediaCampaignLength}", GUILayout.Width(40))), 1);
             if (GUILayout.Button("+", GUILayout.Width(20))) _root.mediaCampaignLength++;
             _root.mediaCampaignLength = Math.Min(_root.mediaCampaignLength, _root.mediaInvitationDelay);
-            GUILayout.Label($"  days in {_root.mediaInvitationDelay-_root.mediaCampaignLength} days.");
+            GUILayout.Label($"  days. ( Starts in {_root.mediaInvitationDelay-_root.mediaCampaignLength} days)");
             GUILayout.EndHorizontal();
             
             int nAppearance = 0;
