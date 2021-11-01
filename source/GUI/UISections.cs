@@ -515,7 +515,7 @@ namespace Headlines.source.GUI
             _root.mediaCampaignLength = Math.Max(Int32.Parse(GUILayout.TextField($"{_root.mediaCampaignLength}", GUILayout.Width(40))), 1);
             if (GUILayout.Button("+", GUILayout.Width(20))) _root.mediaCampaignLength++;
             _root.mediaCampaignLength = Math.Min(_root.mediaCampaignLength, _root.mediaInvitationDelay);
-            GUILayout.Label("  days");
+            GUILayout.Label($"  days in {_root.mediaInvitationDelay-_root.mediaCampaignLength} days.");
             GUILayout.EndHorizontal();
             
             int nAppearance = 0;
@@ -926,7 +926,14 @@ namespace Headlines.source.GUI
             {
                 WriteBullet($"The KSC complexity (due to upgrades) hinders this crew by {complexity}.");
             }
-            
+
+            if (focusCrew.EffectivenessMood() <= -2)
+            {
+                string where = "study leave";
+                if (focusCrew.Specialty() == "Pilot") where = "media training";
+                
+                WriteBullet($"{focusCrew.DisplayName()} is rather unhappy, consider sending them to {where} to clear their heads.", BulletEmote.WARNING);
+            }
             
             GUILayout.EndVertical();
         }

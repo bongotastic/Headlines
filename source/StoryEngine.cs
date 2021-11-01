@@ -2283,7 +2283,7 @@ namespace Headlines
             double decayScalar = _reputationManager.GetReputationDecay(_peopleManager.ProgramProfile());
 
             // reputation tends to program profile if too low.
-            if (decayScalar > 0)
+            if (decayScalar >= 0)
             {
                 _reputationManager.AdjustCredibility(decayScalar);
                 return;
@@ -2969,8 +2969,12 @@ namespace Headlines
         /// <returns></returns>
         public bool KerbalProtectReputationDecay()
         {
+            // Step Protection skill
+            double skill = Math.Min(3, _programManager.ManagerProfile() - 8);
+            skill = Math.Max(0, skill);
+            
             // Step 1: the program manager
-            SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(_programManager.ManagerProfile()) - 2 );
+            SkillCheckOutcome outcome = SkillCheck(GetProbabilisticLevel(skill), GetProgramComplexity());
             if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
             
             // Step 2: Any crew in media_relation mode
@@ -2979,7 +2983,9 @@ namespace Headlines
                 if (kvp.Value.IsInactive() || kvp.Value.isProgramManager) continue;
                 if (kvp.Value.kerbalTask != "media_blitz") continue;
 
-                outcome = SkillCheck(kvp.Value.Effectiveness(isMedia: true) - 3);
+                skill = Math.Min(3, kvp.Value.Effectiveness(isMedia: true) - 8);
+                skill = Math.Max(0, skill);
+                outcome = SkillCheck(GetProbabilisticLevel(skill),GetProgramComplexity());
                 if (outcome == SkillCheckOutcome.SUCCESS || outcome == SkillCheckOutcome.CRITICAL) return true;
             }
 

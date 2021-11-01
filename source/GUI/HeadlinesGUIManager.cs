@@ -25,6 +25,7 @@ namespace Headlines.source.GUI
         private static ApplicationLauncherButton stockButton;
 
         public bool _isDisplayed = false;
+        public bool _GUIvisible = true;
         public bool _showAutoAcceptedContracts = false;
         public bool _reducedMessage = false;
         public bool _showDebug = false;
@@ -118,8 +119,8 @@ namespace Headlines.source.GUI
                 GameEvents.onGUIApplicationLauncherReady.Remove(OnGuiAppLauncherReady);
                 GameEvents.onGameSceneLoadRequested.Remove(OnSceneChange);
                 GameEvents.onGameSceneSwitchRequested.Remove(OnSceneChange);
-                GameEvents.onHideUI.Remove(HideWindow);
-                GameEvents.onShowUI.Remove(ShowWindow);
+                GameEvents.onHideUI.Remove(F2KeyToggleOFF);
+                GameEvents.onShowUI.Remove(F2KeyToggleON);
 
                 if (stockButton != null)
                     ApplicationLauncher.Instance.RemoveModApplication(stockButton);
@@ -152,8 +153,8 @@ namespace Headlines.source.GUI
 
                 GameEvents.onGameSceneLoadRequested.Add(OnSceneChange);
                 GameEvents.onGameSceneSwitchRequested.Add(OnSceneChange);
-                GameEvents.onHideUI.Add(HideWindow);
-                GameEvents.onShowUI.Add(ShowWindow);
+                GameEvents.onHideUI.Add(F2KeyToggleOFF);
+                GameEvents.onShowUI.Add(F2KeyToggleON);
             }
         }
         
@@ -191,9 +192,19 @@ namespace Headlines.source.GUI
             _isDisplayed = false;
         }
 
+        private void F2KeyToggleON()
+        {
+            _GUIvisible = true;
+        }
+        
+        private void F2KeyToggleOFF()
+        {
+            _GUIvisible = false;
+        }
+
         public void OnGUI()
         {
-            if (_isDisplayed)
+            if (_isDisplayed & _GUIvisible)
             {
                 if (resizePosition)
                 {

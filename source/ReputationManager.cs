@@ -435,7 +435,7 @@ namespace Headlines.source
             double margin = programCredibility - Credibility();
             if (margin >= 0)
             {
-                return 0.5 * margin;
+                return 0;
             }
             
             return (1 - GetDecayRatio()) * margin;
