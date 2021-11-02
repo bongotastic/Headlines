@@ -754,7 +754,7 @@ namespace Headlines.source.GUI
                     GUILayout.Box("Random processes");
                     scrollHMMView =
                         GUILayout.BeginScrollView(scrollHMMView, GUILayout.Width(400), GUILayout.Height(200));
-                    foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler)
+                    foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler.OrderBy(x=>x.Value))
                     {
                         GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value - clock, true, false)} - {kvp.Key}");
                     }
