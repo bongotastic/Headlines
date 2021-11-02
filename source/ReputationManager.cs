@@ -713,6 +713,7 @@ namespace Headlines.source
             credibilityGainAllowed += 1;
             shelvedAchievements.Remove(ns);
             AdjustCredibility(ns.reputationValue, TransactionReasons.Contracts);
+            StoryEngine.Instance.FileHeadline(ns);
         }
 
         
