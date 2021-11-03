@@ -31,7 +31,6 @@ namespace Headlines.source
         public int launches = 0;
         public double managerSkill;
         public bool isNPC = true;
-        public double lastSeenRetirementDate = 0;
         public double remainingLaunches = 30;
         public double initialCredibility = 0;
         public bool reactionRecorded = false;
@@ -54,7 +53,6 @@ namespace Headlines.source
             managerSkill = crewMember.Effectiveness(deterministic:true);
             personality = crewMember.personality;
             isNPC = false;
-            lastSeenRetirementDate = CrewHandler.Instance.KerbalRetireTimes[crewMember.UniqueName()];
             remainingLaunches = 10 + (double)HeadlinesUtil.Threed6();
             initialCredibility = initialCred;
         }
@@ -74,7 +72,6 @@ namespace Headlines.source
             output.AddValue("launches", launches);
             output.AddValue("managerSkill", managerSkill);
             output.AddValue("isNPC", isNPC);
-            output.AddValue("lastSeenRetirementDate" , lastSeenRetirementDate);
             output.AddValue("initialCredibility", initialCredibility);
             output.AddValue("remainingLaunches", remainingLaunches);
             output.AddValue("reactionRecorded", reactionRecorded);
@@ -91,7 +88,6 @@ namespace Headlines.source
             HeadlinesUtil.SafeInt("launches", ref launches, node);
             HeadlinesUtil.SafeDouble("managerSkill", ref managerSkill, node);
             HeadlinesUtil.SafeBool("isNPC", ref isNPC, node);
-            HeadlinesUtil.SafeDouble("lastSeenRetirementDate", ref lastSeenRetirementDate, node);
             HeadlinesUtil.SafeDouble("remainingLaunches", ref remainingLaunches, node);
             HeadlinesUtil.SafeDouble("initialCredibility", ref initialCredibility, node);
             HeadlinesUtil.SafeBool("reactionRecorded", ref reactionRecorded, node);
@@ -110,7 +106,14 @@ namespace Headlines.source
     /// </summary>
     public class ProgramManager
     {
+        /// <summary>
+        /// The unique name of a PM, whether staff or crew
+        /// </summary>
         private string managerKey = "";
+        
+        /// <summary>
+        /// The pointer to a staff PM to fall back to
+        /// </summary>
         private ProgramManagerRecord staffProgramManagerRecord = null;
         
         int influenceVAB = 0;
@@ -142,8 +145,6 @@ namespace Headlines.source
             KSPLog.print("instanciating a new ProgramManager");
             controlLevel = ProgramControlLevel.WEAK;
             programPriority = ProgramPriority.NONE;
-
-            staffProgramManagerRecord = GenerateStaffProgramManager();
         }
 
         public void SetStoryEngine(StoryEngine storyEngine)
@@ -194,11 +195,6 @@ namespace Headlines.source
 
             HeadlinesUtil.SafeInt("influenceVAB", ref influenceVAB, node);
             HeadlinesUtil.SafeInt("influenceRnD", ref influenceRnD, node);
-            
-
-            
-            KSPLog.print("Done reading");
-
         }
 
         public ConfigNode AsConfigNode()
@@ -224,23 +220,6 @@ namespace Headlines.source
         {
             return programPriority;
         }
-
-        public string GetPriorityAsString()
-        {
-            switch (programPriority)
-            {
-                case ProgramPriority.REPUTATION:
-                    return "Reputation";
-                case ProgramPriority.PRODUCTION:
-                    return "Production";
-                case ProgramPriority.CAPACITY:
-                    return "Growth";
-                default:
-                    return "Balanced";
-            }
-        }
-        
-        
 
         public void OrderNewPriority(ProgramPriority newPriority)
         {
@@ -439,17 +418,21 @@ namespace Headlines.source
             
             if (!GetProgramManagerRecord().isNPC)
             {
+                // Remove current crew PM if crew
                 PersonnelFile oldManager = _peopleManager.GetFile(managerKey);
                 oldManager.isProgramManager = false;
+                oldManager.SetInactive(HeadlinesUtil.OneDay * 30);
             }
             
+            // Set pointer to new PM
             managerKey = pmName;
             
-            // Remove from flight ops
+            // If new PM is crew
             if (!GetProgramManagerRecord().isNPC)
             {
                 PersonnelFile newManager = _peopleManager.GetFile(managerKey);
-                newManager.SetInactive(HeadlinesUtil.GetUT() + (3600*24*30));
+                newManager.isProgramManager = true;
+                newManager.SetInactive(HeadlinesUtil.OneDay * 30);
             }
             
             // How was the program when they got there
@@ -458,17 +441,19 @@ namespace Headlines.source
                 GetProgramManagerRecord().initialCredibility = initialCred;
             }
             
-            // Length of appointment
+            // Length of appointment extended for returning 
             if (GetProgramManagerRecord().remainingLaunches <= 6)
             {
                 GetProgramManagerRecord().remainingLaunches += (double)HeadlinesUtil.randomGenerator.Next(1, 7);
             }
+            
             HeadlinesUtil.Report(1, $"Assigning {managerKey} as PM.");
         }
 
         public void AssignProgramManager(PersonnelFile crew, double initialCred)
         {
             crew.isProgramManager = true;
+            crew.GetProgramManagerRecord();
             AssignProgramManager(crew.UniqueName(), initialCred);
         }
         
@@ -550,6 +535,11 @@ namespace Headlines.source
         {
             return GetProgramManagerRecord().remainingLaunches;
         }
+
+        public bool ManagerisStaff()
+        {
+            return GetProgramManagerRecord().isNPC;
+        }
         
         public bool ManagerIsTired()
         {
@@ -563,13 +553,15 @@ namespace Headlines.source
         /// <returns>The PM record of the active PM.</returns>
         private ProgramManagerRecord GetProgramManagerRecord()
         {
+            if (staffProgramManagerRecord == null) staffProgramManagerRecord = GenerateStaffProgramManager();
+                
             // Case 1, staff PM
             if (managerKey == staffProgramManagerRecord.name) return staffProgramManagerRecord;
             
             // Case 2: crew PM
             _peopleManager = _storyEngine.GetPeopleManager();
             PersonnelFile pfile = _peopleManager.GetFile(managerKey);
-            if (pfile != null) return pfile.programManagerRecord;
+            if (pfile != null) return pfile.GetProgramManagerRecord();
             
             // Case 3: crew PM is no longer there!
             managerKey = GetDefaultProgramManagerRecord().name;
@@ -581,6 +573,10 @@ namespace Headlines.source
         /// </summary>
         public void RevertToDefaultProgramManager()
         {
+            if (ManagerisStaff() && ManagerRemainingLaunches() <= 0)
+            {
+                ReplaceStaffPM();
+            }
             AssignProgramManager(GetDefaultProgramManagerRecord().name, _storyEngine._reputationManager.CurrentReputation());
         }
 
@@ -606,7 +602,7 @@ namespace Headlines.source
         }
 
         /// <summary>
-        /// Random generation of a non-staff PM and add it to _record.
+        /// Random generation of a non-staff PM.
         /// </summary>
         private ProgramManagerRecord GenerateStaffProgramManager()
         {
@@ -624,8 +620,18 @@ namespace Headlines.source
             {
                 _storyEngine = StoryEngine.Instance;
             }
-            pmRecord.managerSkill = _storyEngine.GetProgramComplexity() + 4;
+            pmRecord.managerSkill = Math.Max(10, _storyEngine.GetProgramComplexity() + 4);
             return pmRecord;
+        }
+
+        /// <summary>
+        /// When storyteller wants a change in management.
+        /// </summary>
+        /// <param name="andAssign">Make it active PM</param>
+        public ProgramManagerRecord ReplaceStaffPM()
+        {
+            staffProgramManagerRecord = GenerateStaffProgramManager();
+            return staffProgramManagerRecord;
         }
 
         /// <summary>

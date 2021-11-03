@@ -741,8 +741,6 @@ namespace Headlines
                     this.kerbalTask = "idle";
                     break;
             }
-
-            programManagerRecord = new ProgramManagerRecord(this);
         }
 
         /// <summary>
@@ -772,29 +770,33 @@ namespace Headlines
             HeadlinesUtil.SafeDouble("fame", ref fame, node);
             HeadlinesUtil.SafeInt("numberScout", ref numberScout, node);
             HeadlinesUtil.SafeInt("fundRaised", ref fundRaised, node);
+            
             if (node.HasValue("passion"))
             {
                 passion = (PartCategories)int.Parse(node.GetValue("passion"));
             }
 
             ConfigNode people = node.GetNode("people");
-            
+
             if (people != null)
             {
                 foreach (ConfigNode.Value kerbal in people.values)
                 {
                     if (kerbal.value == "feud" && feuds.Contains(kerbal.name) == false) feuds.Add(kerbal.name);
-                    else if (kerbal.value == "collaborator" && collaborators.Contains(kerbal.name) == false) collaborators.Add(kerbal.name);
+                    else if (kerbal.value == "collaborator" && collaborators.Contains(kerbal.name) == false)
+                        collaborators.Add(kerbal.name);
                 }
             }
 
             // In-situ program manager data
-            ConfigNode pmRecord = node.GetNode("pmRecord");
-            if (pmRecord != null)
+            if (node.HasNode("pmRecord"))
             {
-                programManagerRecord = new ProgramManagerRecord(pmRecord);
+                programManagerRecord = new ProgramManagerRecord(node.GetNode("pmRecord"));
             }
-            if (programManagerRecord == null) programManagerRecord = new ProgramManagerRecord(this);
+            else
+            {
+                programManagerRecord = null;
+            }
 
             this.pcm = HighLogic.CurrentGame.CrewRoster[node.GetValue("kerbalName")];
         }
@@ -890,6 +892,19 @@ namespace Headlines
             outputProfile += (double)pcm.experience;
             
             return outputProfile;
+        }
+
+        /// <summary>
+        /// Provide a just-in-time access to the record
+        /// </summary>
+        /// <returns></returns>
+        public ProgramManagerRecord GetProgramManagerRecord()
+        {
+            if (programManagerRecord == null)
+            {
+                programManagerRecord = new ProgramManagerRecord(this);
+            }
+            return programManagerRecord;
         }
 
         #region effectiveness

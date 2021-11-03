@@ -254,7 +254,7 @@ namespace Headlines
             
             // Run AI routines for project manager
             _programManager.AI_releaseAchievements();
-            
+
             // Minimizing the profile of this method's call.
             if (_nextUpdate <= GetUT()) SchedulerUpdate(GetUT());
         }
@@ -1617,6 +1617,15 @@ namespace Headlines
             ns.AddToStory($"{_programManager.ManagerName()} retired today from the programs crew to transition definitively to the position of program manager.");
             FileHeadline(ns);
         }
+
+        public void RetireStaffProgramManager()
+        {
+            string oldname = _programManager.ManagerName();
+            ProgramManagerRecord newStaffPM = _programManager.ReplaceStaffPM();
+
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "New staff Program Manager");
+            FileHeadline(ns);
+        }
         #endregion
 
         #region HMM Logic
@@ -2005,6 +2014,7 @@ namespace Headlines
                             continue;
                         }
                         if (personnelFile.IsInactive()) continue;
+                        
                         // Program managers don't generate speciality-specific events.
                         if (registeredStateName.Contains(personnelFile.Specialty()) &
                             personnelFile.UniqueName() == _programManager.ManagerName()) continue;
@@ -2710,7 +2720,7 @@ namespace Headlines
         private void CullNewsFeed()
         {
             int maxStories = 100;
-            double month = 3600 * 24 * 30;
+            double month = HeadlinesUtil.OneDay * 30;
             double now = HeadlinesUtil.GetUT();
 
             
