@@ -454,6 +454,7 @@ namespace Headlines.source
         {
             crew.isProgramManager = true;
             crew.GetProgramManagerRecord();
+            crew.programManagerRecord.timeOfAppointment = HeadlinesUtil.GetUT();
             AssignProgramManager(crew.UniqueName(), initialCred);
         }
         
@@ -587,7 +588,7 @@ namespace Headlines.source
         /// <returns></returns>
         public bool CanBeAppointed(PersonnelFile pfile)
         {
-            return pfile.programManagerRecord.remainingLaunches > 0;
+            return pfile.GetProgramManagerRecord().remainingLaunches > 0;
         }
 
         /// <summary>
