@@ -12,6 +12,7 @@ using Headlines.source;
 using Headlines.source.Emissions;
 using Headlines.source.GUI;
 using KSP.IO;
+using RP0.Crew;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -1587,6 +1588,7 @@ namespace Headlines
                 // revert to default PM
                 _programManager.RevertToDefaultProgramManager();
             }
+            
             string finalName = _programManager.ManagerName();
             NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"{finalName} as Program Manager");
             ns.AddToStory($"{finalName} replaces {initialName} as program manager.");
@@ -1598,6 +1600,22 @@ namespace Headlines
             
             _peopleManager.MarkEffectivenessCacheDirty();
             
+        }
+
+        /// <summary>
+        /// UI-ordered transition from crew to program manager beyond retirement date.
+        /// </summary>
+        public void KerbalAppointPostRetirementPM()
+        {
+            // Make crew PM the staff PM
+            _programManager.PostRetirementAppointment();
+            
+            // Force retirement in 10 seconds
+            CrewHandler.Instance.KerbalRetireTimes[_programManager.ManagerName()] = HeadlinesUtil.GetUT() + 10;
+
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "Post-retirement appointment");
+            ns.AddToStory($"{_programManager.ManagerName()} retired today from the programs crew to transition definitively to the position of program manager.");
+            FileHeadline(ns);
         }
         #endregion
 

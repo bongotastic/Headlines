@@ -1133,6 +1133,11 @@ namespace Headlines.source.GUI
                     {
                         storyEngine.KerbalAppointProgramManager(null);
                     }
+
+                    if (GUILayout.Button("Offer post-retirement position", FullWidth()))
+                    {
+                        storyEngine.KerbalAppointPostRetirementPM();
+                    }
                 }
                 
             }

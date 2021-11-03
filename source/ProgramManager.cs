@@ -435,6 +435,8 @@ namespace Headlines.source
 
         public void AssignProgramManager(string pmName, double initialCred)
         {
+            _peopleManager = _storyEngine.GetPeopleManager();
+            
             if (!GetProgramManagerRecord().isNPC)
             {
                 PersonnelFile oldManager = _peopleManager.GetFile(managerKey);
@@ -565,6 +567,7 @@ namespace Headlines.source
             if (managerKey == staffProgramManagerRecord.name) return staffProgramManagerRecord;
             
             // Case 2: crew PM
+            _peopleManager = _storyEngine.GetPeopleManager();
             PersonnelFile pfile = _peopleManager.GetFile(managerKey);
             if (pfile != null) return pfile.programManagerRecord;
             
@@ -633,6 +636,7 @@ namespace Headlines.source
         {
             if (!GetProgramManagerRecord().isNPC)
             {
+                _peopleManager = _storyEngine.GetPeopleManager();
                 _peopleManager.GetFile(GetProgramManagerRecord().name).SetInactive(newTime);
             }
         }
@@ -780,6 +784,7 @@ namespace Headlines.source
             GetProgramManagerRecord().reactionRecorded = true;
             
             int reaction;
+            _peopleManager = _storyEngine.GetPeopleManager();
             foreach (KeyValuePair<string, PersonnelFile> kvp in _peopleManager.applicantFolders)
             {
                 if (kvp.Value.UniqueName() == managerKey) continue;
@@ -798,7 +803,16 @@ namespace Headlines.source
                 kvp.Value.AdjustDiscontent(reaction);
             }
         }
-        
+
+        /// <summary>
+        /// Assumes that this can only happen to a crew member already in the position since the button can only be shown then.
+        /// </summary>
+        public void PostRetirementAppointment()
+        {
+            ProgramManagerRecord pmRecord = GetProgramManagerRecord();
+            pmRecord.isNPC = true;
+            staffProgramManagerRecord = pmRecord;
+        }
 
         #endregion
     }
