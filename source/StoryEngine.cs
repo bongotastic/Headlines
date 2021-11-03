@@ -12,6 +12,7 @@ using Headlines.source;
 using Headlines.source.Emissions;
 using Headlines.source.GUI;
 using KSP.IO;
+using RP0.Crew;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -231,9 +232,6 @@ namespace Headlines
                     _peopleManager.initialized = true;
                 }
                 updateIndex += 1;
-                
-                // todo delete 0.6.1 backward compatibility in a while 
-                _programManager.SetInitialReputation(_reputationManager.CurrentReputation());
             }
             
             _reputationManager.SetLastKnownCredibility(Reputation.CurrentRep);
@@ -256,7 +254,7 @@ namespace Headlines
             
             // Run AI routines for project manager
             _programManager.AI_releaseAchievements();
-            
+
             // Minimizing the profile of this method's call.
             if (_nextUpdate <= GetUT()) SchedulerUpdate(GetUT());
         }
@@ -1577,8 +1575,6 @@ namespace Headlines
 
         public void KerbalAppointProgramManager(PersonnelFile newManager)
         {
-            _programManager.PerformIntegrityCheckonRecord();
-            
             string initialName = _programManager.ManagerName();
             if (newManager != null)
             {
@@ -1592,6 +1588,7 @@ namespace Headlines
                 // revert to default PM
                 _programManager.RevertToDefaultProgramManager();
             }
+            
             string finalName = _programManager.ManagerName();
             NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"{finalName} as Program Manager");
             ns.AddToStory($"{finalName} replaces {initialName} as program manager.");
@@ -1603,6 +1600,31 @@ namespace Headlines
             
             _peopleManager.MarkEffectivenessCacheDirty();
             
+        }
+
+        /// <summary>
+        /// UI-ordered transition from crew to program manager beyond retirement date.
+        /// </summary>
+        public void KerbalAppointPostRetirementPM()
+        {
+            // Make crew PM the staff PM
+            _programManager.PostRetirementAppointment();
+            
+            // Force retirement in 10 seconds
+            CrewHandler.Instance.KerbalRetireTimes[_programManager.ManagerName()] = HeadlinesUtil.GetUT() + 10;
+
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "Post-retirement appointment");
+            ns.AddToStory($"{_programManager.ManagerName()} retired today from the programs crew to transition definitively to the position of program manager.");
+            FileHeadline(ns);
+        }
+
+        public void RetireStaffProgramManager()
+        {
+            string oldname = _programManager.ManagerName();
+            ProgramManagerRecord newStaffPM = _programManager.ReplaceStaffPM();
+
+            NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, "New staff Program Manager");
+            FileHeadline(ns);
         }
         #endregion
 
@@ -1992,6 +2014,7 @@ namespace Headlines
                             continue;
                         }
                         if (personnelFile.IsInactive()) continue;
+                        
                         // Program managers don't generate speciality-specific events.
                         if (registeredStateName.Contains(personnelFile.Specialty()) &
                             personnelFile.UniqueName() == _programManager.ManagerName()) continue;
@@ -2697,7 +2720,7 @@ namespace Headlines
         private void CullNewsFeed()
         {
             int maxStories = 100;
-            double month = 3600 * 24 * 30;
+            double month = HeadlinesUtil.OneDay * 30;
             double now = HeadlinesUtil.GetUT();
 
             

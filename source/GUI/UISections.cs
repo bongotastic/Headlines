@@ -1119,7 +1119,7 @@ namespace Headlines.source.GUI
             {
                 if (PrgMgr.ManagerName() != focusCrew.UniqueName())
                 {
-                    if (focusCrew.Effectiveness(deterministic: true) >= PrgMgr.ManagerProfile(deterministic:true) && PrgMgr.CanBeAppointed(focusCrew.UniqueName()))
+                    if (focusCrew.Effectiveness(deterministic: true) >= PrgMgr.ManagerProfile(deterministic:true) && PrgMgr.CanBeAppointed(focusCrew))
                     {
                         if (GUILayout.Button("Promote to Program Manager", FullWidth()))
                         {
@@ -1132,6 +1132,11 @@ namespace Headlines.source.GUI
                     if (GUILayout.Button("Dismiss as Program Manager", FullWidth()))
                     {
                         storyEngine.KerbalAppointProgramManager(null);
+                    }
+
+                    if (GUILayout.Button("Offer post-retirement position", FullWidth()))
+                    {
+                        storyEngine.KerbalAppointPostRetirementPM();
                     }
                 }
                 
