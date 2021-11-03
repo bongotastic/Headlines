@@ -111,7 +111,7 @@ namespace Headlines.source
     public class ProgramManager
     {
         private string managerKey = "";
-        public Dictionary<string, ProgramManagerRecord> _record = new Dictionary<string, ProgramManagerRecord>();
+        private ProgramManagerRecord staffProgramManagerRecord = null;
         
         int influenceVAB = 0;
         int influenceRnD = 0;
@@ -142,6 +142,8 @@ namespace Headlines.source
             KSPLog.print("instanciating a new ProgramManager");
             controlLevel = ProgramControlLevel.WEAK;
             programPriority = ProgramPriority.NONE;
+
+            staffProgramManagerRecord = GenerateStaffProgramManager();
         }
 
         public void SetStoryEngine(StoryEngine storyEngine)
@@ -185,15 +187,16 @@ namespace Headlines.source
                 programPriority = (ProgramPriority)int.Parse(node.GetValue("programPriority"));
             }
 
+            if (node.HasNode("staffProgramManager"))
+            {
+                staffProgramManagerRecord = new ProgramManagerRecord(node.GetNode("staffProgramManager"));
+            }
+
             HeadlinesUtil.SafeInt("influenceVAB", ref influenceVAB, node);
             HeadlinesUtil.SafeInt("influenceRnD", ref influenceRnD, node);
+            
 
-            _record.Clear();
-            foreach (ConfigNode pmnode in node.GetNodes("PMRECORD"))
-            {
-                ProgramManagerRecord pmRecord = new ProgramManagerRecord(pmnode);
-                _record.Add(pmRecord.name, pmRecord);
-            }
+            
             KSPLog.print("Done reading");
 
         }
@@ -208,12 +211,8 @@ namespace Headlines.source
             node.AddValue("influenceVAB", influenceVAB);
             node.AddValue("influenceRnD", influenceRnD);
             node.AddValue("delegateNewsReleases", delegateNewsReleases);
+            node.AddNode("staffProgramManager", staffProgramManagerRecord.AsConfigNode());
 
-            foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
-            {
-                node.AddNode(kvp.Value.AsConfigNode());
-            }
-            
             return node;
         }
 
@@ -463,20 +462,11 @@ namespace Headlines.source
                 GetProgramManagerRecord().remainingLaunches += (double)HeadlinesUtil.randomGenerator.Next(1, 7);
             }
             HeadlinesUtil.Report(1, $"Assigning {managerKey} as PM.");
-
-            PerformIntegrityCheckonRecord();
         }
 
         public void AssignProgramManager(PersonnelFile crew, double initialCred)
         {
-            ProgramManagerRecord newRecord;
-            if (!_record.ContainsKey(crew.UniqueName()))
-            {
-                newRecord = new ProgramManagerRecord(crew, initialCred);
-                _record.Add(crew.UniqueName(), newRecord);
-                crew.isProgramManager = true;
-                HeadlinesUtil.Report(1, $"Adding {newRecord.name} to PM records.");
-            }
+            crew.isProgramManager = true;
             AssignProgramManager(crew.UniqueName(), initialCred);
         }
         
@@ -501,30 +491,10 @@ namespace Headlines.source
             }
             
             double output = pmRecord.managerSkill;
-            
-            // Check for post-retirement extension
-            if (!pmRecord.isNPC && HeadlinesUtil.GetUT() <= pmRecord.lastSeenRetirementDate)
-            {
-                    // Get Rid of old default PM
-                    RemoveDefaultProgramManager();
-                    
-                    // Set as NPC
-                    pmRecord.isNPC = true;
-            }
-            
 
             if (!pmRecord.isNPC)
             {
-                PersonnelFile crew = _peopleManager.GetFile(managerKey);
-                if (crew == null)
-                {
-                    HeadlinesUtil.Report(1,"PM not retrieved from PeopleManager.");
-                    pmRecord.isNPC = true;
-                }
-                else
-                {
-                    output = crew.Effectiveness(deterministic);
-                }
+                output = _peopleManager.GetFile(managerKey).Effectiveness(deterministic: true);
             }
             
             if (pmRecord.personality == "inspiring")
@@ -591,22 +561,16 @@ namespace Headlines.source
         /// <returns>The PM record of the active PM.</returns>
         private ProgramManagerRecord GetProgramManagerRecord()
         {
-            if (_record.Count == 0)
-            {
-                GenerateDefaultProgramManager();
-            }
-
-            if (_record.ContainsKey(managerKey))
-            {
-                return _record[managerKey];
-            }
-            else
-            {
-                HeadlinesUtil.Report(1, $"[PROGRAMMANAGER] PM key not found: {managerKey}");
-
-                return GetDefaultProgramManagerRecord();
-            }
+            // Case 1, staff PM
+            if (managerKey == staffProgramManagerRecord.name) return staffProgramManagerRecord;
             
+            // Case 2: crew PM
+            PersonnelFile pfile = _peopleManager.GetFile(managerKey);
+            if (pfile != null) return pfile.programManagerRecord;
+            
+            // Case 3: crew PM is no longer there!
+            managerKey = GetDefaultProgramManagerRecord().name;
+            return GetDefaultProgramManagerRecord();
         }
 
         /// <summary>
@@ -614,23 +578,17 @@ namespace Headlines.source
         /// </summary>
         public void RevertToDefaultProgramManager()
         {
-            // Prevent being stuck with only one PM
-            if (_record.Count == 1)
-            {
-                _record.Clear();
-            }
-            
             AssignProgramManager(GetDefaultProgramManagerRecord().name, _storyEngine._reputationManager.CurrentReputation());
         }
 
-        public bool CanBeAppointed(string name)
+        /// <summary>
+        /// Returns whether a crew can be apppointed again
+        /// </summary>
+        /// <param name="pfile">A personnel file</param>
+        /// <returns></returns>
+        public bool CanBeAppointed(PersonnelFile pfile)
         {
-            if (_record.ContainsKey(name))
-            {
-                if (_record[name].remainingLaunches <= 0) return false;
-            }
-
-            return true;
+            return pfile.programManagerRecord.remainingLaunches > 0;
         }
 
         /// <summary>
@@ -639,21 +597,15 @@ namespace Headlines.source
         /// <returns></returns>
         private ProgramManagerRecord GetDefaultProgramManagerRecord()
         {
-
-            foreach (KeyValuePair<string, ProgramManagerRecord> pmr in _record)
-            {
-                if (pmr.Value.isNPC) return pmr.Value;
-            }
-            
-            // Something weird is going on
-            GenerateDefaultProgramManager();
-            return GetDefaultProgramManagerRecord();
+            if (staffProgramManagerRecord != null) return staffProgramManagerRecord;
+            staffProgramManagerRecord = GenerateStaffProgramManager();
+            return staffProgramManagerRecord;
         }
 
         /// <summary>
         /// Random generation of a non-staff PM and add it to _record.
         /// </summary>
-        private void GenerateDefaultProgramManager()
+        private ProgramManagerRecord GenerateStaffProgramManager()
         {
             Random rnd = new Random();
             string name = "Leslie Kerman";
@@ -670,95 +622,7 @@ namespace Headlines.source
                 _storyEngine = StoryEngine.Instance;
             }
             pmRecord.managerSkill = _storyEngine.GetProgramComplexity() + 4;
-            _record.Add(pmRecord.name, pmRecord);
-            AssignProgramManager(pmRecord.name, _storyEngine._reputationManager.CurrentReputation());
-        }
-
-        /// <summary>
-        /// Removes the default PM unless they are appointed.
-        /// </summary>
-        public void RemoveDefaultProgramManager()
-        {
-            string pmName = null;
-            int found = 0;
-            foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
-            {
-                if (kvp.Value.isNPC & ManagerName() != kvp.Value.name)
-                {
-                    pmName = kvp.Key;
-                    found += 1;
-                }
-            }
-
-            if (pmName != null)
-            {
-                _record.Remove(pmName);
-            }
-            
-            // Just in case that there is more than one
-            if (found > 1) RemoveDefaultProgramManager();
-        }
-
-        // Ensures that there is only 1 default PM, and remove staff PM that no longer exists.
-        public void PerformIntegrityCheckonRecord()
-        {
-            List<string> NPCs = new List<string>();
-            List<string> delPMs = new List<string>();
-
-            foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
-            {
-                // Should this not be a NPC
-                if (_peopleManager.personnelFolders.ContainsKey(kvp.Key)) kvp.Value.isNPC = false;
-                
-                if (kvp.Value.isNPC)
-                {
-                    NPCs.Add(kvp.Key);
-                    if (kvp.Value.remainingLaunches <= 0)
-                    {
-                        delPMs.Add(kvp.Key);
-                    }
-                }
-                else
-                {
-                    // Check to see if valid still
-                    if (!_peopleManager.personnelFolders.ContainsKey(kvp.Key))
-                    {
-                        delPMs.Add(kvp.Key);
-                    }
-                }
-            }
-
-            if (NPCs.Count > 1)
-            {
-                if (GetProgramManagerRecord().isNPC)
-                {
-                    foreach (string pmName in NPCs)
-                    {
-                        if (pmName != managerKey)
-                        {
-                            _record.Remove(pmName);
-                        }
-                    }
-                }
-                else
-                {
-                    while (NPCs.Count > 1)
-                    {
-                        _record.Remove(NPCs[0]);
-                        NPCs.Remove(NPCs[0]);
-                    }
-                }
-            }
-            
-            foreach (string name in delPMs)
-            {
-                _record.Remove(name);
-            }
-
-            if (!_record.ContainsKey(managerKey))
-            {
-                RevertToDefaultProgramManager();
-            }
+            return pmRecord;
         }
 
         /// <summary>
@@ -780,14 +644,6 @@ namespace Headlines.source
         public void AdjustRemainingLaunches(double delta)
         {
             GetProgramManagerRecord().remainingLaunches += delta;
-        }
-
-        public void SetInitialReputation(double cred)
-        {
-            foreach (KeyValuePair<string, ProgramManagerRecord> kvp in _record)
-            {
-                if (kvp.Value.initialCredibility == 0) kvp.Value.initialCredibility = cred;
-            }
         }
         #endregion
 

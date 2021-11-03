@@ -1119,7 +1119,7 @@ namespace Headlines.source.GUI
             {
                 if (PrgMgr.ManagerName() != focusCrew.UniqueName())
                 {
-                    if (focusCrew.Effectiveness(deterministic: true) >= PrgMgr.ManagerProfile(deterministic:true) && PrgMgr.CanBeAppointed(focusCrew.UniqueName()))
+                    if (focusCrew.Effectiveness(deterministic: true) >= PrgMgr.ManagerProfile(deterministic:true) && PrgMgr.CanBeAppointed(focusCrew))
                     {
                         if (GUILayout.Button("Promote to Program Manager", FullWidth()))
                         {

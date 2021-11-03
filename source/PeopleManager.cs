@@ -700,6 +700,7 @@ namespace Headlines
         
         // Program Manager
         public bool isProgramManager = false;
+        public ProgramManagerRecord programManagerRecord = null;
         
         // relationships
         public List<string> collaborators = new List<string>();
@@ -740,6 +741,8 @@ namespace Headlines
                     this.kerbalTask = "idle";
                     break;
             }
+
+            programManagerRecord = new ProgramManagerRecord(this);
         }
 
         /// <summary>
@@ -773,9 +776,7 @@ namespace Headlines
             {
                 passion = (PartCategories)int.Parse(node.GetValue("passion"));
             }
-            
-            
-            
+
             ConfigNode people = node.GetNode("people");
             
             if (people != null)
@@ -786,6 +787,14 @@ namespace Headlines
                     else if (kerbal.value == "collaborator" && collaborators.Contains(kerbal.name) == false) collaborators.Add(kerbal.name);
                 }
             }
+
+            // In-situ program manager data
+            ConfigNode pmRecord = node.GetNode("pmRecord");
+            if (pmRecord != null)
+            {
+                programManagerRecord = new ProgramManagerRecord(pmRecord);
+            }
+            if (programManagerRecord == null) programManagerRecord = new ProgramManagerRecord(this);
 
             this.pcm = HighLogic.CurrentGame.CrewRoster[node.GetValue("kerbalName")];
         }
@@ -822,6 +831,11 @@ namespace Headlines
                 people.AddValue(kerbalName, "feud");
             }
             outputNode.AddNode("people", people);
+
+            if (programManagerRecord != null)
+            {
+                outputNode.AddNode("pmRecord", programManagerRecord.AsConfigNode());
+            } 
             
             return outputNode;
         }

@@ -231,9 +231,6 @@ namespace Headlines
                     _peopleManager.initialized = true;
                 }
                 updateIndex += 1;
-                
-                // todo delete 0.6.1 backward compatibility in a while 
-                _programManager.SetInitialReputation(_reputationManager.CurrentReputation());
             }
             
             _reputationManager.SetLastKnownCredibility(Reputation.CurrentRep);
@@ -1577,8 +1574,6 @@ namespace Headlines
 
         public void KerbalAppointProgramManager(PersonnelFile newManager)
         {
-            _programManager.PerformIntegrityCheckonRecord();
-            
             string initialName = _programManager.ManagerName();
             if (newManager != null)
             {
