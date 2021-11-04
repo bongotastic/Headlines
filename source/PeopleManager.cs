@@ -506,6 +506,9 @@ namespace Headlines
             
             int output = 3;
             
+            // nationality effect
+            if (bob.nationality == alice.nationality) output += 1;
+            
             // mutual friends
             bobCollaborators.IntersectWith(aliceCollaborators);
             output += bobCollaborators.Count * 2;
@@ -540,6 +543,9 @@ namespace Headlines
             if (bob.feuds.Contains(alice.UniqueName())) return 0;
             
             int output = 3;
+            
+            // nationality effect
+            if (bob.nationality == alice.nationality) output -= 1;
             
             // mutual friends
             bobCollaborators.IntersectWith(aliceCollaborators);
