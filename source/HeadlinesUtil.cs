@@ -1,4 +1,6 @@
-﻿using CommNet.Network;
+﻿using System.Collections.Generic;
+using System.Linq;
+using CommNet.Network;
 using KSP.UI.Screens;
 using Headlines.source.Emissions;
 using UnityEngine;
@@ -23,6 +25,26 @@ namespace Headlines.source
         {
             return randomGenerator.Next(1, 7) + randomGenerator.Next(1, 7) + randomGenerator.Next(1, 7);
         }
+        
+        /// <summary>
+        /// General purpose logic for roulette selection
+        /// </summary>
+        /// <param name="vector"></param>
+        /// <returns></returns>
+        public static string RouletteSelection(Dictionary<string, int> vector)
+        {
+            int target = randomGenerator.Next(1, Enumerable.Sum(vector.Values) + 1);
+
+            foreach (var kvp in vector)
+            {
+                if (target <= kvp.Value) return kvp.Key;
+                target -= kvp.Value;
+            }
+            
+            // Just to shut up Rider
+            return "";
+        }
+        
         /// <summary>
         /// Output textual information to the user. Significance has a related level of intrusion. 
         /// </summary>

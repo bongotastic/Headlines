@@ -1157,7 +1157,7 @@ namespace Headlines
             NewsStory ns = new NewsStory(emitData, "New collaboration");
             ns.SpecifyMainActor(personnelFile.DisplayName(), emitData);
             
-            PersonnelFile collaborator = _peopleManager.GetRandomKerbal(personnelFile);
+            PersonnelFile collaborator = _peopleManager.GetRandomNewRelation(personnelFile, isCollaborator: true);
             if (collaborator == null)
             {
                 return;
@@ -1186,8 +1186,7 @@ namespace Headlines
 
         public void KerbalFeud(PersonnelFile personnelFile, Emissions emitData)
         {
-            // todo continue here and down
-            PersonnelFile candidate = _peopleManager.GetRandomKerbal(personnelFile);
+            PersonnelFile candidate = _peopleManager.GetRandomNewRelation(personnelFile, isFeud: true);
             if (candidate == null) return;
 
             if (personnelFile.SetFeuding(candidate))

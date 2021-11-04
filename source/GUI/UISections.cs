@@ -934,7 +934,7 @@ namespace Headlines.source.GUI
                 
                 WriteBullet($"{focusCrew.DisplayName()} is rather unhappy, consider sending them to {where} to clear their heads.", BulletEmote.WARNING);
             }
-            
+
             GUILayout.EndVertical();
         }
     }

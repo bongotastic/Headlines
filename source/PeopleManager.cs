@@ -290,19 +290,6 @@ namespace Headlines
         }
 
         /// <summary>
-        /// Create a non-flight manager to run the place in absence of a high profile Project Manager
-        /// </summary>
-        /// <param name="level"></param>
-        /// <returns></returns>
-        public PersonnelFile GenerateDefaultProgramManager(int level = 0)
-        {
-            ProtoCrewMember newpcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Unowned);
-            PersonnelFile newFile = GetFile(newpcm.name);
-            newFile.Randomize(level);
-            return newFile;
-        }
-
-        /// <summary>
         /// Moves from applicants to personnel or create the file
         /// </summary>
         /// <param name="apcm">PCM from event</param>
@@ -418,7 +405,7 @@ namespace Headlines
         }
         /// <summary>
         /// Returns the unique name of a random kerbal on staff. Will not return anyone on the exclude list. Meant to be
-        /// usable for many purposes. The two parameter should not be used together.
+        /// usable for many purposes. The two parameters should not be used together.
         /// </summary>
         /// <param name="exclude">identifiers of kerbal to exclude from selection</param>
         /// <param name="subset">restrict selection to this subset</param>
@@ -460,6 +447,116 @@ namespace Headlines
         {
             List<string> excludeme = new List<string>() { exclude.UniqueName() };
             return GetRandomKerbal(excludeme, subset);
+        }
+
+        /// <summary>
+        /// Perform a selection based on existing social network in the KSC. One of the two optional boolean must be true.
+        /// </summary>
+        /// <param name="focuscrew"></param>
+        /// <param name="isCollaborator"></param>
+        /// <param name="isFeud"></param>
+        /// <returns></returns>
+        public PersonnelFile GetRandomNewRelation(PersonnelFile focuscrew, bool isCollaborator = false, bool isFeud = false)
+        {
+            // Don't max out on relations
+            double magicNumber = ((double)focuscrew.collaborators.Count + 1) / (double)personnelFolders.Count;
+            if (isFeud) magicNumber = ((double)focuscrew.feuds.Count + 1) / (double)personnelFolders.Count;
+            if (randomNG.NextDouble() <= magicNumber) return null;
+            
+            // Proceed with selection
+            Dictionary<string, int> weigths = new Dictionary<string, int>();
+            foreach (var kvp in personnelFolders)
+            {
+                if (kvp.Key != focuscrew.UniqueName())
+                {
+                    if (isCollaborator)
+                    {
+                        weigths.Add(kvp.Key, ComputePotentialCollaborationWeight(focuscrew, kvp.Value));
+                    }
+                    else if (isFeud)
+                    {
+                        weigths.Add(kvp.Key, ComputePotentialFeudWeight(focuscrew, kvp.Value));
+                    }
+                }
+            }
+
+            if (weigths.Count == 0) return null;
+
+            string newCollaborator = HeadlinesUtil.RouletteSelection(weigths);
+            if (newCollaborator == "") return null;
+
+            return GetFile(newCollaborator);
+        }
+
+
+        /// <summary>
+        /// Determine an arbitrary weight for two crew to potentially become collaborators based on their social network.
+        /// </summary>
+        /// <param name="bob"></param>
+        /// <param name="alice"></param>
+        /// <returns></returns>
+        private int ComputePotentialCollaborationWeight(PersonnelFile bob, PersonnelFile alice)
+        {
+            HashSet<string> bobCollaborators = new HashSet<string>(bob.collaborators);
+            HashSet<string> bobFeuds = new HashSet<string>(bob.feuds);
+            HashSet<string> aliceCollaborators = new HashSet<string>(alice.collaborators);
+            HashSet<string> aliceFeuds = new HashSet<string>(alice.feuds);
+
+            if (bob.collaborators.Contains(alice.UniqueName())) return 0;
+            
+            int output = 3;
+            
+            // mutual friends
+            bobCollaborators.IntersectWith(aliceCollaborators);
+            output += bobCollaborators.Count * 2;
+            bobCollaborators = new HashSet<string>(bob.collaborators);
+            
+            // mutual rival
+            bobFeuds.IntersectWith(aliceFeuds);
+            output += bobFeuds.Count;
+            bobFeuds = new HashSet<string>(bob.feuds);
+            
+            // contradictions
+            bobCollaborators.IntersectWith(aliceFeuds);
+            aliceCollaborators.IntersectWith(bobFeuds);
+            output -= (bobCollaborators.Count + aliceCollaborators.Count);
+
+            return Math.Max(output, 1);
+        }
+        
+        /// <summary>
+        /// Determine an arbitrary weight for two crew to potentially develop a feud based on their social network.
+        /// </summary>
+        /// <param name="bob"></param>
+        /// <param name="alice"></param>
+        /// <returns></returns>
+        private int ComputePotentialFeudWeight(PersonnelFile bob, PersonnelFile alice)
+        {
+            HashSet<string> bobCollaborators = new HashSet<string>(bob.collaborators);
+            HashSet<string> bobFeuds = new HashSet<string>(bob.feuds);
+            HashSet<string> aliceCollaborators = new HashSet<string>(alice.collaborators);
+            HashSet<string> aliceFeuds = new HashSet<string>(alice.feuds);
+
+            if (bob.feuds.Contains(alice.UniqueName())) return 0;
+            
+            int output = 3;
+            
+            // mutual friends
+            bobCollaborators.IntersectWith(aliceCollaborators);
+            output -= bobCollaborators.Count;
+            bobCollaborators = new HashSet<string>(bob.collaborators);
+            
+            // mutual rival
+            bobFeuds.IntersectWith(aliceFeuds);
+            output -= bobFeuds.Count;
+            bobFeuds = new HashSet<string>(bob.feuds);
+            
+            // contradictions
+            bobCollaborators.IntersectWith(aliceFeuds);
+            aliceCollaborators.IntersectWith(bobFeuds);
+            output += (bobCollaborators.Count + aliceCollaborators.Count);
+
+            return Math.Max(output, 1);
         }
 
         public void OperationalDeathShock(string deceased)
