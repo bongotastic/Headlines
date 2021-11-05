@@ -12,6 +12,11 @@ using Enumerable = UniLinq.Enumerable;
 
 namespace Headlines.source.GUI
 {
+    public enum crewFilterType
+    {
+        ALL, PILOTS, ENGINEERS, SCIENTISTS
+    }
+    
     [KSPAddon(KSPAddon.Startup.FlightEditorAndKSC, false)]
     public class HeadlinesGUIManager : MonoBehaviour
     {
@@ -32,6 +37,7 @@ namespace Headlines.source.GUI
         
         private int _activeTabIndex = 0;
         private int _selectedCrew = 0;
+        private crewFilterType _filterCode = crewFilterType.ALL;
         public int _currentActivity = 0;
         public int _priority = 0;
 
@@ -60,6 +66,7 @@ namespace Headlines.source.GUI
         private static string[] tabs = new[] { "Program", "Media", "Feed", "Personnel", "Recruit","Story"};
         private static string[] flightTabs = new[] { "Program", "Media", "Story"};
         public static string[] priorities = new[] { "Balanced", "Reputation", "Production", "Growth"};
+        public static string[] crewFilter = new[] { "All", "Pilots", "Engineers", "Scientists"};
 
         public int mediaInvitationDelay = 1;
         public int mediaCampaignLength = 1;
@@ -423,32 +430,39 @@ namespace Headlines.source.GUI
         {
             RefreshRoster();
 
-            if (crewRoster.Count == 0) return;
-            
             // Crew member selector
             GUILayout.BeginVertical();
-            GUILayout.Box("Active crew");
-            
-            SwitchCrew(GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3, FullWidth()));
-            if (_selectedCrew >= crewRoster.Count)
-            {
-                _selectedCrew = 0;
-            }
-            GUIPad();
-            
-            // Crew information part
-            DrawSection("PersonnelProfile");
-            DrawSection("PersonnelImpact");
-            DrawSection("PersonnelActivity");
-            if (GetFocusCrew().collaborators.Count + GetFocusCrew().feuds.Count != 0)
-            {
-                DrawSection("PersonnelRelationships");
-            }
 
-            if (storyEngine.GetNumberNewsAbout(crewRoster[_selectedCrew]) != 0)
+            if (crewRoster.Count != 0)
             {
-                DrawSection("PersonnelNewsFeed");
+                GUILayout.Box("Active crew");
+                SwitchCrew(GUILayout.SelectionGrid(_selectedCrew, crewRoster.ToArray(), 3, FullWidth()));
+                if (_selectedCrew >= crewRoster.Count)
+                {
+                    _selectedCrew = 0;
+                }
+                GUIPad();
+            
+                // Crew information part
+                DrawSection("PersonnelProfile");
+                DrawSection("PersonnelImpact");
+                DrawSection("PersonnelActivity");
+                if (GetFocusCrew().collaborators.Count + GetFocusCrew().feuds.Count != 0)
+                {
+                    DrawSection("PersonnelRelationships");
+                }
+
+                if (storyEngine.GetNumberNewsAbout(crewRoster[_selectedCrew]) != 0)
+                {
+                    DrawSection("PersonnelNewsFeed");
+                }
             }
+            
+            // Filtering code
+            GUILayout.Box("Show", FullWidth());
+            crewFilterType oldFilter = _filterCode; 
+            _filterCode = (crewFilterType)GUILayout.SelectionGrid((int)_filterCode, crewFilter, 4,FullWidth());
+            if (oldFilter != _filterCode) resizePosition = true;
             
             GUILayout.EndVertical();
      
@@ -787,9 +801,11 @@ namespace Headlines.source.GUI
         {
             peopleManager = storyEngine.GetPeopleManager();
 
-            crewRoster = peopleManager.RankCrewMembers();
+            crewRoster = peopleManager.RankCrewMembers(_filterCode);
 
             applicantRoster = new List<string>();
+            bool addthis = false;
+            
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)
             {
                 applicantRoster.Add(kvp.Value.UniqueName());

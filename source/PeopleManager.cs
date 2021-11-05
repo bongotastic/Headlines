@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CommNet.Network;
 using KerbalConstructionTime;
 using Headlines.source;
+using Headlines.source.GUI;
 using Smooth.Collections;
 using UniLinq;
 using Enumerable = System.Linq.Enumerable;
@@ -704,13 +705,30 @@ namespace Headlines
         /// </summary>
         /// <remarks>This could be done in one step, but is fighting me rn.</remarks>
         /// <returns></returns>
-        public List<string> RankCrewMembers()
+        public List<string> RankCrewMembers(crewFilterType _filterCode)
         {
             List<PersonnelFile> temp =new List<PersonnelFile>();
 
+            bool addthis = false;
             foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
             {
-                temp.Add(kvp.Value);    
+                addthis = false;
+                switch (_filterCode)
+                {
+                    case crewFilterType.ALL:
+                        addthis = true;
+                        break;
+                    case crewFilterType.PILOTS:
+                        addthis = kvp.Value.Specialty() == "Pilot";
+                        break;
+                    case crewFilterType.ENGINEERS:
+                        addthis = kvp.Value.Specialty() == "Engineer";
+                        break;
+                    case crewFilterType.SCIENTISTS:
+                        addthis = kvp.Value.Specialty() == "Scientist";
+                        break;
+                }
+                if (addthis) temp.Add(kvp.Value);    
             }
 
             List<string> output = new List<string>();
