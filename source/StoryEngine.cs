@@ -3033,6 +3033,9 @@ namespace Headlines
             level += GetFacilityLevel(SpaceCenterFacility.VehicleAssemblyBuilding) * wts[3];
             level /= 6;
 
+            // Complexity varies with number of crew members 
+            level -= (int)Math.Floor((double)_peopleManager.personnelFolders.Count / 6);
+
             return (int) Math.Round(level, MidpointRounding.AwayFromZero);
         }
 
