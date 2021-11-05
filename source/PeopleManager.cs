@@ -741,6 +741,17 @@ namespace Headlines
             return output;
         }
 
+        /// <summary>
+        /// Returns the number of crew of a certain type, or all crew with no provided parameter
+        /// </summary>
+        /// <param name="crewType">either nothing or a KSP type</param>
+        /// <returns></returns>
+        public int GetCrewCount(string crewType = "All")
+        {
+            if (crewType == "All") return personnelFolders.Count;
+            return personnelFolders.Count(x => x.Value.Specialty() == crewType);
+        }
+
         public void MarkEffectivenessCacheDirty()
         {
             foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)

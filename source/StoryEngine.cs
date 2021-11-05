@@ -3034,7 +3034,20 @@ namespace Headlines
             level /= 6;
 
             // Complexity varies with number of crew members 
-            level -= (int)Math.Floor((double)_peopleManager.personnelFolders.Count / 6);
+            int n = 0;
+            if (department == complexityDepartment.ALL)
+            {
+                n = _peopleManager.GetCrewCount();
+            }
+            else if (department == complexityDepartment.RnD)
+            {
+                n = _peopleManager.GetCrewCount("Scientist");
+            }
+            else
+            {
+                n = _peopleManager.GetCrewCount("Engineer");
+            }
+            level -= (int)Math.Floor((double)n / 6);
 
             return (int) Math.Round(level, MidpointRounding.AwayFromZero);
         }
