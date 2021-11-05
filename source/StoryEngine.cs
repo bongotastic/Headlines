@@ -3178,14 +3178,19 @@ namespace Headlines
 
         public int UpgradeIncrementVAB()
         {
+            double percent = 0.05 * Math.Pow(0.85, GetProgramComplexity(department: complexityDepartment.VAB));
             int purchased = GetVABPoints() - GUIVABEnhancement();
-            return Math.Max(1, GetProbabilisticLevel((double)purchased * 0.05));
+            HeadlinesUtil.Report(2, $"Increment (VAB) {Math.Max(1, GetProbabilisticLevel((double)purchased * percent))} @ {percent}");
+            return Math.Max(1, GetProbabilisticLevel((double)purchased * percent));
         }
         
         public int UpgradeIncrementRnD()
         {
+            double percent = 0.05 * Math.Pow(0.85, GetProgramComplexity(department: complexityDepartment.RnD));
             int purchased = GetRnDPoints() - GUIRnDEnhancement();
-            return Math.Max(1, GetProbabilisticLevel((double)purchased * 0.05));
+            HeadlinesUtil.Report(2, $"Increment (R&D) {Math.Max(1, GetProbabilisticLevel((double)purchased * percent))} @ {percent}");
+            return Math.Max(1, GetProbabilisticLevel((double)purchased * percent));
+            
         }
 
         /// <summary>

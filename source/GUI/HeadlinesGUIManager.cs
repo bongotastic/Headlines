@@ -804,8 +804,7 @@ namespace Headlines.source.GUI
             crewRoster = peopleManager.RankCrewMembers(_filterCode);
 
             applicantRoster = new List<string>();
-            bool addthis = false;
-            
+
             foreach (KeyValuePair<string, PersonnelFile> kvp in peopleManager.applicantFolders)
             {
                 applicantRoster.Add(kvp.Value.UniqueName());
