@@ -643,7 +643,7 @@ namespace Headlines
         public void CrewedLaunchReputation()
         {
             // automatically begin a live event if in the media event window
-            if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN)
+            if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN && _reputationManager.mediaLaunchTriggersLive)
             {
                 double now = HeadlinesUtil.GetUT();
                 if (now >= _reputationManager.airTimeStarts && now <= _reputationManager.airTimeEnds)
