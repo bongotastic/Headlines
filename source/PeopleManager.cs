@@ -15,7 +15,7 @@ namespace Headlines
     /// This class manages the Kerbal interface of the Storyteller mod: a mix of HR and the PR department.
     /// </summary>
     //[KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames, GameScenes.SPACECENTER)]
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames,
+    [KSPScenario(ScenarioCreationOptions.AddToExistingCareerGames | ScenarioCreationOptions.AddToNewCareerGames,
         new GameScenes[] { GameScenes.EDITOR, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION })]
     public class PeopleManager : ScenarioModule
     {

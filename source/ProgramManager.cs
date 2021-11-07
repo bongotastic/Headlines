@@ -207,7 +207,10 @@ namespace Headlines.source
             node.AddValue("influenceVAB", influenceVAB);
             node.AddValue("influenceRnD", influenceRnD);
             node.AddValue("delegateNewsReleases", delegateNewsReleases);
-            node.AddNode("staffProgramManager", staffProgramManagerRecord.AsConfigNode());
+            if (staffProgramManagerRecord != null)
+            {
+                node.AddNode("staffProgramManager", staffProgramManagerRecord.AsConfigNode());
+            }
 
             return node;
         }

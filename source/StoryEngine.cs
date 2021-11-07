@@ -45,7 +45,7 @@ namespace Headlines
 
     //[KSPScenario(ScenarioCreationOptions.AddToNewCareerGames | ScenarioCreationOptions.AddToExistingCareerGames,
     //    GameScenes.SPACECENTER | GameScenes.FLIGHT )]
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] { GameScenes.EDITOR, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION })]
+    [KSPScenario(ScenarioCreationOptions.AddToExistingCareerGames | ScenarioCreationOptions.AddToNewCareerGames, new GameScenes[] { GameScenes.EDITOR, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION })]
     public class StoryEngine : ScenarioModule
     {
         #region Declarations
@@ -72,7 +72,7 @@ namespace Headlines
         // Cached value for the next trigger so the Scheduler doesn't have to scan constantly
         private double _nextUpdate = -1;
 
-        // Master switch of the mod's tempo in second. Should be 36 days for a real run. 
+        // Master switch of the mod's tempo in second.  
         private double _assumedPeriod = 3600 * 24;
 
         // Prevent infinite recursion
@@ -1232,7 +1232,16 @@ namespace Headlines
         public void KerbalResignation(PersonnelFile personnelFile, Emissions emitData, bool trajedy = false)
         {
             Debug($"Kerbal resignation for {personnelFile.DisplayName()}");
-            HeadlinesUtil.Report(2, $"BREAKING: {personnelFile.DisplayName()} resigns!");
+            if (!trajedy)
+            {
+                HeadlinesUtil.Report(2, $"BREAKING: {personnelFile.DisplayName()} resigns!");
+            }
+            else
+            {
+                HeadlinesUtil.Report(2, $"BREAKING: Trajedy befalls to {personnelFile.DisplayName()}!");
+            }
+            
+            
             TimeWarp.SetRate(0,false);
             
             // Message
@@ -3209,9 +3218,27 @@ namespace Headlines
         /// <param name="deltaPoint">number of point to change</param>
         public void AdjustRnD(int deltaPoint)
         {
+            /*
             KSCItem ksc = KCTGameStates.ActiveKSC;
             ksc.RDUpgrades[0] += deltaPoint;
             KCTGameStates.PurchasedUpgrades[0] += deltaPoint;
+            
+            foreach (TechItem tech in KCTGameStates.TechList)
+            {
+                tech.UpdateBuildRate(KCTGameStates.TechList.IndexOf(tech));
+            }*/
+            
+            KCTGameStates.TechUpgradesTotal += deltaPoint;
+            foreach (KSCItem ksc in KCTGameStates.KSCs)
+                ksc.RDUpgrades[1] = KCTGameStates.TechUpgradesTotal;
+
+            foreach (TechItem tech in KCTGameStates.TechList)
+            {
+                tech.UpdateBuildRate(KCTGameStates.TechList.IndexOf(tech));
+            }
+            
+            KCTGameStates.PurchasedUpgrades[0] += deltaPoint;
+            
             Debug( $"Adjust R&D points by {deltaPoint}.");
         }
 
@@ -3224,6 +3251,8 @@ namespace Headlines
             KSCItem ksc = KCTGameStates.ActiveKSC;
             ksc.VABUpgrades[line] += deltaPoint;
             KCTGameStates.PurchasedUpgrades[0] += deltaPoint;
+            ksc.RecalculateBuildRates();
+            ksc.RecalculateUpgradedBuildRates();
             Debug( $"Adjust VAB points by {deltaPoint}.");
         }
 

@@ -91,6 +91,7 @@
     <Content Include="GameData\Headlines\HMM.cfg" />
     <Content Include="GameData\Headlines\kerbals.cfg" />
     <Content Include="GameData\Headlines\kerbalsHMM.cfg" />
+    <Content Include="GameData\Headlines\parameters.cfg" />
     <Content Include="GameData\Headlines\patches.cfg" />
     <Content Include="Notes\notes.txt" />
     <Content Include="Notes\Roadmap.txt" />
