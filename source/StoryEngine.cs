@@ -2970,6 +2970,19 @@ namespace Headlines
         {
             _reputationManager.IssuePressReleaseFor(ns);
             FileHeadline(ns);
+
+            // Give some fame to crew, but not as much as it if had been live.
+            if (ns.reputationValue != 0)
+            {
+                foreach (var crewName in ns.actors)
+                {
+                    PersonnelFile crew = _peopleManager.GetFile(crewName);
+                    if (crew != null)
+                    {
+                        crew.AddFame(ns.reputationValue/(4 * ns.actors.Count));
+                    }
+                }
+            }
         }
 
         /// <summary>
