@@ -1022,7 +1022,8 @@ namespace Headlines
                 switch (impactType)
                 {
                     case ImpactType.NEGATIVE:
-                        deltaVAB *= -1;
+                        if (GetVABPoints() > deltaVAB) deltaVAB *= -1;
+                        else deltaVAB = 0;
                         message = $"{kerbalFile.DisplayName()} sows confusion in the VAB.";
                         kerbalFile.influence += deltaVAB;
                         break;
