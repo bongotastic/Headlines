@@ -1480,7 +1480,10 @@ namespace Headlines
         /// <param name="emitData"></param>
         public void KerbalScoutTalent(PersonnelFile personnelFile, Emissions emitData)
         {
-            programPayrollRebate += 1;
+            if (HeadlinesUtil.randomGenerator.NextDouble() < Math.Pow(0.933, programPayrollRebate))
+            {
+                programPayrollRebate += 1;
+            }
             personnelFile.numberScout += 1;
             personnelFile.fundRaised += 40000;
             

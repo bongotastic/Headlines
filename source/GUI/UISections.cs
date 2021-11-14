@@ -814,7 +814,15 @@ namespace Headlines.source.GUI
                 storyEngine.IssuePressRelease(ns);
                 _root.resizePosition = true;
             }
-            GUILayout.Label($"{ns.headline} ({Math.Round(ns.reputationValue,1,MidpointRounding.AwayFromZero)})", GUILayout.Width(sectionWidth-60));
+
+            if (RepMgr.currentMode == MediaRelationMode.CAMPAIGN)
+            {
+                GUILayout.Label($"{ns.headline} ({Math.Round(RepMgr.TransformReputation(ns.reputationValue * 2, RepMgr.CurrentReputation()),1,MidpointRounding.AwayFromZero)} hype)", GUILayout.Width(sectionWidth-60));
+            }
+            else
+            {
+                GUILayout.Label($"{ns.headline} ({Math.Round(RepMgr.TransformReputation(ns.reputationValue),1,MidpointRounding.AwayFromZero)} rep)", GUILayout.Width(sectionWidth-60));
+            }
             GUILayout.EndHorizontal();
         }
         
