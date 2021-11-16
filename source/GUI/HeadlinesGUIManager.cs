@@ -226,6 +226,8 @@ namespace Headlines.source.GUI
 
         private void ReadStates()
         {
+            if (storyEngine == null) storyEngine = StoryEngine.Instance;
+            
             if (storyEngine.UIStates != null)
             {
                 stateRead = true;
