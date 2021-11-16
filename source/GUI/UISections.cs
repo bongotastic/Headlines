@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using CommNet.Network;
 using Contracts;
 using Headlines.source.Emissions;
@@ -1289,6 +1290,69 @@ namespace Headlines.source.GUI
         }
     }
     
+    #endregion
+
+    #region Story
+
+    public class UISectionDebug : UISection
+    {
+        public UISectionDebug(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
+        {
+            hasCompact = true;
+            hasExtended = true;
+            hasHelp = false;
+
+            _state = UIBoxState.COMPACT;
+        }
+
+        protected override string HeadString()
+        {
+            return $"Under the hood";
+        }
+
+        protected override void DrawCompact()
+        {
+            
+        }
+
+        protected override void DrawExtended()
+        {
+            GUILayout.BeginVertical();
+            
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Simulate Rep change", GUILayout.Width(150)))
+            {
+                HeadlinesUtil.Report(2, $"Once {_root._debugRepDelta}, now {RepMgr.TransformReputation(_root._debugRepDelta)}");
+            }
+            if (GUILayout.Button("Simulate hype change", GUILayout.Width(150)))
+            {
+                HeadlinesUtil.Report(2, $"Once {_root._debugRepDelta}, now {RepMgr.TransformReputation(_root._debugRepDelta, RepMgr.CurrentReputation())}");
+            }
+
+            _root._debugRepDelta = double.Parse(GUILayout.TextField($"{_root._debugRepDelta}", GUILayout.Width(80)));
+            GUILayout.EndHorizontal();
+            
+            _root.GUIPad();
+            GUILayout.Box("Random processes");
+            double clock = HeadlinesUtil.GetUT();
+            _root.scrollHMMView =
+                GUILayout.BeginScrollView(_root.scrollHMMView, GUILayout.Width(400), GUILayout.Height(200));
+            foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler.OrderBy(x=>x.Value))
+            {
+                GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value - clock, true, false)} - {kvp.Key}");
+            }
+
+            GUILayout.EndScrollView();
+            
+            GUILayout.EndVertical();
+        }
+        
+        protected override void DrawHelp()
+        {
+            
+        }
+    }    
+
     #endregion
 
     /// <summary>

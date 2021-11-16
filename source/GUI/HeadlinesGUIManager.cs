@@ -54,7 +54,7 @@ namespace Headlines.source.GUI
         public bool stateRead = false;
 
         private Vector2 scrollFeedView = new Vector2(0,0);
-        private Vector2 scrollHMMView = new Vector2(0,0);
+        public Vector2 scrollHMMView = new Vector2(0,0);
         private Vector2 scrollReleases = new Vector2(0, 0);
         public Vector2 scrollRelationships = new Vector2(0, 0);
         
@@ -75,8 +75,8 @@ namespace Headlines.source.GUI
         /// UISections
         /// </summary>
         private Dictionary<string, UISection> _section = new Dictionary<string, UISection>();
-        
-        private double  _debugRepDelta = 0;
+
+        public double  _debugRepDelta = 0;
         
         #endregion
 
@@ -114,6 +114,7 @@ namespace Headlines.source.GUI
             _section.Add("PersonnelActivity", new UISectionPersonnelActivity(this));
             _section.Add("PersonnelRelationships", new UISectionPersonnelRelationships(this));
             _section.Add("PersonnelNewsFeed", new UISectionPersonnelNewsFeed(this));
+            _section.Add("Debug", new UISectionDebug(this));
             
             ReadStates();
         }
@@ -710,8 +711,9 @@ namespace Headlines.source.GUI
             GUIPad();
             if (!HighLogic.LoadedSceneIsFlight)
             {
-
-                if (_showDebug)
+                DrawSection("Debug");
+                /*
+                 if (_showDebug)
                 {
 
                     GUILayout.Box("Beta testing");
@@ -784,7 +786,7 @@ namespace Headlines.source.GUI
                 {
                     _showDebug = temp;
                     resizePosition = true;
-                }
+                }*/
             }
 
             GUILayout.EndVertical(); // primary end of the stack
