@@ -536,7 +536,7 @@ namespace Headlines.source
         /// <returns></returns>
         public double GetDecayRatio()
         {
-            double ratio = 0.933;
+            double ratio = 0.955;
             if (Credibility() > 500)
             {
                 ratio -= ((Credibility() - 500) / 500) * 0.08;
