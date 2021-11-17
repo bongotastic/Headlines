@@ -2978,12 +2978,12 @@ namespace Headlines
                 if (credibilityAdjustment < 0)
                 {
                     HeadlinesUtil.Report(2, $"Coming off live with a credibility loss of {credibilityAdjustment}");
-                    ns.AddToStory($"The media crews are leaving disappointed. (Rep: {Math.Round(credibilityAdjustment,2)})");
+                    ns.AddToStory($"Media crews are leaving disappointed. (Rep: {Math.Round(credibilityAdjustment,2)})");
                     ns.headline = "Media debrief: failure";
                 }
                 else
                 {
-                    ns.AddToStory($"The media crews are leaving impressed. (Hype: {Math.Round(_reputationManager.Hype(),2)})");
+                    ns.AddToStory($"Media crews are leaving impressed. (Hype: {Math.Round(_reputationManager.Hype(),2)})");
                     ns.headline = "Media debrief: Success";
                     _programManager.AdjustRemainingLaunches(0.5);
                 }
