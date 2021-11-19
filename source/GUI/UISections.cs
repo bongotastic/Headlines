@@ -577,6 +577,11 @@ namespace Headlines.source.GUI
                 RepMgr.CancelMediaEvent();
             }
 
+            if (GUILayout.Button("Postpone event by one day", FullWidth()))
+            {
+                RepMgr.PostponeLiveEvent(1);
+            }
+
             if (now >= RepMgr.airTimeStarts)
             {
 

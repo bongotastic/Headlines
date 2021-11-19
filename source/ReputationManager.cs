@@ -432,7 +432,7 @@ namespace Headlines.source
         /// <returns></returns>
         public double GetReputationDecay(double programCredibility)
         {
-            double margin = programCredibility - Credibility();
+            double margin = 100 + programCredibility - Credibility();
             if (margin >= 0)
             {
                 return 0;
@@ -766,6 +766,25 @@ namespace Headlines.source
         public void ExtendLiveEvent()
         {
             airTimeEnds += 3600 * 24 * 10;
+        }
+
+        /// <summary>
+        /// Add nDay to the latest time an even must go live
+        /// </summary>
+        public void PostponeLiveEvent(double nDay)
+        {
+            // Push back
+            airTimeEnds += nDay * HeadlinesUtil.OneDay;
+            
+            // Affect hype by 2% per day
+            AdjustHype(-0.02 * nDay * programHype);
+            
+            if (KACWrapper.APIReady)
+            {
+                KACWrapper.KAC.DeleteAlarm(airTimeCloseAlarm);
+                airTimeCloseAlarm = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Latest live launch", airTimeEnds);
+                
+            }
         }
 
         /// <summary>
