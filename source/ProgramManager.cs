@@ -475,6 +475,7 @@ namespace Headlines.source
         /// <returns></returns>
         public double ManagerProfile(bool deterministic = false)
         {
+            if (_storyEngine == null) _storyEngine = StoryEngine.Instance;
             if (_peopleManager == null) _storyEngine.GetPeopleManager();
             
             ProgramManagerRecord pmRecord = GetProgramManagerRecord();
