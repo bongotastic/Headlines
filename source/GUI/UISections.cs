@@ -165,7 +165,7 @@ namespace Headlines.source.GUI
             
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Manager: {PrgMgr.ManagerName()}", GUILayout.Width(sectionWidth/2));
-            GUILayout.Label($"Profile: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile())}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"Background: {PrgMgr.ManagerBackground()}", GUILayout.Width(sectionWidth/2));
             GUILayout.EndHorizontal();
             
             GUILayout.BeginHorizontal();
@@ -184,7 +184,6 @@ namespace Headlines.source.GUI
             {
                 GUILayout.Label($"Trait: {PrgMgr.ManagerPersonality()}", GUILayout.Width(sectionWidth/2));
             }
-            GUILayout.Label($"Background: {PrgMgr.ManagerBackground()}", GUILayout.Width(sectionWidth/2));
             GUILayout.EndHorizontal();
             
             GUILayout.EndVertical();
@@ -235,7 +234,7 @@ namespace Headlines.source.GUI
                     WriteBullet("A bland PM underperforms in this position.", BulletEmote.WARNING);
                     break;
                 case "charming":
-                    WriteBullet("A charming PM protects the program's reputation with confidence.");
+                    WriteBullet("A charming PM protects better the program's reputation.");
                     break;
             }
             
@@ -264,6 +263,11 @@ namespace Headlines.source.GUI
             if (RepMgr.CurrentReputation() - initCred >= 50)
             {
                 WriteBullet("Is on a high due to their successes.", BulletEmote.THUMBUP);
+            }
+
+            if (storyEngine.GetProgramComplexity() > 1)
+            {
+                WriteBullet("Program complexity challenges the PM.");
             }
 
             GUILayout.EndVertical();
@@ -952,6 +956,28 @@ namespace Headlines.source.GUI
                 if (focusCrew.Specialty() == "Pilot") where = "media training";
                 
                 WriteBullet($"{focusCrew.DisplayName()} is rather unhappy, consider sending them to {where} to clear their heads.", BulletEmote.WARNING);
+            }
+
+            switch (focusCrew.personality)
+            {
+                case "stubborn":
+                    WriteBullet("Stubborn: Dislike being told what to do.");
+                    break;
+                case "genial":
+                    WriteBullet("Genial: Natural collaborator.");
+                    break;
+                case "inspiring":
+                    WriteBullet("Inspiring: natural leader.");
+                    break;
+                case "charming":
+                    WriteBullet("Charming: great with the press.");
+                    break;
+                case "scrapper":
+                    WriteBullet("Scrapper: tend to get into fights.");
+                    break;
+                case "bland":
+                    WriteBullet("Bland: struggles with the press.");
+                    break;
             }
 
             GUILayout.EndVertical();
