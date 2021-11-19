@@ -2317,26 +2317,8 @@ namespace Headlines
             spaceCrazeTimeMultiplier *= power;
 
             // Clamp this factor within reasonable boundaries
-            spaceCrazeTimeMultiplier = Math.Max(Math.Pow(power, -5), spaceCrazeTimeMultiplier); // min is 0.47
-            spaceCrazeTimeMultiplier = Math.Min(Math.Pow(power, 3), spaceCrazeTimeMultiplier); // max is 1.56
-
-            // Let player know without spamming the screen
-            if (increment > 0 && spaceCrazeTimeMultiplier > 1.61)
-            {
-                Emissions em = new Emissions("attention_span_long");
-                NewsStory ns = new NewsStory(em);
-                ns.headline = "Pressure lowers on you";
-                ns.AddToStory(em.GenerateStory());
-                FileHeadline(ns);
-            }
-            else if (spaceCrazeTimeMultiplier <= 1)
-            {
-                Emissions em = new Emissions("attention_span_short");
-                NewsStory ns = new NewsStory(em);
-                ns.headline = "Space craze is high";
-                ns.AddToStory(em.GenerateStory());
-                FileHeadline(ns);
-            }
+            spaceCrazeTimeMultiplier = Math.Max(Math.Pow(power, -1), spaceCrazeTimeMultiplier); // min is 0.618
+            spaceCrazeTimeMultiplier = Math.Min(Math.Pow(power, 2), spaceCrazeTimeMultiplier); // max is 2.6
         }
         
 
@@ -2702,8 +2684,8 @@ namespace Headlines
 
         public string GUISpaceCraze()
         {
-            if (this.spaceCrazeTimeMultiplier < 0.6) return "High";
-            else if (this.spaceCrazeTimeMultiplier > 1.619)
+            if (this.spaceCrazeTimeMultiplier < 0.7) return "High";
+            else if (this.spaceCrazeTimeMultiplier >= 1.619)
             {
                 return "Low";
             }

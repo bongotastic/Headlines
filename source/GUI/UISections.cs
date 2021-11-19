@@ -107,6 +107,16 @@ namespace Headlines.source.GUI
             {
                 WriteBullet($"Hype is {Math.Round(RepMgr.OverRating()/(1-RepMgr.GetDecayRatio()),1)}X more volatile than your reputation.");
             }
+
+            switch (storyEngine.GUISpaceCraze())
+            {
+                case "Low":
+                    WriteBullet("Reputation decay is slow, hype decay is fast.");
+                    break;
+                case "High":
+                    WriteBullet("Reputation decays is fast, hype decay is slow.");
+                    break;
+            }
             
             GUILayout.EndVertical();
         }
