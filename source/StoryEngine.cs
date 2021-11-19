@@ -1,24 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using Contracts;
-using Expansions.Missions.Editor;
-using FinePrint;
 using HiddenMarkovProcess;
 using KerbalConstructionTime;
 using Renamer;
 using Headlines.source;
 using Headlines.source.Emissions;
 using Headlines.source.GUI;
-using KSP.IO;
+using RP0;
 using RP0.Crew;
-using UnityEngine;
 using UnityEngine.Serialization;
-
 
 namespace Headlines
 {
+    /// <summary>
+    /// Encoding a impact outcomes for crew members
+    /// </summary>
     public enum ImpactType
     {
         NEGATIVE,
@@ -28,7 +26,7 @@ namespace Headlines
     }
 
     /// <summary>
-    /// As per PENDRAGON system 
+    /// RPG-style, 4-state skill check outcomes. 
     /// </summary>
     public enum SkillCheckOutcome
     {
@@ -52,99 +50,115 @@ namespace Headlines
 
         public static StoryEngine Instance = null;
 
-        // Random number generator
+        /// <summary>
+        /// Class specific random-number generator
+        /// <remarks>This could be centralized to HeadlinesUtil</remarks>
+        /// </summary>
         private static System.Random storytellerRand = new System.Random();
 
-        // Mod data structures
+        /// <summary>
+        /// Pointers to class instances needed by Storyteller
+        /// </summary>
         private PeopleManager _peopleManager;
-
         public ReputationManager _reputationManager = new ReputationManager();
-
         public ProgramManager _programManager = new ProgramManager();
         
-        // Terrible hack
+        /// <summary>
+        /// Unfortunate hack to handle details that must wait for the game to be fully loaded and somehow Start() and Awake()
+        /// are not good enough.
+        /// </summary>
         private int updateIndex = 0;
 
-        // HMM data structures and parameters
+        /// <summary>
+        /// Stores Hidden models and index them by their registered names. Using the same ragistered name, the other
+        /// structure keeps track of time for the states to be triggered.
+        /// </summary>
         private Dictionary<string, HiddenState> _liveProcesses = new Dictionary<string, HiddenState>();
         public Dictionary<string, double> _hmmScheduler = new Dictionary<string, double>();
 
-        // Cached value for the next trigger so the Scheduler doesn't have to scan constantly
+        /// <summary>
+        /// Cached value for the next trigger so the Scheduler doesn't have to scan constantly. This values stores
+        /// the lowest value stored in _hmmScheduler.
+        /// </summary>
         private double _nextUpdate = -1;
 
-        // Master switch of the mod's tempo in second.  
-        private double _assumedPeriod = 3600 * 24;
-
-        // Prevent infinite recursion
+        /// <summary>
+        /// Private flag indicating that KSP science is being manipulated and that the event handler should ignore
+        /// further science changes. 
+        /// </summary>
         private bool _scienceManipulation = false;
 
-        // Multiplier to the _assumedPeriod when it comes to HMM triggering
-        [KSPField(isPersistant = true)] public double attentionSpanFactor = 1;
+        /// <summary>
+        /// Affects the length of the period between reputation decay events. This value is bounded to prevent chaotic
+        /// behaviours.
+        /// </summary>
+        [FormerlySerializedAs("attentionSpanFactor")] [KSPField(isPersistant = true)] public double spaceCrazeTimeMultiplier = 1;
 
-        // Maximum earning in reputation in a single increase call.
-        [KSPField(isPersistant = true)] public float programHype = 10;
-        
-        // To appeal to the optimizers
-        [KSPField(isPersistant = true)] public double headlinesScore = 0;
-        [KSPField(isPersistant = true)] public double lastScoreTimestamp = 0;
-
-        // Pledged hype when inviting the public
-        [KSPField(isPersistant = true)] public bool mediaSpotlight = false;
-        [KSPField(isPersistant = true)] public double endSpotlight = 0;
-        [KSPField(isPersistant = true)] public double wageredReputation = 0;
-
-        // Cache of the last time we manipulated repuation
-        [KSPField(isPersistant = true)] public float programLastKnownReputation = 0;
-
-        // Highest reputation achieved (including overvaluation)
-        [KSPField(isPersistant = true)] public float programHighestValuation = 0;
-        
-        // Hiring payroll rebate
+        /// <summary>
+        /// Track the number of payroll rebate
+        /// <remarks>Should be moved to people manager</remarks>
+        /// </summary>
         [KSPField(isPersistant = true)] public int programPayrollRebate = 1;
 
-        // Antagonized potential capital campaign donors
+        /// <summary>
+        /// Fundraising variables.
+        /// fundraisingBlackout : Next fundraising automatically fails.
+        /// fundraisingTally : For records keeping.
+        /// fundraisingLastTime : Tracks the last time money was raised to implement a cool-off period.
+        /// </summary>
         [KSPField(isPersistant = true)] public bool fundraisingBlackout = false;
-
-        // sum of raised funds
         [KSPField(isPersistant = true)] public double fundraisingTally = 0;
-        
-        // Cool off on fundraising
         [KSPField(isPersistant = true)] public double fundraisingLastTime = 0;
 
-        // Visiting scholars
+        /// <summary>
+        /// Visiting scholar mechanics
+        /// </summary>
         public List<double> visitingScholarEndTimes = new List<double>();
-        [KSPField(isPersistant = true)] public bool visitingScholar = false;
         [KSPField(isPersistant = true)] public float programLastKnownScience = 0;
         [KSPField(isPersistant = true)] public float visitingScienceTally = 0;
-        [KSPField(isPersistant = true)] public float totalScience = 0;
-        [KSPField(isPersistant = true)] public string visitingScholarName = "";
+        [KSPField(isPersistant = true)] public float totalScience = 0; // Records-keeping
+        [KSPField(isPersistant = true)] public string visitingScholarName = ""; // Not needed as a class variable
 
-        // Inquiry
+        /// <summary>
+        /// Inquiry mechanics
+        /// </summary>
         [KSPField(isPersistant = true)] public bool ongoingInquiry = false;
         private List<string> newDeath = new List<string>();
 
-        // Launch detection
+        /// <summary>
+        /// Launch detection and tracking of self-reporting story elements.
+        /// </summary>
         private List<Vessel> newLaunch = new List<Vessel>();
         [KSPField(isPersistant = true)] public bool highDramaReported = false;
         [KSPField(isPersistant = true)] public bool overUrbanReported = false;
 
-        // New Game flag
+        /// <summary>
+        /// Shenannigans related to the first time the complex is visited.
+        /// </summary>
         [KSPField(isPersistant = true)] public bool hasnotvisitedAstronautComplex = true;
         public bool inAstronautComplex = false;
         
-        // Logging
+        /// <summary>
+        /// News logging mechanics
+        /// </summary>
         [KSPField(isPersistant = true)] public HeadlineScope notificationThreshold = HeadlineScope.NEWSLETTER;
         [KSPField(isPersistant = true)] public HeadlineScope feedThreshold = HeadlineScope.FEATURE;
         [KSPField(isPersistant = true)] public bool logDebug = true;
         public Queue<NewsStory> headlines = new Queue<NewsStory>();
          
-        // UI states
+        /// <summary>
+        /// Persistence of the UI stored as a config node
+        /// </summary>
         public ConfigNode UIStates = null;
         
-        // HMM to remove
+        /// <summary>
+        /// buffer to store HMM to delete at some point
+        /// </summary>
         private List<string> _hmmToRemove = new List<string>();
         
-        // Weights for complexity
+        /// <summary>
+        /// Weights for complexity calculations
+        /// </summary>
         private static Dictionary<complexityDepartment, List<int>> complexityWeights = new Dictionary<complexityDepartment, List<int>>()
         {
             {complexityDepartment.ALL, new List<int> {2,2,1,1}},
@@ -155,11 +169,7 @@ namespace Headlines
         #endregion
 
         #region UnityStuff
-
-        public override void OnAwake()
-        {
-            base.OnAwake();
-        }
+        
 
         /// <summary>
         /// Unity method with some basics stuff that needs to run once inside a the scene.
@@ -199,19 +209,22 @@ namespace Headlines
         /// </summary>
         public void Update()
         {
-            // Do not run Headlines outside of career
-            if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER) return;
-
-            // Shameless hack.
+            // Hodge podge of stuff to run after everything is loaded
             if (updateIndex < 10)
             {
                 _programManager.SetStoryEngine(this);
                 
                 _reputationManager.ReattemptLoadContracts();
 
+                CareerLog.GetHeadlinesHype = GetHeadlinesHype;
+
+                // Attempt to bind the KACWrapper
                 try
                 {
-                    KACWrapper.InitKACWrapper();
+                    if (!KACWrapper.APIReady)
+                    {
+                        KACWrapper.InitKACWrapper();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -234,6 +247,7 @@ namespace Headlines
                 updateIndex += 1;
             }
             
+            // Is this needed anymore?
             _reputationManager.SetLastKnownCredibility(Reputation.CurrentRep);
 
             // Unfortunate addition to the Update look to get around weirdness in Event Firing.
@@ -256,7 +270,7 @@ namespace Headlines
             _programManager.AI_releaseAchievements();
 
             // Minimizing the profile of this method's call.
-            if (_nextUpdate <= GetUT()) SchedulerUpdate(GetUT());
+            if (_nextUpdate <= HeadlinesUtil.GetUT()) SchedulerUpdate(HeadlinesUtil.GetUT());
         }
 
         #endregion
@@ -418,22 +432,20 @@ namespace Headlines
         }
 
         /// <summary>
-        /// Avoid some weird quirk from KCT editor revert (taken from RP-0)
+        /// Query from KSP about available funds
         /// </summary>
-        /// <returns>UT time in seconds</returns>
-        public static double GetUT()
-        {
-            return HeadlinesUtil.GetUT();
-        }
-
+        /// <returns></returns>
         public double GetFunds()
         {
             return Funding.Instance.Funds;
         }
 
+        /// <summary>
+        /// Additive modification of the KSP funds
+        /// </summary>
+        /// <param name="deltaFund"></param>
         public void AdjustFunds(double deltaFund)
         {
-            Debug( $"Adjusting funds by {deltaFund}", "FUNDS");
             Funding.Instance.AddFunds(deltaFund, TransactionReasons.None);
         }
 
@@ -525,7 +537,7 @@ namespace Headlines
         /// Catches new hires from the kerbonaut centre and add to Headlines' _peopleManager
         /// </summary>
         /// <param name="pcm"></param>
-        /// <param name="count"></param>
+        /// <param name="count">Not used but required by event handler</param>
         public void EventCrewHired(ProtoCrewMember pcm, int count)
         {
             if (programPayrollRebate > 0)
@@ -546,6 +558,10 @@ namespace Headlines
             }
         }
 
+        /// <summary>
+        /// Add the identity of who died to be processed later.
+        /// </summary>
+        /// <param name="data"></param>
         public void EventCrewKilled(EventReport data)
         {
             if (!newDeath.Contains(data.sender))
@@ -574,8 +590,7 @@ namespace Headlines
                 FileHeadline(ns);
 
                 PersonnelFile personnelFile = _peopleManager.GetFile(crewName);
-                if (personnelFile == null) PrintScreen("null pfile");
-                
+
                 // Credibility loss
                 double repLoss = -2 * personnelFile.Effectiveness(deterministic: true);
                 HeadlinesUtil.Report(2,$"Initial shock at {personnelFile.DisplayName()}'s death. Credibility decreased by {repLoss}");
@@ -595,7 +610,6 @@ namespace Headlines
                 ongoingInquiry = true;
 
                 // Remove influence
-                PrintScreen( "Canceling influence");
                 CancelInfluence(personnelFile, leaveKSC: true);
 
                 // HMMs
@@ -783,9 +797,14 @@ namespace Headlines
             return "";
         }
 
+        /// <summary>
+        /// Change the specialty of a crew member to another specialty.
+        /// </summary>
+        /// <param name="crewmember"></param>
+        /// <param name="newRole"></param>
         public void RetrainKerbal(PersonnelFile crewmember, string newRole)
         {
-            PrintScreen( $"Retraining {crewmember.DisplayName()} from {crewmember.Specialty()} to {newRole}");
+            HeadlinesUtil.Report(2, $"Retraining {crewmember.DisplayName()} from {crewmember.Specialty()} to {newRole}");
             KerbalRoster.SetExperienceTrait(crewmember.GetKSPData(), newRole);
 
             // Delete role HMM
@@ -886,7 +905,7 @@ namespace Headlines
                     multiplier *= -1f;
                     break;
                 case ImpactType.LASTING:
-                    multiplier *= 2f;
+                    if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN) multiplier *= 2f;
                     break;
                 case ImpactType.PASSIVE:
                     multiplier *= 0.5f;
@@ -914,7 +933,7 @@ namespace Headlines
             ns.AddToStory($"They are{adjective}in the public eye. Hype gain is {deltaHype}.");
             FileHeadline(ns);
             kerbalFile.AddLifetimeHype((int)deltaHype);
-            AdjustHype(deltaHype);
+            _reputationManager.AdjustHype(deltaHype);
         }
 
         /// <summary>
@@ -1202,6 +1221,11 @@ namespace Headlines
             }
         }
 
+        /// <summary>
+        /// Remove a feud from one random feuding partner.
+        /// </summary>
+        /// <param name="personnelFile">The anchor crew who will lose a feud (if possible)</param>
+        /// <param name="emitData"></param>
         public void KerbalReconcile(PersonnelFile personnelFile, Emissions emitData)
         {
             PersonnelFile candidate = _peopleManager.GetRandomKerbal(personnelFile, personnelFile.feuds);
@@ -1456,7 +1480,10 @@ namespace Headlines
         /// <param name="emitData"></param>
         public void KerbalScoutTalent(PersonnelFile personnelFile, Emissions emitData)
         {
-            programPayrollRebate += 1;
+            if (HeadlinesUtil.randomGenerator.NextDouble() < Math.Pow(0.933, programPayrollRebate))
+            {
+                programPayrollRebate += 1;
+            }
             personnelFile.numberScout += 1;
             personnelFile.fundRaised += 40000;
             
@@ -1492,7 +1519,6 @@ namespace Headlines
             double expiryDate = HeadlinesUtil.GetUT() + storytellerRand.Next(3, 7) * (3600 * 24 * 30);
             visitingScholarEndTimes.Add(expiryDate);
             
-            this.visitingScholar = true;
             ProtoCrewMember.Gender gender = ProtoCrewMember.Gender.Female;
             if (storytellerRand.NextDouble() < 0.5) gender = ProtoCrewMember.Gender.Male;
             
@@ -1582,6 +1608,10 @@ namespace Headlines
             }
         }
 
+        /// <summary>
+        /// Triggered by a player decision from the UI. Elevates a crew member to the role of program manager.
+        /// </summary>
+        /// <param name="newManager"></param>
         public void KerbalAppointProgramManager(PersonnelFile newManager)
         {
             string initialName = _programManager.ManagerName();
@@ -1627,6 +1657,9 @@ namespace Headlines
             FileHeadline(ns);
         }
 
+        /// <summary>
+        /// If a PM is crew and the crew retires due to RP1 mechanics.
+        /// </summary>
         public void RetireStaffProgramManager()
         {
             string oldname = _programManager.ManagerName();
@@ -1640,7 +1673,7 @@ namespace Headlines
         #region HMM Logic
 
         /// <summary>
-        /// Unfortunate method to catch cases where the role was misread because RP1 changd it after initializing this object.
+        /// Unfortunate method to catch cases where the role was misread because RP1 changed it after initializing this object.
         /// </summary>
         public void AssertRoleHMM()
         {
@@ -1695,6 +1728,10 @@ namespace Headlines
 
         }
 
+        /// <summary>
+        /// Modifies the emission probabilities depending on the personality of a crew member.
+        /// </summary>
+        /// <param name="newState"></param>
         public void ApplyCrewPersonality(HiddenState newState)
         {
             // People manager may not be loaded
@@ -1826,6 +1863,11 @@ namespace Headlines
             }
         }
 
+        /// <summary>
+        /// Fetche the role HMM for a given crew member.
+        /// </summary>
+        /// <param name="crewmember"></param>
+        /// <returns></returns>
         public HiddenState GetRoleHMM(PersonnelFile crewmember)
         {
             foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
@@ -1855,7 +1897,7 @@ namespace Headlines
             double modifier = 1;
             if (decay)
             {
-                modifier = attentionSpanFactor;
+                modifier = spaceCrazeTimeMultiplier;
             }
             double stdDev = meanValue / 3;
             double u1 = 1.0 - storytellerRand.NextDouble();
@@ -1867,7 +1909,7 @@ namespace Headlines
             double outValue = Math.Max(returnedVal * modifier, floorVal);
 
             // Convert to seconds based on hardcoded period
-            return outValue * _assumedPeriod;
+            return outValue * HeadlinesUtil.OneDay;
         }
 
         /// <summary>
@@ -2098,10 +2140,10 @@ namespace Headlines
                     AdjustSpaceCraze(-1);
                     break;
                 case "hype_boost":
-                    AdjustHype(5f);
+                    _reputationManager.AdjustHype(5f);
                     break;
                 case "hype_dampened":
-                    AdjustHype(-5f);
+                    _reputationManager.AdjustHype(-5f);
                     break;
                 case "decay_reputation":
                     DecayReputation();
@@ -2245,16 +2287,16 @@ namespace Headlines
             }
         }
 
+        /// <summary>
+        /// Convenience method to wrap around the main debug utility.
+        /// <remarks>Should be removed</remarks>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="label"></param>
         public void Debug(string message, string label = "")
         {
             if (!logDebug) return;
             FileHeadline(new NewsStory(HeadlineScope.DEBUG, label, message));
-        }
-        
-        public void PrintScreen(string message)
-        {
-            if (!logDebug) return;
-            FileHeadline(new NewsStory(HeadlineScope.SCREEN, Story:message));
         }
 
         /// <summary>
@@ -2272,40 +2314,13 @@ namespace Headlines
                 power = 1 / power;
             }
 
-            attentionSpanFactor *= power;
+            spaceCrazeTimeMultiplier *= power;
 
             // Clamp this factor within reasonable boundaries
-            attentionSpanFactor = Math.Max(Math.Pow(power, -5), attentionSpanFactor); // min is 0.47
-            attentionSpanFactor = Math.Min(Math.Pow(power, 3), attentionSpanFactor); // max is 1.56
-
-            // Let player know without spamming the screen
-            if (increment > 0 && attentionSpanFactor > 1.61)
-            {
-                Emissions em = new Emissions("attention_span_long");
-                NewsStory ns = new NewsStory(em);
-                ns.headline = "Pressure lowers on you";
-                ns.AddToStory(em.GenerateStory());
-                FileHeadline(ns);
-            }
-            else if (attentionSpanFactor <= 1)
-            {
-                Emissions em = new Emissions("attention_span_short");
-                NewsStory ns = new NewsStory(em);
-                ns.headline = "Space craze is high";
-                ns.AddToStory(em.GenerateStory());
-                FileHeadline(ns);
-            }
+            spaceCrazeTimeMultiplier = Math.Max(Math.Pow(power, -1), spaceCrazeTimeMultiplier); // min is 0.618
+            spaceCrazeTimeMultiplier = Math.Min(Math.Pow(power, 2), spaceCrazeTimeMultiplier); // max is 2.6
         }
-
-        /// <summary>
-        /// Adjust hype in either direction. Hype cannot go under 0 as there is no such thing
-        /// as negative hype.
-        /// </summary>
-        /// <param name="increment">(float)the number of increment unit to apply.</param>
-        public double AdjustHype(float increment)
-        {
-            return _reputationManager.AdjustHype(increment);
-        }
+        
 
         /// <summary>
         /// Degrades reputation of the program. 
@@ -2411,7 +2426,7 @@ namespace Headlines
             Emissions em = new Emissions("spin_findings");
             FileHeadline(new NewsStory(em, Headline: "Public inquiry: exoneration", generateStory:true));
             
-            AdjustHype(1);
+            _reputationManager.AdjustHype(1);
         }
         
         public void InquiryConclude()
@@ -2608,6 +2623,9 @@ namespace Headlines
             }
         }
 
+        /// <summary>
+        /// Changes the probability of a conclusion for the debris sequence.
+        /// </summary>
         public void DebrisResolve()
         {
             foreach (KeyValuePair<string, HiddenState> kvp in _liveProcesses)
@@ -2666,8 +2684,8 @@ namespace Headlines
 
         public string GUISpaceCraze()
         {
-            if (this.attentionSpanFactor < 0.6) return "High";
-            else if (this.attentionSpanFactor > 1.619)
+            if (this.spaceCrazeTimeMultiplier < 0.7) return "High";
+            else if (this.spaceCrazeTimeMultiplier >= 1.619)
             {
                 return "Low";
             }
@@ -2686,15 +2704,6 @@ namespace Headlines
             double peak = _reputationManager.Peak();
 
             return $"{Math.Round(100 * peak)}%";
-        }
-
-        public double GUIVisitingSciencePercent()
-        {
-            if (totalScience == 0) return 0;
-
-            double ratio = visitingScienceTally / totalScience;
-            ratio *= 100;
-            return Math.Round(ratio, 1);
         }
 
         public double GUIVisitingScience()
@@ -2748,6 +2757,11 @@ namespace Headlines
             }
         }
 
+        /// <summary>
+        /// Find the number of news stored for a specific crew member
+        /// </summary>
+        /// <param name="crewName"></param>
+        /// <returns></returns>
         public int GetNumberNewsAbout(string crewName)
         {
             int output = 0;
@@ -2808,15 +2822,6 @@ namespace Headlines
             else if (die >= 17 ) outcome = SkillCheckOutcome.FUMBLE;
             
             return outcome;
-        }
-        
-        /// <summary>
-        /// Valuation is the sum of reputation and hype: this is what people can see.
-        /// </summary>
-        /// <returns></returns>
-        public double GetValuation()
-        {
-            return _reputationManager.CurrentReputation();
         }
 
         public int GetValuationLevel()
@@ -2940,6 +2945,7 @@ namespace Headlines
                 return;
             }
 
+            // Case where the program does not go live in the time period promised.
             if (_reputationManager.currentMode == MediaRelationMode.CAMPAIGN &
                 _reputationManager.airTimeEnds < HeadlinesUtil.GetUT())
             {
@@ -2954,12 +2960,12 @@ namespace Headlines
                 if (credibilityAdjustment < 0)
                 {
                     HeadlinesUtil.Report(2, $"Coming off live with a credibility loss of {credibilityAdjustment}");
-                    ns.AddToStory($"The media crews are leaving disappointed. (Rep: {Math.Round(credibilityAdjustment,2)})");
+                    ns.AddToStory($"Media crews are leaving disappointed. (Rep: {Math.Round(credibilityAdjustment,2)})");
                     ns.headline = "Media debrief: failure";
                 }
                 else
                 {
-                    ns.AddToStory($"The media crews are leaving impressed. (Hype: {Math.Round(_reputationManager.Hype(),2)})");
+                    ns.AddToStory($"Media crews are leaving impressed. (Hype: {Math.Round(_reputationManager.Hype(),2)})");
                     ns.headline = "Media debrief: Success";
                     _programManager.AdjustRemainingLaunches(0.5);
                 }
@@ -2967,10 +2973,13 @@ namespace Headlines
             }
         }
 
+        /// <summary>
+        /// Reveal a secret achievement to the press.
+        /// </summary>
+        /// <param name="ns"></param>
         public void IssuePressRelease(NewsStory ns)
         {
             _reputationManager.IssuePressReleaseFor(ns);
-            FileHeadline(ns);
 
             // Give some fame to crew, but not as much as it if had been live.
             if (ns.reputationValue != 0)
@@ -3037,6 +3046,10 @@ namespace Headlines
             return false;
         }
 
+        /// <summary>
+        /// Stub method to make room for a more complex routine at some point in the future.
+        /// </summary>
+        /// <returns></returns>
         public double HiringRebate()
         {
             return 10000;
@@ -3075,6 +3088,12 @@ namespace Headlines
             return (int) Math.Round(level, MidpointRounding.AwayFromZero);
         }
 
+        /// <summary>
+        /// Turn into a discrete level from a double, treating partial level as probability to be one step up. 
+        /// </summary>
+        /// <param name="level"></param>
+        /// <param name="deterministic"></param>
+        /// <returns></returns>
         public int GetProbabilisticLevel(double level, bool deterministic = true)
         {
             if (deterministic)
@@ -3268,6 +3287,15 @@ namespace Headlines
             ksc.RecalculateBuildRates();
             ksc.RecalculateUpgradedBuildRates();
             Debug( $"Adjust VAB points by {deltaPoint}.");
+        }
+
+        /// <summary>
+        /// FOr Career logging within RP0's career logger
+        /// </summary>
+        /// <returns></returns>
+        public double GetHeadlinesHype()
+        {
+            return _reputationManager.Hype();
         }
 
         /// <summary>

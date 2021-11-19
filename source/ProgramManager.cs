@@ -406,7 +406,10 @@ namespace Headlines.source
             
             if (programPriority == ProgramPriority.CAPACITY)
             {
-                _storyEngine.programPayrollRebate += 1;
+                if (HeadlinesUtil.randomGenerator.NextDouble() < Math.Pow(0.933, _storyEngine.programPayrollRebate))
+                {
+                    _storyEngine.programPayrollRebate += 1;
+                }
             }
             controlLevel = ProgramControlLevel.HIGH;
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using CommNet.Network;
 using Contracts;
 using Headlines.source.Emissions;
@@ -106,6 +107,16 @@ namespace Headlines.source.GUI
             {
                 WriteBullet($"Hype is {Math.Round(RepMgr.OverRating()/(1-RepMgr.GetDecayRatio()),1)}X more volatile than your reputation.");
             }
+
+            switch (storyEngine.GUISpaceCraze())
+            {
+                case "Low":
+                    WriteBullet("Reputation decay is slow, hype decay is fast.");
+                    break;
+                case "High":
+                    WriteBullet("Reputation decays is fast, hype decay is slow.");
+                    break;
+            }
             
             GUILayout.EndVertical();
         }
@@ -154,7 +165,7 @@ namespace Headlines.source.GUI
             
             GUILayout.BeginHorizontal();
             GUILayout.Label($"Manager: {PrgMgr.ManagerName()}", GUILayout.Width(sectionWidth/2));
-            GUILayout.Label($"Profile: {peopleManager.QualitativeEffectiveness(PrgMgr.ManagerProfile())}", GUILayout.Width(sectionWidth/2));
+            GUILayout.Label($"Background: {PrgMgr.ManagerBackground()}", GUILayout.Width(sectionWidth/2));
             GUILayout.EndHorizontal();
             
             GUILayout.BeginHorizontal();
@@ -173,7 +184,6 @@ namespace Headlines.source.GUI
             {
                 GUILayout.Label($"Trait: {PrgMgr.ManagerPersonality()}", GUILayout.Width(sectionWidth/2));
             }
-            GUILayout.Label($"Background: {PrgMgr.ManagerBackground()}", GUILayout.Width(sectionWidth/2));
             GUILayout.EndHorizontal();
             
             GUILayout.EndVertical();
@@ -224,7 +234,7 @@ namespace Headlines.source.GUI
                     WriteBullet("A bland PM underperforms in this position.", BulletEmote.WARNING);
                     break;
                 case "charming":
-                    WriteBullet("A charming PM protects the program's reputation with confidence.");
+                    WriteBullet("A charming PM protects better the program's reputation.");
                     break;
             }
             
@@ -253,6 +263,11 @@ namespace Headlines.source.GUI
             if (RepMgr.CurrentReputation() - initCred >= 50)
             {
                 WriteBullet("Is on a high due to their successes.", BulletEmote.THUMBUP);
+            }
+
+            if (storyEngine.GetProgramComplexity() > 1)
+            {
+                WriteBullet("Program complexity challenges the PM.");
             }
 
             GUILayout.EndVertical();
@@ -562,6 +577,11 @@ namespace Headlines.source.GUI
                 RepMgr.CancelMediaEvent();
             }
 
+            if (GUILayout.Button("Postpone event by one day", FullWidth()))
+            {
+                RepMgr.PostponeLiveEvent(1);
+            }
+
             if (now >= RepMgr.airTimeStarts)
             {
 
@@ -814,7 +834,15 @@ namespace Headlines.source.GUI
                 storyEngine.IssuePressRelease(ns);
                 _root.resizePosition = true;
             }
-            GUILayout.Label($"{ns.headline} ({Math.Round(ns.reputationValue,1,MidpointRounding.AwayFromZero)})", GUILayout.Width(sectionWidth-60));
+
+            if (RepMgr.currentMode == MediaRelationMode.CAMPAIGN)
+            {
+                GUILayout.Label($"{ns.headline} ({Math.Round(RepMgr.TransformReputation(ns.reputationValue * 2, RepMgr.CurrentReputation()),1,MidpointRounding.AwayFromZero)} hype)", GUILayout.Width(sectionWidth-60));
+            }
+            else
+            {
+                GUILayout.Label($"{ns.headline} ({Math.Round(RepMgr.TransformReputation(ns.reputationValue),1,MidpointRounding.AwayFromZero)} rep)", GUILayout.Width(sectionWidth-60));
+            }
             GUILayout.EndHorizontal();
         }
         
@@ -934,6 +962,31 @@ namespace Headlines.source.GUI
                 
                 WriteBullet($"{focusCrew.DisplayName()} is rather unhappy, consider sending them to {where} to clear their heads.", BulletEmote.WARNING);
             }
+
+            switch (focusCrew.personality)
+            {
+                case "stubborn":
+                    WriteBullet("Stubborn: Dislike being told what to do.");
+                    break;
+                case "genial":
+                    WriteBullet("Genial: Natural collaborator.");
+                    break;
+                case "inspiring":
+                    WriteBullet("Inspiring: natural leader.");
+                    break;
+                case "charming":
+                    WriteBullet("Charming: great with the press.");
+                    break;
+                case "scrapper":
+                    WriteBullet("Scrapper: tend to get into fights.");
+                    break;
+                case "bland":
+                    WriteBullet("Bland: struggles with the press.");
+                    break;
+            }
+
+            string activity = focusCrew.Specialty() == "Pilot" ? "Media training" : "Study leave";
+            WriteBullet($"{activity} contributes {focusCrew.trainingLevel} levels to profile.");
 
             GUILayout.EndVertical();
         }
@@ -1281,6 +1334,69 @@ namespace Headlines.source.GUI
         }
     }
     
+    #endregion
+
+    #region Story
+
+    public class UISectionDebug : UISection
+    {
+        public UISectionDebug(HeadlinesGUIManager root, bool isFullwidth = false) : base(root, isFullwidth)
+        {
+            hasCompact = true;
+            hasExtended = true;
+            hasHelp = false;
+
+            _state = UIBoxState.COMPACT;
+        }
+
+        protected override string HeadString()
+        {
+            return $"Under the hood";
+        }
+
+        protected override void DrawCompact()
+        {
+            
+        }
+
+        protected override void DrawExtended()
+        {
+            GUILayout.BeginVertical();
+            
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Simulate Rep change", GUILayout.Width(150)))
+            {
+                HeadlinesUtil.Report(2, $"Once {_root._debugRepDelta}, now {RepMgr.TransformReputation(_root._debugRepDelta)}");
+            }
+            if (GUILayout.Button("Simulate hype change", GUILayout.Width(150)))
+            {
+                HeadlinesUtil.Report(2, $"Once {_root._debugRepDelta}, now {RepMgr.TransformReputation(_root._debugRepDelta, RepMgr.CurrentReputation())}");
+            }
+
+            _root._debugRepDelta = double.Parse(GUILayout.TextField($"{_root._debugRepDelta}", GUILayout.Width(80)));
+            GUILayout.EndHorizontal();
+            
+            _root.GUIPad();
+            GUILayout.Box("Random processes");
+            double clock = HeadlinesUtil.GetUT();
+            _root.scrollHMMView =
+                GUILayout.BeginScrollView(_root.scrollHMMView, GUILayout.Width(400), GUILayout.Height(200));
+            foreach (KeyValuePair<string, double> kvp in storyEngine._hmmScheduler.OrderBy(x=>x.Value))
+            {
+                GUILayout.Label($"{KSPUtil.PrintDateDeltaCompact(kvp.Value - clock, true, false)} - {kvp.Key}");
+            }
+
+            GUILayout.EndScrollView();
+            
+            GUILayout.EndVertical();
+        }
+        
+        protected override void DrawHelp()
+        {
+            
+        }
+    }    
+
     #endregion
 
     /// <summary>
