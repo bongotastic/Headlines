@@ -980,6 +980,9 @@ namespace Headlines.source.GUI
                     break;
             }
 
+            string activity = focusCrew.Specialty() == "Pilot" ? "Media training" : "Study leave";
+            WriteBullet($"{activity} contributes {focusCrew.trainingLevel} levels to profile.");
+
             GUILayout.EndVertical();
         }
     }
