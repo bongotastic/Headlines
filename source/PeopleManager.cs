@@ -1181,7 +1181,7 @@ namespace Headlines
 
         public bool IsInactive()
         {
-            return pcm.inactive;
+            return pcm.inactive || pcm.rosterStatus == ProtoCrewMember.RosterStatus.Assigned;
         }
 
         public double InactiveDeadline()
