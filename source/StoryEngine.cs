@@ -606,8 +606,11 @@ namespace Headlines
                 CancelAllInfluence();
             
                 // inquiry
-                InitializeHMM("death_inquiry");
-                ongoingInquiry = true;
+                if (!_liveProcesses.ContainsKey("death_inquiry"))
+                {
+                    InitializeHMM("death_inquiry");
+                    ongoingInquiry = true;
+                }
 
                 // Remove influence
                 CancelInfluence(personnelFile, leaveKSC: true);
