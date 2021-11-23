@@ -584,10 +584,6 @@ namespace Headlines
                     continue;
                 }
                 alreadyProcessed.Add(crewName);
-                
-                NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, $"Death inquiry for {crewName} launched.",
-                    "Public Inquiry");
-                FileHeadline(ns);
 
                 PersonnelFile personnelFile = _peopleManager.GetFile(crewName);
 
@@ -610,6 +606,14 @@ namespace Headlines
                 {
                     InitializeHMM("death_inquiry");
                     ongoingInquiry = true;
+
+                    string headline = $"Death inquiry for {crewName} launched.";
+                    if (newDeath.Count > 1)
+                    {
+                        headline = "Death inquiry launched";
+                    }
+                    NewsStory ns = new NewsStory(HeadlineScope.FRONTPAGE, headline, "Public Inquiry");
+                    FileHeadline(ns);
                 }
 
                 // Remove influence
