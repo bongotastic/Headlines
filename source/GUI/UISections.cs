@@ -941,9 +941,12 @@ namespace Headlines.source.GUI
         protected override void DrawHelp()
         {
             GUILayout.BeginVertical();
-            
-            double retirementDeltaTime = CrewHandler.Instance.KerbalRetireTimes[focusCrew.UniqueName()] - HeadlinesUtil.GetUT();
-            WriteBullet($"Is set to retire in {KSPUtil.PrintDateDelta(retirementDeltaTime, false)}");
+
+            if (CrewHandler.Instance.KerbalRetireTimes.ContainsKey(focusCrew.UniqueName()))
+            {
+                double retirementDeltaTime = CrewHandler.Instance.KerbalRetireTimes[focusCrew.UniqueName()] - HeadlinesUtil.GetUT();
+                WriteBullet($"Is set to retire in {KSPUtil.PrintDateDelta(retirementDeltaTime, false)}");
+            }
 
             int complexity = 0;
             if (focusCrew.Specialty() == "Engineer")
