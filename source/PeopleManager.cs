@@ -712,6 +712,8 @@ namespace Headlines
             bool addthis = false;
             foreach (KeyValuePair<string, PersonnelFile> kvp in personnelFolders)
             {
+                if (kvp.Value.IsDead()) continue;
+
                 addthis = false;
                 switch (_filterCode)
                 {
@@ -1182,6 +1184,11 @@ namespace Headlines
         public bool IsInactive()
         {
             return pcm.inactive || pcm.rosterStatus == ProtoCrewMember.RosterStatus.Assigned;
+        }
+
+        public bool IsDead()
+        {
+            return pcm.rosterStatus == ProtoCrewMember.RosterStatus.Dead;
         }
 
         public double InactiveDeadline()
