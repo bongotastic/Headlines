@@ -320,11 +320,26 @@ namespace Headlines.source
         private void ApplyInfluence(int VAB, int RnD)
         {
             CancelInfluence();
-            influenceVAB = VAB * _storyEngine.UpgradeIncrementVAB();
-            _storyEngine.AdjustVAB(influenceVAB);
 
+            influenceVAB = VAB * _storyEngine.UpgradeIncrementVAB();
+            if (influenceVAB + _storyEngine.GetVABPoints() > 0)
+            {
+                _storyEngine.AdjustVAB(influenceVAB);
+            }
+            else
+            {
+                influenceVAB = 0;
+            }
+            
             influenceRnD = RnD * _storyEngine.UpgradeIncrementRnD();
-            _storyEngine.AdjustRnD(influenceRnD);
+            if (influenceRnD + _storyEngine.GetRnDPoints() > 0)
+            {
+                _storyEngine.AdjustRnD(influenceRnD);
+            }
+            else
+            {
+                influenceRnD = 0;
+            }
         }
         
         #endregion

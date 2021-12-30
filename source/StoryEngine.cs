@@ -216,7 +216,7 @@ namespace Headlines
                 
                 _reputationManager.ReattemptLoadContracts();
 
-                //CareerLog.GetHeadlinesHype = GetHeadlinesHype;
+                CareerLog.GetHeadlinesHype = GetHeadlinesHype;
 
                 // Attempt to bind the KACWrapper
                 try
